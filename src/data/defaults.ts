@@ -24,11 +24,19 @@ export const IMAGES = {
   fullstackPkg: '/src/assets/images/skill98_mcp_agents_cover_1795088217282.jpg',
   uiuxPkg: '/src/assets/images/skill98_motion_ui_cover_1795088220877.jpg',
   securityPkg: '/src/assets/images/skill98_cloud_security_cover_1795088218781.jpg',
-  aiAutomationPkg: '/src/assets/images/skill98_mcp_agents_cover_1795088217282.jpg',
+  aiAutomationPkg: '/src/assets/images/pkg_ai_automation_1794606448806.webp',
 };
 
 export function resolveStaticImageUrl(url?: string): string {
-  return url || IMAGES.fullstackPkg;
+  if (!url) return IMAGES.fullstackPkg;
+  const trimmed = url.trim();
+  if (!trimmed) return IMAGES.fullstackPkg;
+  if (trimmed.includes('skill98-fullstack-pkg')) return IMAGES.fullstackPkg;
+  if (trimmed.includes('skill98-uiux-pkg')) return IMAGES.uiuxPkg;
+  if (trimmed.includes('skill98-security-pkg')) return IMAGES.securityPkg;
+  if (trimmed.includes('skill98-ai-automation-pkg')) return IMAGES.aiAutomationPkg;
+  if (trimmed.startsWith('/images/')) return IMAGES.fullstackPkg;
+  return trimmed;
 }
 
 export const INITIAL_MEDIA_LIBRARY: MediaAssetItem[] = [

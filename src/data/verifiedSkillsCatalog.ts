@@ -1,10 +1,11 @@
-import type { SkillProduct, PosterColorScheme } from './skill98Data';
+import type { SkillProduct, PosterColorScheme } from '../core/types.js';
+import { IMAGES } from './defaults.js';
 
 const CATALOG_IMAGES = {
-  fullstackPkg: '/images/skill98-fullstack-pkg.png',
-  uiuxPkg: '/images/skill98-uiux-pkg.png',
-  securityPkg: '/images/skill98-security-pkg.png',
-  aiAutomationPkg: '/images/skill98-ai-automation-pkg.png',
+  fullstackPkg: IMAGES.fullstackPkg,
+  uiuxPkg: IMAGES.uiuxPkg,
+  securityPkg: IMAGES.securityPkg,
+  aiAutomationPkg: IMAGES.aiAutomationPkg,
 };
 
 interface CompactSkillSeed {

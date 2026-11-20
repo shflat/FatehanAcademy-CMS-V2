@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { resolveStaticImageUrl, VITE_IMAGES } from '../../data/mediaAssets';
 
 interface ProgressiveImageProps
   extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
@@ -17,10 +18,14 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
   ...rest
 }) => {
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const resolvedInitial = resolveStaticImageUrl(src);
+  const [activeSrc, setActiveSrc] = useState(resolvedInitial);
   const [loaded, setLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
+    const nextSrc = resolveStaticImageUrl(src);
+    setActiveSrc(nextSrc);
     setHasError(false);
     if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
       setLoaded(true);
@@ -48,15 +53,19 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
       ) : (
         <img
           ref={imgRef}
-          src={src}
+          src={activeSrc}
           alt={alt}
           loading={loading}
           decoding={decoding}
           referrerPolicy="no-referrer"
           onLoad={() => setLoaded(true)}
           onError={() => {
-            setHasError(true);
-            setLoaded(true);
+            if (activeSrc !== VITE_IMAGES.fullstackPkg) {
+              setActiveSrc(VITE_IMAGES.fullstackPkg);
+            } else {
+              setHasError(true);
+              setLoaded(true);
+            }
           }}
           className={`transition-all duration-700 ease-out will-change-[transform,opacity,filter] ${
             loaded

@@ -2,7 +2,7 @@ import heroStudioImg from '../assets/images/skill98_ai_architecture_hero_1795088
 import fullstackPkgImg from '../assets/images/skill98_mcp_agents_cover_1795088217282.jpg';
 import uiuxPkgImg from '../assets/images/skill98_motion_ui_cover_1795088220877.jpg';
 import securityPkgImg from '../assets/images/skill98_cloud_security_cover_1795088218781.jpg';
-import aiAutomationPkgImg from '../assets/images/skill98_mcp_agents_cover_1795088217282.jpg';
+import aiAutomationPkgImg from '../assets/images/pkg_ai_automation_1794606448806.webp';
 
 export const VITE_IMAGES = {
   heroStudio: heroStudioImg,
@@ -15,34 +15,46 @@ export const VITE_IMAGES = {
 
 export function resolveStaticImageUrl(url?: string): string {
   if (!url) return VITE_IMAGES.fullstackPkg;
+  const trimmed = url.trim();
+  if (!trimmed) return VITE_IMAGES.fullstackPkg;
+
   if (
-    url.includes('hero_skill98_studio_1794606408189') ||
-    url.includes('skill98_ai_architecture_hero_1795088218603')
+    trimmed.includes('hero_skill98_studio_1794606408189') ||
+    trimmed.includes('skill98_ai_architecture_hero_1795088218603')
   ) {
     return VITE_IMAGES.heroStudio;
   }
   if (
-    url.includes('pkg_fullstack_mastery_1794606416960') ||
-    url.includes('skill98_mcp_agents_cover_1795088217282')
+    trimmed.includes('pkg_fullstack_mastery_1794606416960') ||
+    trimmed.includes('skill98_mcp_agents_cover_1795088217282') ||
+    trimmed.includes('skill98-fullstack-pkg')
   ) {
     return VITE_IMAGES.fullstackPkg;
   }
   if (
-    url.includes('pkg_uiux_design_system_1794606426062') ||
-    url.includes('skill98_motion_ui_cover_1795088220877')
+    trimmed.includes('pkg_uiux_design_system_1794606426062') ||
+    trimmed.includes('skill98_motion_ui_cover_1795088220877') ||
+    trimmed.includes('skill98-uiux-pkg')
   ) {
     return VITE_IMAGES.uiuxPkg;
   }
   if (
-    url.includes('pkg_security_devops_1794606438917') ||
-    url.includes('skill98_cloud_security_cover_1795088218781')
+    trimmed.includes('pkg_security_devops_1794606438917') ||
+    trimmed.includes('skill98_cloud_security_cover_1795088218781') ||
+    trimmed.includes('skill98-security-pkg')
   ) {
     return VITE_IMAGES.securityPkg;
   }
-  if (url.includes('pkg_ai_automation_1794606448806')) {
+  if (
+    trimmed.includes('pkg_ai_automation_1794606448806') ||
+    trimmed.includes('skill98-ai-automation-pkg')
+  ) {
     return VITE_IMAGES.aiAutomationPkg;
   }
-  return url;
+  if (trimmed.startsWith('/images/')) {
+    return VITE_IMAGES.fullstackPkg;
+  }
+  return trimmed;
 }
 
 export type ResponsiveImageSlot = 'thumb25' | 'thumb300' | 'medium800' | 'original';

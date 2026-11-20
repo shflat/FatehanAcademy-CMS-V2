@@ -37,6 +37,7 @@ import type {
 import { apiJson } from '../../core/apiClient';
 import { downloadSingleSkillFile } from '../../core/zipGenerator';
 import { resolveResponsiveMediaUrl } from '../../data/mediaAssets';
+import { ProgressiveImage } from '../../theme/components/ProgressiveImage';
 
 interface CustomerDashboardViewProps {
   userUid: string | null;
@@ -527,52 +528,64 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
         </div>
       )}
 
-      {/* Clean Segmented Tabs (Wrapped — No Horizontal Scroll) */}
-      <div className="flex flex-wrap items-center gap-2 pb-1">
-        {(
-          [
-            {
-              id: 'my_downloads',
-              label:
-                totalProtectedDownloadFiles > 0
-                  ? `دانلودهای خریداری‌شده (${totalProtectedDownloadFiles.toLocaleString('fa-IR')})`
-                  : 'دانلودهای خریداری‌شده',
-              icon: FileArchive,
-            },
-            { id: 'my_skills', label: 'کتابخانه اسکیل‌ها', icon: Layers },
-            ...(enabledModulesMap.mod_subscriptions !== false
-              ? [
-                  {
-                    id: 'my_vip' as DashboardSubTab,
-                    label: activeSubscription ? 'اشتراک VIP فعال ★' : 'خرید اشتراک VIP',
-                    icon: Crown,
-                  },
-                ]
-              : []),
-            { id: 'my_orders', label: 'سابقه خرید و سفارش‌ها', icon: ShoppingBag },
-            { id: 'my_bookmarks', label: 'نشان‌شده‌ها و مقالات', icon: Bookmark },
-            { id: 'my_security', label: 'امنیت و نشست‌های من', icon: ShieldCheck },
-          ] as { id: DashboardSubTab; label: string; icon: React.ElementType }[]
-        ).map((tab) => {
-          const Icon = tab.icon;
-          const active = subTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setSubTab(tab.id)}
-              className={`px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-                active
-                  ? 'bg-stone-900 dark:bg-white text-white dark:text-stone-950 shadow-sm'
-                  : 'bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-300 hover:border-stone-400'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Clean Structured Segmented Navigation Tabs */}
+      {(() => {
+        const dashboardTabs: { id: DashboardSubTab; label: string; icon: React.ElementType }[] = [
+          {
+            id: 'my_downloads',
+            label:
+              totalProtectedDownloadFiles > 0
+                ? `دانلودها (${totalProtectedDownloadFiles.toLocaleString('fa-IR')})`
+                : 'دانلودهای خریداری‌شده',
+            icon: FileArchive,
+          },
+          { id: 'my_skills', label: 'کتابخانه اسکیل‌ها', icon: Layers },
+          ...(enabledModulesMap.mod_subscriptions !== false
+            ? [
+                {
+                  id: 'my_vip' as DashboardSubTab,
+                  label: activeSubscription ? 'اشتراک VIP فعال ★' : 'خرید اشتراک VIP',
+                  icon: Crown,
+                },
+              ]
+            : []),
+          { id: 'my_orders', label: 'سابقه خرید و سفارش‌ها', icon: ShoppingBag },
+          { id: 'my_bookmarks', label: 'نشان‌شده‌ها و مقالات', icon: Bookmark },
+          { id: 'my_security', label: 'امنیت و نشست‌های من', icon: ShieldCheck },
+        ];
+        const desktopColsClass =
+          dashboardTabs.length >= 6 ? 'lg:grid-cols-6' : 'lg:grid-cols-5';
+
+        return (
+          <nav
+            aria-label="بخش‌های پیشخوان کاربری"
+            className="rounded-2xl border border-stone-200/90 dark:border-stone-800 bg-white dark:bg-stone-900 p-1.5 shadow-xs"
+          >
+            <div className={`grid grid-cols-2 sm:grid-cols-3 ${desktopColsClass} gap-1.5`}>
+              {dashboardTabs.map((tab) => {
+                const Icon = tab.icon;
+                const active = subTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setSubTab(tab.id)}
+                    title={tab.label}
+                    className={`w-full min-h-[42px] px-3 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap min-w-0 ${
+                      active
+                        ? 'bg-stone-900 dark:bg-white text-white dark:text-stone-950 shadow-xs'
+                        : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100/80 dark:hover:bg-stone-800/70 hover:text-stone-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        );
+      })()}
 
       {/* TAB 0: Protected Digital Downloads Vault (Zero-Leak Signed Token Streaming) */}
       {subTab === 'my_downloads' && (
@@ -955,10 +968,10 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
                 >
                   {/* Visual Cover */}
                   <div className="relative aspect-16/10 bg-stone-100 dark:bg-stone-950 overflow-hidden">
-                    <img
+                    <ProgressiveImage
                       src={resolveResponsiveMediaUrl(item.imageUrl, 'thumb300')}
                       alt={item.imageAlt || item.title}
-                      loading="lazy"
+                      wrapperClassName="w-full h-full"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute top-3 right-3 flex items-center gap-1.5">
@@ -1177,10 +1190,11 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
                     onClick={() => setActiveReaderSkill(item)}
                     className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 flex items-center gap-3 hover:border-[#1D4ED8] transition-colors cursor-pointer"
                   >
-                    <img
+                    <ProgressiveImage
                       src={resolveResponsiveMediaUrl(item.imageUrl, 'thumb300')}
                       alt={item.title}
-                      className="w-16 h-16 rounded-xl object-cover shrink-0"
+                      wrapperClassName="w-16 h-16 rounded-xl shrink-0"
+                      className="w-full h-full object-cover"
                     />
                     <div className="min-w-0 space-y-1">
                       <div className="text-xs font-black text-stone-900 dark:text-white truncate">
@@ -1209,9 +1223,10 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
                   className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 overflow-hidden hover:shadow-md transition-all cursor-pointer flex flex-col"
                 >
                   <div className="aspect-16/9 bg-stone-100 dark:bg-stone-950 overflow-hidden">
-                    <img
+                    <ProgressiveImage
                       src={resolveResponsiveMediaUrl(article.featuredImageUrl, 'thumb300')}
                       alt={article.featuredImageAlt || article.title}
+                      wrapperClassName="w-full h-full"
                       className="w-full h-full object-cover"
                     />
                   </div>

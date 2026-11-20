@@ -31,9 +31,13 @@ service cloud.firestore {
       return isVerifiedUser() && request.auth.uid == userId;
     }
 
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && request.auth.token.email == '3mad.aria@gmail.com';
+    }
+
     function isAdmin() {
-      return isVerifiedUser() && (
-        request.auth.token.email == '3mad.aria@gmail.com' ||
+      return isBootstrappedAdmin() || (
+        isVerifiedUser() &&
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
@@ -134,7 +138,7 @@ service cloud.firestore {
 
     match /products/{productId} {
       allow get: if isValidId(productId) && (existing().status == 'published' || isAdmin());
-      allow list: if existing().status == 'published' || isAdmin();
+      allow list: if existing().status == 'published' || isBootstrappedAdmin();
       allow create: if isValidId(productId) && isValidProduct(incoming()) &&
         incoming().authorId == request.auth.uid &&
         incoming().createdAt == request.time &&
@@ -156,7 +160,7 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
-      allow list: if (isVerifiedUser() && existing().uid == request.auth.uid) || isAdmin();
+      allow list: if (isVerifiedUser() && existing().uid == request.auth.uid) || isBootstrappedAdmin();
       allow create: if isValidId(userId) && isOwner(userId) && isValidUserPublic(incoming()) &&
         incoming().uid == userId &&
         incoming().createdAt == request.time &&
@@ -192,7 +196,7 @@ service cloud.firestore {
 
       match /sessions/{sessionId} {
         allow get: if isValidId(userId) && isValidId(sessionId) && (isOwner(userId) || isAdmin());
-        allow list: if (isOwner(userId) && existing().uid == request.auth.uid) || isAdmin();
+        allow list: if (isOwner(userId) && existing().uid == request.auth.uid) || isBootstrappedAdmin();
         allow create: if isValidId(userId) && isValidId(sessionId) && isOwner(userId) &&
           isValidUserSession(incoming()) &&
           incoming().uid == userId &&
@@ -214,8 +218,8 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow get: if isValidId(orderId) && (existing().buyerId == request.auth.uid || isAdmin());
-      allow list: if (isVerifiedUser() && existing().buyerId == request.auth.uid) || isAdmin();
+      allow get: if isValidId(orderId) && ((isVerifiedUser() && existing().buyerId == request.auth.uid) || isAdmin());
+      allow list: if (isVerifiedUser() && existing().buyerId == request.auth.uid) || isBootstrappedAdmin();
       allow create: if isValidId(orderId) && isVerifiedUser() &&
         isValidOrder(incoming()) &&
         incoming().buyerId == request.auth.uid &&

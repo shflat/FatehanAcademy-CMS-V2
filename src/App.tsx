@@ -9,7 +9,9 @@ import {
 import {
   collection,
   doc,
+  getDoc,
   setDoc,
+  updateDoc,
   deleteDoc,
   onSnapshot,
   query,
@@ -1001,26 +1003,39 @@ export default function App() {
       setUserRole((prev) => (prev === 'super_admin' || prev === 'admin' ? prev : computedRole));
       setLoggedInName((prev) => prev || user.displayName || 'کاربر اسکیل ۹۸');
 
+      if (!user.emailVerified) return;
+
       const uid = sanitizeSlugOrId(user.uid, 'user_98');
       const userPublicPath = `users/${uid}`;
+      const userRef = doc(db, 'users', uid);
+      const safeDisplayName = truncateString(
+        user.displayName || 'کاربر اسکیل ۹۸',
+        1,
+        100,
+        'کاربر اسکیل ۹۸'
+      );
+      const targetRole = computedRole === 'super_admin' ? 'admin' : 'customer';
 
       try {
-        await setDoc(
-          doc(db, 'users', uid),
-          {
+        const existingSnap = await getDoc(userRef);
+        if (!existingSnap.exists()) {
+          await setDoc(userRef, {
             uid,
-            displayName: truncateString(
-              user.displayName || 'کاربر اسکیل ۹۸',
-              1,
-              100,
-              'کاربر اسکیل ۹۸'
-            ),
-            role: computedRole === 'super_admin' ? 'admin' : 'customer',
+            displayName: safeDisplayName,
+            role: targetRole,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
+          });
+        } else {
+          const updatePayload: Record<string, unknown> = {
+            displayName: safeDisplayName,
+            updatedAt: serverTimestamp(),
+          };
+          if (targetRole === 'admin' && existingSnap.data()?.role !== 'admin') {
+            updatePayload.role = 'admin';
+          }
+          await updateDoc(userRef, updatePayload);
+        }
       } catch (error) {
         handleFirestoreError(error, OperationType.WRITE, userPublicPath);
       }
@@ -1099,7 +1114,7 @@ export default function App() {
         }
       );
 
-      if (!currentUser) return;
+      if (!currentUser || !currentUser.emailVerified) return;
 
       const uid = sanitizeSlugOrId(currentUser.uid, 'user_98');
       const ordersPath = 'orders';
@@ -1930,38 +1945,47 @@ export default function App() {
 
     if (isFirebaseAdmin && currentUser) {
       const path = `products/${cleanId}`;
+      const productRef = doc(db, 'products', cleanId);
+      const mutableFields = {
+        title: truncateString(fullItem.title, 2, 140, 'اسکیل ۹۸'),
+        slug: cleanId,
+        category: truncateString(fullItem.category, 2, 60, 'Codex'),
+        itemType: fullItem.itemType,
+        price: Math.max(0, Math.min(1000000000, fullItem.price)),
+        originalPrice: Math.max(
+          0,
+          Math.min(1000000000, fullItem.originalPrice)
+        ),
+        shortDescription: truncateString(
+          fullItem.shortDescription,
+          5,
+          600,
+          'توضیحات اسکیل ۹۸'
+        ),
+        modulesCount: Math.max(1, Math.min(500, fullItem.modulesCount)),
+        durationHours: Math.max(0, Math.min(2000, fullItem.durationHours)),
+        level: truncateString(fullItem.level, 2, 50, 'نسخه ۱.۰'),
+        imageUrl: truncateString(
+          fullItem.imageUrl,
+          1,
+          500,
+          IMAGES.fullstackPkg
+        ),
+        featured: Boolean(fullItem.featured),
+        status: fullItem.status,
+        updatedAt: serverTimestamp(),
+      };
       try {
-        await setDoc(doc(db, 'products', cleanId), {
-          title: truncateString(fullItem.title, 2, 140, 'اسکیل ۹۸'),
-          slug: cleanId,
-          category: truncateString(fullItem.category, 2, 60, 'Codex'),
-          itemType: fullItem.itemType,
-          price: Math.max(0, Math.min(1000000000, fullItem.price)),
-          originalPrice: Math.max(
-            0,
-            Math.min(1000000000, fullItem.originalPrice)
-          ),
-          shortDescription: truncateString(
-            fullItem.shortDescription,
-            5,
-            600,
-            'توضیحات اسکیل ۹۸'
-          ),
-          modulesCount: Math.max(1, Math.min(500, fullItem.modulesCount)),
-          durationHours: Math.max(0, Math.min(2000, fullItem.durationHours)),
-          level: truncateString(fullItem.level, 2, 50, 'نسخه ۱.۰'),
-          imageUrl: truncateString(
-            fullItem.imageUrl,
-            1,
-            500,
-            IMAGES.fullstackPkg
-          ),
-          featured: Boolean(fullItem.featured),
-          status: fullItem.status,
-          authorId: authorUid,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
+        const existingSnap = await getDoc(productRef);
+        if (existingSnap.exists()) {
+          await updateDoc(productRef, mutableFields);
+        } else {
+          await setDoc(productRef, {
+            ...mutableFields,
+            authorId: authorUid,
+            createdAt: serverTimestamp(),
+          });
+        }
       } catch (error) {
         handleFirestoreError(error, OperationType.WRITE, path);
       }

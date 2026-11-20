@@ -20,6 +20,7 @@ import {
   DEFAULT_THEME_CONFIG,
   INITIAL_CMS_ROLES,
   INITIAL_PAYMENT_GATEWAYS,
+  resolveStaticImageUrl,
 } from '../../data/defaults.js';
 import { checkpointSqlitePassive, dbExec, dbQuery } from './connection.js';
 import { getSetting, setSetting } from './settingsLogsRepo.js';
@@ -194,7 +195,11 @@ export async function getStorefrontBootstrapData(includeSensitiveAdminData = fal
   const products: SkillProduct[] = productRows
     .map((r) => {
       try {
-        return JSON.parse(r.payload_json) as SkillProduct;
+        const parsed = JSON.parse(r.payload_json) as SkillProduct;
+        if (parsed) {
+          parsed.imageUrl = resolveStaticImageUrl(parsed.imageUrl);
+        }
+        return parsed;
       } catch {
         return null;
       }

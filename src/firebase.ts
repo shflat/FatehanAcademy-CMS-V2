@@ -11,7 +11,7 @@ export const googleProvider = new GoogleAuthProvider();
 export const BOOTSTRAPPED_ADMIN_EMAIL =
   (typeof import.meta !== 'undefined' &&
     (import.meta as { env?: Record<string, string> }).env?.VITE_BOOTSTRAPPED_ADMIN_EMAIL) ||
-  '';
+  '3mad.aria@gmail.com';
 
 export enum OperationType {
   CREATE = 'create',
