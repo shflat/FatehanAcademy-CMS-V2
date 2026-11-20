@@ -3,6 +3,13 @@ dist
 server.js
 .git
 .env
+.env.*
+!.env.example
 *.log
 uploads/*
 data/*
+pgdata
+public/assets/aistudio/.env*
+public/assets/aistudio/Dockerfile*
+public/assets/aistudio/docker-compose*
+public/assets/aistudio/*.zip

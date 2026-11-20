@@ -779,8 +779,15 @@ export const SmsTriggersPanel: React.FC<SmsTriggersPanelProps> = ({
 
       {/* Edit / Add Trigger Modal */}
       {editingRule && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 p-6 space-y-4 shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          data-lenis-prevent
+          data-lenis-prevent-wheel
+          data-lenis-prevent-touch
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overscroll-contain"
+        >
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto overscroll-contain bg-white dark:bg-stone-900 rounded-2xl border border-stone-200 dark:border-stone-800 p-6 space-y-4 shadow-2xl">
             <h3 className="text-base font-extrabold text-stone-900 dark:text-white">
               ویرایش / افزودن شرط ارسال پیامک
             </h3>

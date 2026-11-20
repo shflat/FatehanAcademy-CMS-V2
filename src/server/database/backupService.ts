@@ -288,24 +288,30 @@ export async function sendSmtpBackupEmail(
   textBody: string,
   attachment?: { filename: string; content: Buffer | string }
 ) {
-  if (!cfg.smtpUser || !cfg.smtpPass || !cfg.smtpTargetEmail) {
+  const smtpHost = (cfg.smtpHost || process.env.SMTP_HOST || 'smtp.gmail.com').trim();
+  const smtpPort = Number(cfg.smtpPort || process.env.SMTP_PORT || 587);
+  const smtpUser = (cfg.smtpUser || process.env.SMTP_USER || '').trim();
+  const smtpPass = (cfg.smtpPass || process.env.SMTP_PASS || '').trim();
+  const smtpTargetEmail = (cfg.smtpTargetEmail || smtpUser).trim();
+
+  if (!smtpUser || !smtpPass || !smtpTargetEmail) {
     throw new Error('نام کاربری جیمیل، رمز برنامه (App Password) و ایمیل مقصد باید تکمیل شوند.');
   }
 
   const transporter = nodemailer.createTransport({
-    host: cfg.smtpHost || 'smtp.gmail.com',
-    port: Number(cfg.smtpPort || 587),
-    secure: Number(cfg.smtpPort) === 465,
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
     auth: {
-      user: cfg.smtpUser,
-      pass: cfg.smtpPass,
+      user: smtpUser,
+      pass: smtpPass,
     },
   });
 
   await transporter.verify();
   const info = await transporter.sendMail({
-    from: `"Skill 98 Backup" <${cfg.smtpUser}>`,
-    to: cfg.smtpTargetEmail,
+    from: `"Skill 98 Backup" <${smtpUser}>`,
+    to: smtpTargetEmail,
     subject,
     text: textBody,
     attachments: attachment
@@ -391,7 +397,11 @@ export async function createBackupSnapshot(params: {
     );
     const destParts: string[] = ['دیسک سرور (data/backups)'];
 
-    if (cfg.smtpEnabled && cfg.smtpUser && cfg.smtpPass && cfg.smtpTargetEmail) {
+    const effectiveSmtpUser = (cfg.smtpUser || process.env.SMTP_USER || '').trim();
+    const effectiveSmtpPass = (cfg.smtpPass || process.env.SMTP_PASS || '').trim();
+    const effectiveSmtpTarget = (cfg.smtpTargetEmail || effectiveSmtpUser).trim();
+
+    if (cfg.smtpEnabled && effectiveSmtpUser && effectiveSmtpPass && effectiveSmtpTarget) {
       try {
         await sendSmtpBackupEmail(
           cfg,
@@ -399,7 +409,7 @@ export async function createBackupSnapshot(params: {
           `فایل پشتیبان کامل دیتابیس اسکیل ۹۸ پیوست است.\nتاریخ: ${nowFa}\nفایل: ${filename}`,
           { filename, content }
         );
-        destParts.push(`ایمیل (${cfg.smtpTargetEmail})`);
+        destParts.push(`ایمیل (${effectiveSmtpTarget})`);
         dispatchReport.push('ایمیل با موفقیت ارسال شد.');
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

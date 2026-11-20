@@ -473,7 +473,10 @@ export const MediaLibraryPanel: React.FC<MediaLibraryPanelProps> = ({
         {/* Centered Media Details & SEO Modal */}
         {inspectedMedia && (
           <div
-            className="fixed inset-0 z-50 bg-stone-950/65 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+            data-lenis-prevent
+            data-lenis-prevent-wheel
+            data-lenis-prevent-touch
+            className="fixed inset-0 z-50 bg-stone-950/65 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overscroll-contain"
             onClick={() => setInspectedMedia(null)}
           >
             <div
@@ -502,7 +505,10 @@ export const MediaLibraryPanel: React.FC<MediaLibraryPanelProps> = ({
 
               <form
                 onSubmit={handleSaveMediaSubmit}
-                className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-12 gap-6"
+                data-lenis-prevent
+                data-lenis-prevent-wheel
+                data-lenis-prevent-touch
+                className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 grid grid-cols-1 md:grid-cols-12 gap-6"
               >
                 {/* Preview & Variants Column */}
                 <div className="md:col-span-5 space-y-4">

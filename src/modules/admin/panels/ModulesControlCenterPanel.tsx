@@ -261,8 +261,15 @@ export const ModulesControlCenterPanel: React.FC<ModulesControlCenterPanelProps>
 
       {/* Module Dependency Guard Modal */}
       {depWarning && (
-        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-md w-full p-5 rounded-2xl bg-white dark:bg-stone-900 border border-amber-500/40 shadow-2xl space-y-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          data-lenis-prevent
+          data-lenis-prevent-wheel
+          data-lenis-prevent-touch
+          className="fixed inset-0 z-50 bg-black/55 backdrop-blur-xs flex items-center justify-center p-4 overscroll-contain"
+        >
+          <div className="max-w-md w-full max-h-[88vh] overflow-y-auto overscroll-contain p-5 rounded-2xl bg-white dark:bg-stone-900 border border-amber-500/40 shadow-2xl space-y-4">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 text-amber-600">
                 <AlertTriangle className="w-5 h-5 shrink-0" />

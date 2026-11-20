@@ -719,7 +719,10 @@ export const VisualComposerCanvas: React.FC<VisualComposerCanvasProps> = ({
             {/* Centered Floating Modal Inspector (پنل تنظیمات ویجت) */}
             {editingWidget && (
               <div
-                className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+                data-lenis-prevent
+                data-lenis-prevent-wheel
+                data-lenis-prevent-touch
+                className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overscroll-contain"
                 onClick={() => setEditingWidget(null)}
               >
                 <div
@@ -746,7 +749,12 @@ export const VisualComposerCanvas: React.FC<VisualComposerCanvasProps> = ({
                     </button>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  <div
+                    data-lenis-prevent
+                    data-lenis-prevent-wheel
+                    data-lenis-prevent-touch
+                    className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 space-y-4"
+                  >
                     <div>
                       <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1.5">
                         عنوان اصلی ویجت:

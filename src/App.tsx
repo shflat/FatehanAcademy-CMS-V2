@@ -56,6 +56,7 @@ import {
 } from './core/apiClient';
 import {
   initSmoothScroll,
+  installGlobalModalScrollLock,
   triggerBarbaGsapTransition,
   animatePageEntrance,
   scrollToTopImmediate,
@@ -283,7 +284,12 @@ export default function App() {
       });
   }, []);
 
-  // 1. Initialize Lenis Smooth Scroll
+  // 1. Initialize Lenis Smooth Scroll + Global Modal Scroll Lock
+  useEffect(() => {
+    const cleanupModalLock = installGlobalModalScrollLock();
+    return () => cleanupModalLock();
+  }, []);
+
   useEffect(() => {
     if (themeConfig.enableLenisSmoothScroll === false) return;
     const { destroy } = initSmoothScroll();
@@ -2159,6 +2165,7 @@ export default function App() {
       {/* Barba.js + GSAP Soft Frosted-Glass & Blur Page Transition Overlay */}
       <div
         ref={transitionOverlayRef}
+        data-barba-overlay="true"
         className="fixed inset-0 z-50 bg-white/45 dark:bg-[#0F172A]/60 backdrop-blur-2xl pointer-events-none opacity-0 flex items-center justify-center transition-none"
       >
         <div className="px-6 py-3.5 rounded-2xl bg-white/85 dark:bg-[#162038]/90 backdrop-blur-xl border border-stone-200/80 dark:border-slate-700/80 shadow-2xl text-stone-900 dark:text-white font-extrabold text-sm sm:text-base tracking-tight flex items-center gap-2.5 smooth-nums whitespace-nowrap">

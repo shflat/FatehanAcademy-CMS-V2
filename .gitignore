@@ -24,6 +24,10 @@ data/permissions.hash.json
 .env
 .env.local
 .env.*.local
+public/assets/aistudio/.env*
+
+# Docker PostgreSQL local data
+pgdata/
 
 # User Uploads
 uploads/*

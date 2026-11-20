@@ -21,6 +21,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_BOOTSTRAPPED_ADMIN_EMAIL: ${VITE_BOOTSTRAPPED_ADMIN_EMAIL:-}
     container_name: skill98-studio
     restart: always
     depends_on:
@@ -30,9 +32,15 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - UPLOAD_DIR=/app/uploads
+      - APP_DOMAIN=${APP_DOMAIN:-skill98.ir}
       - APP_URL=${APP_URL:-}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-skill98}:${POSTGRES_PASSWORD:-skill98_pg_secure_pass}@skill98-postgres:5432/${POSTGRES_DB:-skill98_db}
       - OTP_HMAC_SECRET=${OTP_HMAC_SECRET:-dpatech-skill98-hmac-sha256-secret-key}
+      - PERMISSION_HASH_SECRET=${PERMISSION_HASH_SECRET:-}
+      - ADMIN_PHONE=${ADMIN_PHONE:-}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_MASTER_CODE=${ADMIN_MASTER_CODE:-}
+      - ADMIN_MASTER_CODE_HASH=${ADMIN_MASTER_CODE_HASH:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - ZARINPAL_MERCHANT_ID=${ZARINPAL_MERCHANT_ID:-}
       - KAVENEGAR_API_KEY=${KAVENEGAR_API_KEY:-}
@@ -40,6 +48,7 @@ services:
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}
       - SMTP_PASS=${SMTP_PASS:-}
+      - BACKUP_ENCRYPTION_KEY=${BACKUP_ENCRYPTION_KEY:-}
 
     networks:
       - ai-public

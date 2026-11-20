@@ -194,7 +194,12 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-stone-950/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      data-lenis-prevent
+      data-lenis-prevent-wheel
+      data-lenis-prevent-touch
+      className="fixed inset-0 z-50 bg-stone-950/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overscroll-contain"
       dir="rtl"
       onClick={onClose}
     >
@@ -305,7 +310,12 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div
+          data-lenis-prevent
+          data-lenis-prevent-wheel
+          data-lenis-prevent-touch
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5"
+        >
           {uploadError && (
             <div className="mb-4 px-4 py-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs font-bold text-rose-700 dark:text-rose-300">
               {uploadError}

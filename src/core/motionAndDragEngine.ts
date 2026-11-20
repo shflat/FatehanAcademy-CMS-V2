@@ -41,6 +41,34 @@ export function scrollToElementSmooth(
   window.scrollTo({ top, behavior: 'smooth' });
 }
 
+let isGlobalModalScrollLocked = false;
+
+function isBlockingModalNode(el: Element): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.dataset.barbaOverlay === 'true') return false;
+  const cls = typeof el.className === 'string' ? el.className : '';
+  if (cls.includes('pointer-events-none')) return false;
+
+  const isDialog = el.getAttribute('aria-modal') === 'true';
+  const isFixedOverlay = cls.includes('fixed') && cls.includes('inset-0');
+  if (!isDialog && !isFixedOverlay) return false;
+
+  const style = window.getComputedStyle(el);
+  if (style.display === 'none' || style.visibility === 'hidden' || style.pointerEvents === 'none') {
+    return false;
+  }
+  return true;
+}
+
+function hasAnyOpenBlockingModal(): boolean {
+  if (typeof document === 'undefined') return false;
+  const candidates = document.querySelectorAll('[aria-modal="true"], .fixed.inset-0');
+  for (let i = 0; i < candidates.length; i++) {
+    if (isBlockingModalNode(candidates[i])) return true;
+  }
+  return false;
+}
+
 /**
  * 1. Lenis + GSAP Ticker Smooth Scroll Initializer
  */
@@ -52,8 +80,24 @@ export function initSmoothScroll(): {
     duration: 1.15,
     easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     smoothWheel: true,
+    prevent: (node) => {
+      if (isGlobalModalScrollLocked) return true;
+      if (!node || typeof window === 'undefined') return false;
+      if (node.closest('[data-lenis-prevent], [role="dialog"], [aria-modal="true"]')) {
+        return true;
+      }
+      let cur: HTMLElement | null = node;
+      while (cur && cur !== document.body && cur !== document.documentElement) {
+        if (isBlockingModalNode(cur)) return true;
+        cur = cur.parentElement;
+      }
+      return false;
+    },
   });
   activeLenisInstance = lenis;
+  if (isGlobalModalScrollLocked) {
+    lenis.stop();
+  }
 
   const updateTicker = (time: number) => {
     lenis.raf(time * 1000);
@@ -79,7 +123,75 @@ export function pauseSmoothScroll(): void {
 }
 
 export function resumeSmoothScroll(): void {
+  if (isGlobalModalScrollLocked) return;
   activeLenisInstance?.start();
+}
+
+/**
+ * Automatically locks page/Lenis background scroll whenever any modal/dialog overlay is open
+ * and restores it cleanly when all modals close.
+ */
+export function installGlobalModalScrollLock(): () => void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return () => {};
+  }
+
+  let prevBodyOverflow = '';
+  let prevHtmlOverflow = '';
+  let prevHtmlOverscroll = '';
+  let rafId: number | null = null;
+
+  const applyLockState = () => {
+    rafId = null;
+    const shouldLock = hasAnyOpenBlockingModal();
+    if (shouldLock === isGlobalModalScrollLocked) return;
+
+    if (shouldLock) {
+      isGlobalModalScrollLocked = true;
+      prevBodyOverflow = document.body.style.overflow;
+      prevHtmlOverflow = document.documentElement.style.overflow;
+      prevHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.overscrollBehavior = 'none';
+      activeLenisInstance?.stop();
+    } else {
+      isGlobalModalScrollLocked = false;
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+      activeLenisInstance?.start();
+    }
+  };
+
+  const scheduleSync = () => {
+    if (rafId !== null) return;
+    rafId = window.requestAnimationFrame(applyLockState);
+  };
+
+  applyLockState();
+
+  const observer = new MutationObserver(scheduleSync);
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class', 'aria-modal', 'style'],
+  });
+
+  return () => {
+    observer.disconnect();
+    if (rafId !== null) {
+      window.cancelAnimationFrame(rafId);
+    }
+    if (isGlobalModalScrollLocked) {
+      isGlobalModalScrollLocked = false;
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+      activeLenisInstance?.start();
+    }
+  };
 }
 
 /**
