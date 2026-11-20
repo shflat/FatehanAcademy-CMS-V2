@@ -1,0 +1,1218 @@
+{
+  "$schema": "https://fatehanacademy.ir/schemas/modules-blueprint-v2.json",
+  "blueprintVersion": "2.0.0",
+  "generatedFor": "CMS Core v2.0.0 — Standalone Theme & Modules Package",
+  "brand": {
+    "academyNameFa": "آموزشگاه رباتیک فاتحان",
+    "academyNameEn": "Fatehan Robotics Academy",
+    "domain": "fatehanacademy.ir",
+    "url": "https://fatehanacademy.ir",
+    "logoUrl": "/assets/aistudio/fatehan_logo_transparent.png",
+    "taglinePrimary": "کارآموزان امروز، فاتحان فردا",
+    "taglineSecondary": "رباتیک فقط یک رشته نیست... یک مهارت زندگی است",
+    "mottoEn": "DREAM · BUILD · CREATE",
+    "mottoFa": "فکر کن، بساز، کشف کن!",
+    "location": {
+      "province": "تهران / غرب استان تهران",
+      "city": "اندیشه",
+      "addressShort": "اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا",
+      "addressFull": "اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲",
+      "workingHours": "ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)",
+      "postalCode": "3351984210"
+    },
+    "phones": {
+      "primary": "09103116753",
+      "primaryFormatted": "۰۹۱۰ ۳۱۱ ۶۷۵۳",
+      "primaryLabel": "خط ۱ مشاوره و ثبت‌نام (۰۹۱۰۳۱۱۶۷۵۳)",
+      "secondary": "09372335026",
+      "secondaryFormatted": "۰۹۳۷ ۲۳۳ ۵۰۲۶",
+      "secondaryLabel": "خط ۲ پشتیبانی کارگاه (۰۹۳۷۲۳۳۵۰۲۶)",
+      "landline": "02165506015",
+      "landlineFormatted": "۰۲۱ ۶۵۵۰ ۶۰۱۵",
+      "landlineLabel": "تلفن ثابت دفتر مرکزی (۰۲۱-۶۵۵۰۶۰۱۵)"
+    },
+    "social": {
+      "instagramId": "fatehan.robot",
+      "instagramUrl": "https://instagram.com/fatehan.robot",
+      "eitaaId": "fatehan_robotics",
+      "eitaaUrl": "https://eitaa.com/fatehan_robotics",
+      "baleId": "",
+      "baleUrl": "",
+      "whatsappUrl": "https://wa.me/989103116753"
+    }
+  },
+  "bundleContents": {
+    "themeRoot": "themes/fatehan/",
+    "fontsDir": "public/fonts/",
+    "assetsDir": "public/assets/",
+    "blueprintFile": "FATEHAN_MODULES_BLUEPRINT.json",
+    "requiredFrontendPackages": {
+      "react": "^19.0.1",
+      "react-dom": "^19.0.1",
+      "motion": "^12.23.24",
+      "lucide-react": "^0.546.0",
+      "tailwindcss": "^4.3.3",
+      "@tailwindcss/vite": "^4.3.3"
+    }
+  },
+  "modules": {
+    "departments": {
+      "moduleId": "fatehan_departments",
+      "titleFa": "دپارتمان‌های تخصصی ۵گانه (نمایش کارت‌های ورق‌مانند / Fanned Card Deck)",
+      "apiEndpoints": {
+        "list": "GET /api/v2/departments",
+        "create": "POST /api/v2/departments",
+        "update": "PUT /api/v2/departments/:id",
+        "delete": "DELETE /api/v2/departments/:id"
+      },
+      "uiComponent": "themes/fatehan/components/FatehanStorefrontHome.tsx",
+      "interactionSpec": {
+        "layout": "Unified showcase with top segmented quick-switcher + interactive 5-card fanned hand deck (drag x > 45px or < -45px to step, click rear card to focus) + synchronized detail panel",
+        "pageBuilderOverrideBlockId": "BLK-HOME-DEPTS"
+      },
+      "schema": {
+        "id": "string (slug, e.g. 'robotics' | 'coding' | 'electronics' | 'printing' | 'mechanics')",
+        "deptNumFa": "string (e.g. 'دپارتمان ۰۱')",
+        "codeEn": "string (e.g. 'ROBOTICS / ۰۱')",
+        "title": "string",
+        "badge": "string",
+        "color": "'emerald' | 'amber' | 'violet' | 'blue' | 'rose'",
+        "badgeBg": "string (Tailwind class)",
+        "deckBg": "string (hex color for card surface, e.g. '#D4E9DF')",
+        "deckBorder": "string (hex/rgba border color)",
+        "deckText": "string (hex text color)",
+        "deckAccent": "string (hex accent color)",
+        "iconKey": "'bot' | 'cpu' | 'box' | 'terminal' | 'cog'",
+        "subtitle": "string",
+        "description": "string",
+        "stages": "string[] (3 progressive learning levels)",
+        "projects": "string[] (3 signature hands-on projects)"
+      },
+      "defaultData": [
+        {
+          "id": "robotics",
+          "deptNumFa": "دپارتمان ۰۱",
+          "codeEn": "ROBOTICS / ۰۱",
+          "title": "دپارتمان رباتیک",
+          "badge": "مبتدی تا پیشرفته",
+          "color": "emerald",
+          "badgeBg": "bg-emerald-50 text-emerald-800 border-emerald-200",
+          "deckBg": "#D4E9DF",
+          "deckBorder": "#1E6B5240",
+          "deckText": "#134E3A",
+          "deckAccent": "#1E6B52",
+          "iconKey": "bot",
+          "subtitle": "ساخت، مونتاژ و هدایت ربات‌های مسابقه‌ای و هوشمند",
+          "description": "در دپارتمان رباتیک فاتحان، کارآموزان از ساخت ربات‌های مکانیکی ساده شروع کرده و گام‌به‌گام به طراحی ربات‌های هوشمند مسیریاب، فوتبالیست، جنگجو و حل‌کننده ماز برای شرکت در المپیادها و مسابقات کشوری می‌رسند.",
+          "stages": [
+            "سطح ۱ و ۲: رباتیک پایه، مفاهیم انتقال قدرت و مکانیزم‌های حرکتی",
+            "سطح ۳ و ۴: ربات‌های سنسوردار (مسیریاب، تعقیب‌کننده نور و تشخیص مانع)",
+            "سطح ۵ به بالا: رباتیک مسابقه‌ای، بازوهای صنعتی و ربات‌های خودمختار"
+          ],
+          "projects": [
+            "ربات فوتبالیست دو موتوره کنترلی",
+            "ربات هوشمند مسیریاب با سنسور مادون قرمز (IR)",
+            "ربات آتش‌نشان و تشخیص مانع با اولتراسونیک"
+          ]
+        },
+        {
+          "id": "coding",
+          "deptNumFa": "دپارتمان ۰۲",
+          "codeEn": "AI & CODEX / ۰۲",
+          "title": "دپارتمان برنامه‌نویسی",
+          "badge": "کدنویسی و هوش مصنوعی",
+          "color": "blue",
+          "badgeBg": "bg-blue-50 text-blue-800 border-blue-200",
+          "deckBg": "#DCE8FA",
+          "deckBorder": "#1D4ED840",
+          "deckText": "#1E3A8A",
+          "deckAccent": "#1D4ED8",
+          "iconKey": "terminal",
+          "subtitle": "از بازی‌سازی با اسکرچ تا پایتون و پروژه‌های هوش مصنوعی",
+          "description": "مغز متفکر ربات‌ها با برنامه‌نویسی هدایت می‌شود. آموزش را از تفکر الگوریتمی و بازی‌سازی تصویری با اسکرچ آغاز می‌کنیم و دانش‌آموزان را به دنیای قدرتمند زبان پایتون (Python) و مدل‌های بینایی ماشین هدایت می‌کنیم.",
+          "stages": [
+            "رده کودک: تفکر منطقی و بازی‌سازی بلوکی با Scratch 3.0",
+            "رده نوجوان: برنامه‌نویسی متنی پایتون (Python) از مقدماتی تا کاربردی",
+            "رده پیشرفته: هوش مصنوعی، بینایی ماشین (OpenCV) و ربات‌های بینا"
+          ],
+          "projects": [
+            "طراحی بازی کامپیوتری دوبعدی با منطق امتیاز و مراحل",
+            "سیستم تشخیص چهره و فرامین حرکتی دست با وب‌کم",
+            "دستیار صوتی هوشمند به زبان پایتون"
+          ]
+        },
+        {
+          "id": "electronics",
+          "deptNumFa": "دپارتمان ۰۳",
+          "codeEn": "CIRCUITS / ۰۳",
+          "title": "دپارتمان الکترونیک",
+          "badge": "مدار و برد هوشمند",
+          "color": "amber",
+          "badgeBg": "bg-amber-50 text-amber-900 border-amber-200",
+          "deckBg": "#ECD6C7",
+          "deckBorder": "#9A4B2640",
+          "deckText": "#6B3115",
+          "deckAccent": "#9A4B26",
+          "iconKey": "cpu",
+          "subtitle": "شناخت قطعات، طراحی مدار، سنسورها و بردهای هوشمند آردوینو",
+          "description": "الکترونیک قلب تپنده هر سیستم هوشمند است. دانش‌آموزان در کارگاه مجهز فاتحان بدون خطر با بردبورد، قطعات الکترونیک، سنسورهای حرکتی/نوری و بردهای آردوینو مدار می‌سازند و منطق الکتریسیته را درک می‌کنند.",
+          "stages": [
+            "سطح مقدماتی: جریان، ولتاژ، باتری، کلیدها و بستن مدار روی بردبورد",
+            "سطح متوسطه: کار با سنسورهای دما، نور، صدا، نمایشگرها و بازر",
+            "سطح پیشرفته: اینترنت اشیاء (IoT)، خانه هوشمند و اصول طراحی PCB با آلتیوم"
+          ],
+          "projects": [
+            "سیستم هشدار دزدگیر لیزری با سنسور LDR",
+            "سیستم آبیاری خودکار گلدان با سنسور رطوبت خاک",
+            "چراغ راهنمایی هوشمند با بردهای میکروکنترلری"
+          ]
+        },
+        {
+          "id": "printing",
+          "deptNumFa": "دپارتمان ۰۴",
+          "codeEn": "3D-DESIGN / ۰۴",
+          "title": "دپارتمان چاپ سه‌بعدی",
+          "badge": "مدل‌سازی و ساخت قطعه",
+          "color": "violet",
+          "badgeBg": "bg-indigo-50 text-indigo-800 border-indigo-200",
+          "deckBg": "#E4E1FA",
+          "deckBorder": "#4338CA40",
+          "deckText": "#312E81",
+          "deckAccent": "#4338CA",
+          "iconKey": "box",
+          "subtitle": "تبدیل ایده‌های ذهنی به قطعات واقعی با پرینترهای سه‌بعدی آموزشگاه",
+          "description": "به جای استفاده از قطعات تکراری آماده، کارآموزان فاتحان یاد می‌گیرند قطعات شاسی یا مکانیزم‌های خلاقانه خود را در نرم‌افزارهای سه‌بعدی طراحی کرده و با پرینترهای سه‌بعدی موجود در کارگاه مستقیماً چاپ و لمس کنند!",
+          "stages": [
+            "گام اول: تجسم فضایی و طراحی مقدماتی قطعات (Tinkercad)",
+            "گام دوم: مدل‌سازی مهندسی چرخ‌دنده‌ها و شاسی ربات با SolidWorks",
+            "گام سوم: آماده‌سازی فایل (Slicing) با Cura و اپراتوری پرینتر ۳D"
+          ],
+          "projects": [
+            "طراحی و چاپ شاسی اختصاصی ربات مسابقه‌ای",
+            "ساخت ست چرخ‌دنده حلزونی و خورشیدی",
+            "طراحی سرکلیدی، ماکت و المان‌های مکانیکی مفصل‌دار"
+          ]
+        },
+        {
+          "id": "mechanics",
+          "deptNumFa": "دپارتمان ۰۵",
+          "codeEn": "MECHANICS / ۰۵",
+          "title": "دپارتمان مکانیک",
+          "badge": "ساخت و سازه",
+          "color": "rose",
+          "badgeBg": "bg-rose-50 text-rose-800 border-rose-200",
+          "deckBg": "#F6DDE3",
+          "deckBorder": "#9F123940",
+          "deckText": "#881337",
+          "deckAccent": "#9F1239",
+          "iconKey": "cog",
+          "subtitle": "درک عملی قوانین فیزیک، انتقال قدرت، اهرم‌ها و سازه‌های مهندسی",
+          "description": "بدون یک بدنه و ساختار مکانیکی مهندسی، هیچ رباتی نمی‌تواند حرکت پایداری داشته باشد. کارآموزان با مفاهیم گشتاور، نسبت تبدیل دور چرخ‌دنده‌ها، سیستم‌های تعلیق و بازوهای متحرک آشنا می‌شوند.",
+          "stages": [
+            "مقدماتی: ماشین‌های ساده، اهرم‌های کلاس ۱ تا ۳ و چرخ و محور",
+            "متوسطه: سازه‌های پایدار، پل‌های مهندسی و انواع گیربکس‌های چندمرحله‌ای",
+            "پیشرفته: سیستم‌های انتقال قدرت، بازوهای مکانیکی هیدرولیکی/پنوماتیکی"
+          ],
+          "projects": [
+            "ساخت جرثقیل مکانیکی با قابلیت چرخش و قلاب متحرک",
+            "ربات راه‌رونده ۴ پا با مکانیزم میل‌لنگ و شاتون",
+            "ساخت منجنیق کششی و سیستم پرتابگر فنری"
+          ]
+        }
+      ]
+    },
+    "courses": {
+      "moduleId": "fatehan_courses",
+      "titleFa": "کاتالوگ ۱۵ دوره رسمی مصوب فاتحان",
+      "apiEndpoints": {
+        "list": "GET /api/v2/courses",
+        "single": "GET /api/v2/courses/:slugOrId",
+        "create": "POST /api/v2/courses",
+        "update": "PUT /api/v2/courses/:id",
+        "delete": "DELETE /api/v2/courses/:id"
+      },
+      "routes": ["/courses", "/courses/:slugOrId", "/course/:slugOrId"],
+      "uiComponents": [
+        "themes/fatehan/pages/FatehanMultiPages.tsx (FatehanCoursesPage)",
+        "themes/fatehan/components/FatehanStorefrontHome.tsx"
+      ],
+      "schema": {
+        "id": "string (e.g. 'CRS-FAT-01')",
+        "code": "string (unique course code, e.g. 'FAT-KID-1')",
+        "title": "string",
+        "slug": "string (URL-safe slug)",
+        "ageGroup": "'S' | 'A' | 'B' | 'C'",
+        "ageRangeFa": "string",
+        "category": "'کودک خلاق' | 'مکانیک' | 'الکترونیک' | 'مکاترونیک' | 'برنامه‌نویسی و هوش مصنوعی' | 'طراحی و ساخت سه‌بعدی' | 'مهارت‌های تخصصی'",
+        "tuitionApprovedToman": "number (شهریه مصوب پایه به تومان)",
+        "tuitionEarlyBirdToman": "number (شهریه تخفیف‌دار زودهنگام یک‌مرحله‌ای به تومان)",
+        "tuitionNormalToman": "number (شهریه ثبت‌نام به‌موقع دومرحله‌ای به تومان)",
+        "tuitionPrivateToman": "number (شهریه کلاس خصوصی ۱ تا ۳ نفره به تومان)",
+        "sessionsCount": "number",
+        "hoursPerSession": "number",
+        "levelFa": "string",
+        "prerequisites": "string",
+        "summaryFa": "string",
+        "syllabusPoints": "string[]",
+        "equipmentNeeded": "string",
+        "status": "'ثبت‌نام فعال' | 'در حال برگزاری' | 'تکمیل ظرفیت'",
+        "featuredImageUrl": "string",
+        "seoTitle": "string (optional)",
+        "seoDescription": "string (optional)",
+        "focusKeyword": "string (optional)"
+      },
+      "defaultData": [
+        {
+          "id": "CRS-FAT-01",
+          "code": "FAT-KID-1",
+          "title": "کودک خلاق ۱",
+          "slug": "creative-kid-1",
+          "ageGroup": "S",
+          "ageRangeFa": "۶ تا ۷ سال (گروه سنی S)",
+          "category": "کودک خلاق",
+          "tuitionApprovedToman": 5900000,
+          "tuitionEarlyBirdToman": 3900000,
+          "tuitionNormalToman": 4500000,
+          "tuitionPrivateToman": 8000000,
+          "sessionsCount": 12,
+          "hoursPerSession": 1.5,
+          "levelFa": "پایه‌ای و مقدماتی",
+          "prerequisites": "بدون پیش‌نیاز",
+          "summaryFa": "تقویت مهارت‌های حرکتی ظریف دست، هماهنگی چشم و دست، آشنایی با اشکال هندسی سه‌بعدی و ساخت اولین سازه‌های مکانیکی ساده با قطعات ایمن.",
+          "syllabusPoints": [
+            "آشنایی با ابزارها و قطعات پلاستیکی ایمن کودک",
+            "ساخت سازه‌های تعادلی و الگوهای هندسی",
+            "مفاهیم اولیه اهرم‌ها، چرخ‌ها و محورها",
+            "تقویت خلاقیت داستانی و بازی‌های تیمی سازنده"
+          ],
+          "equipmentNeeded": "بسته کودک خلاق تام",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-07.jpg",
+          "seoTitle": "دوره کودک خلاق ۱ | آموزشگاه رباتیک فاتحان اندیشه",
+          "seoDescription": "ثبت‌نام دوره کودک خلاق ۱ ویژه کودکان ۶ تا ۷ سال در آموزشگاه تخصصی رباتیک فاتحان اندیشه با آموزش عملی سازه‌سازی و تقویت خلاقیت.",
+          "focusKeyword": "دوره کودک خلاق ۱"
+        },
+        {
+          "id": "CRS-FAT-02",
+          "code": "FAT-KID-23",
+          "title": "کودک خلاق ۲ تا ۳",
+          "slug": "creative-kid-2-3",
+          "ageGroup": "S",
+          "ageRangeFa": "۶ تا ۷ سال (گروه سنی S)",
+          "category": "کودک خلاق",
+          "tuitionApprovedToman": 5900000,
+          "tuitionEarlyBirdToman": 3900000,
+          "tuitionNormalToman": 4500000,
+          "tuitionPrivateToman": 8000000,
+          "sessionsCount": 12,
+          "hoursPerSession": 1.5,
+          "levelFa": "تکمیلی کودک خلاق",
+          "prerequisites": "گذراندن کودک خلاق ۱",
+          "summaryFa": "ترکیب موتورهای دور پایین، پایه‌های متحرک، ساخت وسایل نقلیه مکانیکی ساده و ورود به مفاهیم مقدماتی برنامه‌نویسی بصری Scratch Jr.",
+          "syllabusPoints": [
+            "آشنایی با موتور DC ایمن و منبع تغذیه باتری",
+            "ساخت چرخ‌دنده‌ها و انتقال نیرو",
+            "روایت‌گری مکانیکی و هدایت ربات با ریموت سیم‌دار",
+            "حل پازل‌های حرکتی و تفکر ساختاری"
+          ],
+          "equipmentNeeded": "بسته کودک خلاق تام + موتور و ریموت سیم‌دار",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-07.jpg",
+          "seoTitle": "دوره کودک خلاق ۲ تا ۳ | آموزشگاه رباتیک فاتحان",
+          "seoDescription": "دوره تکمیلی کودک خلاق ۲ تا ۳ ویژه گروه سنی ۶ تا ۷ سال در آکادمی رباتیک فاتحان اندیشه.",
+          "focusKeyword": "کودک خلاق ۲ تا ۳"
+        },
+        {
+          "id": "CRS-FAT-03",
+          "code": "FAT-MEC-A1",
+          "title": "مکانیک A1",
+          "slug": "mechanics-a1",
+          "ageGroup": "A",
+          "ageRangeFa": "۸ تا ۹ سال (گروه سنی A)",
+          "category": "مکانیک",
+          "tuitionApprovedToman": 5900000,
+          "tuitionEarlyBirdToman": 3900000,
+          "tuitionNormalToman": 4500000,
+          "tuitionPrivateToman": 8000000,
+          "sessionsCount": 14,
+          "hoursPerSession": 1.5,
+          "levelFa": "مقدماتی مهندسی مکانیک",
+          "prerequisites": "بدون پیش‌نیاز (گروه سنی A)",
+          "summaryFa": "شروع رسمی مهندسی سازه، شناخت گشتاور، انواع اتصالات پیچ و مهره صنعتی، طراحی شاسی ربات‌های ۴ چرخ و آزمایش استحکام.",
+          "syllabusPoints": [
+            "اصول اتصالات مکانیکی، آچارها و پیچ و مهره",
+            "طراحی و مونتاژ شاسی صلب ربات",
+            "نسبت چرخ‌دنده‌ها (Gear Ratios) برای افزایش سرعت یا قدرت",
+            "ساخت ربات آتش‌نشان و ربات فوتبالیست مکانیکی"
+          ],
+          "equipmentNeeded": "بسته سطح ۱ یا بسته مکانیک تام",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-06.jpg",
+          "seoTitle": "دوره مکانیک A1 | آموزش سازه‌های رباتیک فاتحان",
+          "seoDescription": "آموزش عملی مکانیک A1 ویژه دانش‌آموزان ۸ تا ۹ سال در آموزشگاه رباتیک فاتحان.",
+          "focusKeyword": "دوره مکانیک A1"
+        },
+        {
+          "id": "CRS-FAT-04",
+          "code": "FAT-MEC-A26",
+          "title": "مکانیک A2 تا A6",
+          "slug": "mechanics-a2-to-a6",
+          "ageGroup": "A",
+          "ageRangeFa": "۸ تا ۹ سال (گروه سنی A)",
+          "category": "مکانیک",
+          "tuitionApprovedToman": 5900000,
+          "tuitionEarlyBirdToman": 3900000,
+          "tuitionNormalToman": 4500000,
+          "tuitionPrivateToman": 8000000,
+          "sessionsCount": 16,
+          "hoursPerSession": 1.5,
+          "levelFa": "متوسطه مهندسی مکانیک",
+          "prerequisites": "گذراندن مکانیک A1",
+          "summaryFa": "ساخت بازوهای مکانیکی چند درجه آزادی، مکانیزم‌های بادامک و لنگ، تسمه و پولی و طراحی ربات‌های لیفتراک و بالابر.",
+          "syllabusPoints": [
+            "مکانیزم‌های تبدیل حرکت دورانی به رفت و برگشتی",
+            "طراحی گریپر (دستگیره بازویی ربات)",
+            "توزیع وزن و مرکز ثقل در ربات‌های شیب‌پیما",
+            "مسابقه سازه‌های باربری درون آموزشگاه"
+          ],
+          "equipmentNeeded": "بسته مکانیک تام + کتاب‌ها (دوره مکانیک)",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-02.jpg",
+          "seoTitle": "دوره مکانیک A2 تا A6 | آموزشگاه تخصصی رباتیک فاتحان",
+          "seoDescription": "دوره پیشرفته مکانیک A2 تا A6؛ ساخت بازوهای مکانیکی و مکانیزم‌های حرکتی در آکادمی فاتحان.",
+          "focusKeyword": "مکانیک A2 تا A6"
+        },
+        {
+          "id": "CRS-FAT-05",
+          "code": "FAT-MEC-B1",
+          "title": "مکانیک B1",
+          "slug": "mechanics-b1",
+          "ageGroup": "B",
+          "ageRangeFa": "۱۰ تا ۱۳ سال (گروه سنی B)",
+          "category": "مکانیک",
+          "tuitionApprovedToman": 5900000,
+          "tuitionEarlyBirdToman": 3900000,
+          "tuitionNormalToman": 4500000,
+          "tuitionPrivateToman": 8000000,
+          "sessionsCount": 14,
+          "hoursPerSession": 1.5,
+          "levelFa": "مهندسی مکانیک نوجوانان",
+          "prerequisites": "گروه سنی ۱۰ تا ۱۳ سال",
+          "summaryFa": "محاسبات نیرو و اصطکاک، سیستم تعلیق ربات، گیربکس‌های قدرتی و ساخت سازه‌های مسابقه‌ای مستحکم.",
+          "syllabusPoints": [
+            "فیزیک حرکت و محاسبات گشتاور موتورهای گیربکس‌دار",
+            "شاسی‌های پیشرفته و سیستم‌های تعلیق مکانیکی",
+            "مکانیزم‌های پرتابگر و ربات‌های جنگجو",
+            "مدیریت باتری و اتصالات تغذیه موتورها"
+          ],
+          "equipmentNeeded": "بسته سطح ۲ یا بسته مکانیک تام",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-05.jpg",
+          "seoTitle": "دوره مکانیک B1 ویژه نوجوانان | آموزشگاه رباتیک فاتحان",
+          "seoDescription": "ثبت‌نام دوره مکانیک B1 ویژه رده سنی ۱۰ تا ۱۳ سال در آموزشگاه رباتیک فاتحان.",
+          "focusKeyword": "دوره مکانیک B1"
+        },
+        {
+          "id": "CRS-FAT-06",
+          "code": "FAT-MEC-B23",
+          "title": "مکانیک B2 تا B3",
+          "slug": "mechanics-b2-to-b3",
+          "ageGroup": "B",
+          "ageRangeFa": "۱۰ تا ۱۳ سال (گروه سنی B)",
+          "category": "مکانیک",
+          "tuitionApprovedToman": 5900000,
+          "tuitionEarlyBirdToman": 3900000,
+          "tuitionNormalToman": 4500000,
+          "tuitionPrivateToman": 8000000,
+          "sessionsCount": 16,
+          "hoursPerSession": 1.5,
+          "levelFa": "تکمیلی مکانیک نوجوانان",
+          "prerequisites": "گذراندن مکانیک B1",
+          "summaryFa": "طراحی مکانیزم‌های پیشرفته انتقال قدرت، گیربکس‌های خورشیدی و حلزونی، بازوهای صنعتی چندمحوره و شاسی‌های ربات‌های مسابقاتی.",
+          "syllabusPoints": [
+            "گیربکس‌های ترکیبی خورشیدی و حلزونی با گشتاور بالا",
+            "طراحی مکانیزم‌های راه‌رونده و شاسی‌های ۶ چرخ",
+            "کنترل بی‌سیم سازه‌های مکانیکی با ریموت بی‌سیم",
+            "پروژه عملی آماده‌سازی شاسی مسابقات کشوری"
+          ],
+          "equipmentNeeded": "بسته مکانیک تام + ریموت بی‌سیم",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-02.jpg",
+          "seoTitle": "دوره مکانیک B2 تا B3 | آموزشگاه تخصصی رباتیک فاتحان",
+          "seoDescription": "دوره تخصصی مکانیک B2 تا B3 ویژه دانش‌آموزان ۱۰ تا ۱۳ سال در آکادمی رباتیک فاتحان اندیشه.",
+          "focusKeyword": "مکانیک B2 تا B3"
+        },
+        {
+          "id": "CRS-FAT-07",
+          "code": "FAT-MEC-C",
+          "title": "مکانیک C",
+          "slug": "mechanics-c",
+          "ageGroup": "C",
+          "ageRangeFa": "بالای ۱۳ سال (گروه سنی C)",
+          "category": "مکانیک",
+          "tuitionApprovedToman": 6400000,
+          "tuitionEarlyBirdToman": 4500000,
+          "tuitionNormalToman": 5200000,
+          "tuitionPrivateToman": 9000000,
+          "sessionsCount": 16,
+          "hoursPerSession": 2,
+          "levelFa": "تخصصی سازه‌های صنعتی و مبانی کامپیوتر",
+          "prerequisites": "گروه سنی بالای ۱۳ سال",
+          "summaryFa": "طراحی شاسی‌های صنعتی، تحلیل استاتیکی سازه، تلفیق مکانیک با مبانی کامپیوتر و نرم‌افزار و آماده‌سازی برای مدل‌سازی سه‌بعدی.",
+          "syllabusPoints": [
+            "استاتیک و مقاومت مصالح در طراحی شاسی ربات",
+            "کار با موتورهای صنعتی و سیستم‌های انتقال قدرت دقیق",
+            "طراحی قطعات اختصاصی برای ساخت افزایشی",
+            "پروژه نهایی: ساخت شاسی ربات خودران رده خوارزمی"
+          ],
+          "equipmentNeeded": "بسته اسمارت یا بسته مکانیک تام",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-01.jpg",
+          "seoTitle": "دوره مکانیک C | آموزشگاه تخصصی رباتیک فاتحان",
+          "seoDescription": "دوره پیشرفته مکانیک C ویژه نوجوانان و جوانان بالای ۱۳ سال در آکادمی فاتحان.",
+          "focusKeyword": "دوره مکانیک C"
+        },
+        {
+          "id": "CRS-FAT-08",
+          "code": "FAT-ELE-13",
+          "title": "الکترونیک ۱ تا ۳",
+          "slug": "electronics-1-to-3",
+          "ageGroup": "A",
+          "ageRangeFa": "۸ تا ۱۳ سال (گروه سنی A و B)",
+          "category": "الکترونیک",
+          "tuitionApprovedToman": 6400000,
+          "tuitionEarlyBirdToman": 4500000,
+          "tuitionNormalToman": 5200000,
+          "tuitionPrivateToman": 9000000,
+          "sessionsCount": 16,
+          "hoursPerSession": 1.5,
+          "levelFa": "مبتدی تا پیشرفته الکترونیک عملی",
+          "prerequisites": "بدون پیش‌نیاز",
+          "summaryFa": "آشنایی عملی با قطعه‌شناسی، بردبورد، سنسورهای نوری (LDR)، فروسرخ (IR)، ترانزیستور، رله و ساخت مدارات دزدگیر و هوشمند.",
+          "syllabusPoints": [
+            "قوانین ولتاژ، جریان، مقاومت و بستن مدار روی بردبورد",
+            "کار با مولتی‌متر دیجیتال و ابزارهای قطعه‌شناسی",
+            "راه‌اندازی سنسورهای نوری، صوتی و تشخیص مانع",
+            "مدارات درایور موتور و برد راه‌انداز ربات"
+          ],
+          "equipmentNeeded": "بسته قطعه‌شناسی تام + برد راه‌انداز",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-08.jpg",
+          "seoTitle": "دوره الکترونیک ۱ تا ۳ | آموزشگاه رباتیک فاتحان",
+          "seoDescription": "آموزش عملی الکترونیک ۱ تا ۳، قطعه‌شناسی و ساخت مدارهای هوشمند در آموزشگاه رباتیک فاتحان اندیشه.",
+          "focusKeyword": "دوره الکترونیک ۱ تا ۳"
+        },
+        {
+          "id": "CRS-FAT-09",
+          "code": "FAT-MCT-13",
+          "title": "مکاترونیک ۱ تا ۳",
+          "slug": "mechatronics-1-to-3",
+          "ageGroup": "B",
+          "ageRangeFa": "۸ تا ۱۳ سال (گروه سنی A و B)",
+          "category": "مکاترونیک",
+          "tuitionApprovedToman": 7200000,
+          "tuitionEarlyBirdToman": 4900000,
+          "tuitionNormalToman": 5800000,
+          "tuitionPrivateToman": 10400000,
+          "sessionsCount": 16,
+          "hoursPerSession": 2,
+          "levelFa": "تخصصی چندرشته‌ای (مکانیک + الکترونیک)",
+          "prerequisites": "الکترونیک پایه یا مکانیک پایه",
+          "summaryFa": "تلفیق سازه مکانیکی، مدار الکترونیکی و سنسورهای هوشمند؛ ساخت ربات مسیریاب، حل‌کننده ماز، آتش‌نشان و فوتبالیست حرفه‌ای.",
+          "syllabusPoints": [
+            "ترکیب شاسی مکانیکی با سنسورهای اولتراسونیک و مادون قرمز",
+            "کار با بردهای راه‌انداز و تغذیه استاندارد باطری لیتیومی",
+            "طراحی ربات‌های خودران هوشمند بدون دخالت دست",
+            "آماده‌سازی عملی برای مسابقات استانی و کشوری رباتیک"
+          ],
+          "equipmentNeeded": "بسته ربو گیت یا بسته اسمارت",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-04.jpg",
+          "seoTitle": "دوره مکاترونیک ۱ تا ۳ | آموزشگاه تخصصی رباتیک فاتحان",
+          "seoDescription": "ثبت‌نام دوره مکاترونیک ۱ تا ۳؛ ساخت ربات‌های هوشمند مسیریاب و مسابقه‌ای در آموزشگاه فاتحان.",
+          "focusKeyword": "مکاترونیک ۱ تا ۳"
+        },
+        {
+          "id": "CRS-FAT-10",
+          "code": "FAT-ARC-15",
+          "title": "برنامه‌نویسی ARC1 تا ARC5",
+          "slug": "arc-programming-1-to-5",
+          "ageGroup": "B",
+          "ageRangeFa": "۱۰ سال به بالا (گروه سنی B و C)",
+          "category": "برنامه‌نویسی و هوش مصنوعی",
+          "tuitionApprovedToman": 8000000,
+          "tuitionEarlyBirdToman": 5000000,
+          "tuitionNormalToman": 6400000,
+          "tuitionPrivateToman": 11000000,
+          "sessionsCount": 18,
+          "hoursPerSession": 2,
+          "levelFa": "کدنویسی تخصصی سخت‌افزار و ربات",
+          "prerequisites": "گذراندن مکاترونیک یا آشنایی اولیه",
+          "summaryFa": "برنامه‌نویسی گام‌به‌گام بردهای میکروکنترلری تخصصی ARC از سطح ۱ تا ۵؛ کنترل دیجیتال موتورها، خواندن سنسورها و منطق تصمیم‌گیری هوشمند ربات.",
+          "syllabusPoints": [
+            "دستورات شرطی، حلقه‌ها، متغیرها و توابع در محیط ARC",
+            "خواندن سنسورهای آنالوگ و دیجیتال و کنترل دقیق PWM",
+            "برنامه‌نویسی ربات‌های مسیریاب سرعتی و حل‌کننده ماز",
+            "پروژه نهایی: ساخت ربات هوشمند مسابقه‌ای با برد ARC"
+          ],
+          "equipmentNeeded": "بسته برنامه‌نویسی ARC",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-03.jpg",
+          "seoTitle": "دوره برنامه‌نویسی ARC1 تا ARC5 | آموزشگاه رباتیک فاتحان",
+          "seoDescription": "آموزش جامع برنامه‌نویسی بردهای رباتیک ARC1 تا ARC5 در آکادمی تخصصی فاتحان اندیشه.",
+          "focusKeyword": "برنامه‌نویسی ARC1 تا ARC5"
+        },
+        {
+          "id": "CRS-FAT-11",
+          "code": "FAT-ICDL",
+          "title": "ICDL",
+          "slug": "icdl-computer-skills",
+          "ageGroup": "C",
+          "ageRangeFa": "گروه سنی C (نوجوانان و جوانان)",
+          "category": "مهارت‌های تخصصی",
+          "tuitionApprovedToman": 10400000,
+          "tuitionEarlyBirdToman": 5500000,
+          "tuitionNormalToman": 7200000,
+          "tuitionPrivateToman": 14000000,
+          "sessionsCount": 20,
+          "hoursPerSession": 1.5,
+          "levelFa": "مهارت‌های هفتگانه بین‌المللی کامپیوتر (سطوح ۱ و ۲)",
+          "prerequisites": "بدون پیش‌نیاز",
+          "summaryFa": "آموزش جامع و عملی مهارت‌های هفتگانه کامپیوتر (ICDL 1 & 2) شامل ویندوز، اینترنت، Word، Excel، PowerPoint و Access با اعطای گواهینامه معتبر.",
+          "syllabusPoints": [
+            "تسلط کامل بر سیستم‌عامل Windows و مدیریت فایل‌ها",
+            "تایپ، صفحه‌آرایی و مستندسازی حرفه‌ای در Microsoft Word",
+            "فرمول‌نویسی، جداول و نمودارهای آماری در Excel",
+            "طراحی ارائه‌های علمی و مهندسی در PowerPoint"
+          ],
+          "equipmentNeeded": "سایت کامپیوتر مجهز آموزشگاه فاتحان",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-15.jpg",
+          "seoTitle": "دوره جامع ICDL در اندیشه | آموزشگاه تخصصی فاتحان",
+          "seoDescription": "آموزش عملی مهارت‌های هفتگانه کامپیوتر ICDL سطوح ۱ و ۲ در آموزشگاه فاتحان اندیشه.",
+          "focusKeyword": "دوره ICDL اندیشه"
+        },
+        {
+          "id": "CRS-FAT-12",
+          "code": "FAT-AVR",
+          "title": "AVR",
+          "slug": "avr-microcontroller",
+          "ageGroup": "C",
+          "ageRangeFa": "گروه سنی B و C (۱۰ سال به بالا)",
+          "category": "الکترونیک",
+          "tuitionApprovedToman": 10400000,
+          "tuitionEarlyBirdToman": 5500000,
+          "tuitionNormalToman": 7200000,
+          "tuitionPrivateToman": 14000000,
+          "sessionsCount": 16,
+          "hoursPerSession": 2,
+          "levelFa": "تخصصی میکروکنترلر AVR (سطوح ۱ و ۲)",
+          "prerequisites": "الکترونیک پایه",
+          "summaryFa": "برنامه‌نویسی تراشه‌های میکروکنترلر AVR به زبان C، راه‌اندازی نمایشگرهای LCD، کی‌پد، مبدل ADC، تایمرها و ساخت سیستم‌های کنترلی.",
+          "syllabusPoints": [
+            "معماری میکروکنترلرهای AVR و پروگرام کردن تراشه",
+            "راه‌اندازی نمایشگر کاراکتری LCD، سون‌سگمنت و کی‌پد ماتریسی",
+            "کار با وقفه‌ها (Interrupts) و مبدل آنالوگ به دیجیتال (ADC)",
+            "پروژه عملی: ساخت قفل دیجیتال رمزدار و دماسنج هوشمند"
+          ],
+          "equipmentNeeded": "برد آموزشی AVR و قطعات الکترونیک",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-10.jpg",
+          "seoTitle": "دوره میکروکنترلر AVR | آموزشگاه رباتیک فاتحان اندیشه",
+          "seoDescription": "آموزش عملی برنامه‌نویسی میکروکنترلر AVR سطوح ۱ و ۲ در آموزشگاه تخصصی رباتیک فاتحان.",
+          "focusKeyword": "دوره AVR"
+        },
+        {
+          "id": "CRS-FAT-13",
+          "code": "FAT-ALTIUM",
+          "title": "ALTIUM",
+          "slug": "altium-pcb-design",
+          "ageGroup": "C",
+          "ageRangeFa": "گروه سنی C (بالای ۱۳ سال)",
+          "category": "الکترونیک",
+          "tuitionApprovedToman": 10400000,
+          "tuitionEarlyBirdToman": 5500000,
+          "tuitionNormalToman": 7200000,
+          "tuitionPrivateToman": 14000000,
+          "sessionsCount": 18,
+          "hoursPerSession": 2,
+          "levelFa": "تخصصی طراحی برد مدار چاپی (PCB)",
+          "prerequisites": "الکترونیک کاربردی",
+          "summaryFa": "آموزش حرفه‌ای طراحی شماتیک و برد مدار چاپی (PCB) یک‌لایه و دولایه در نرم‌افزار صنعتی Altium Designer (سطوح ۱ و ۲) تا خروجی نهایی کارخانه.",
+          "syllabusPoints": [
+            "ترسیم نقشه شماتیک استاندارد و ساخت کتابخانه قطعات",
+            "اصول چیدمان قطعات (Placement) و مسیریابی (Routing) برد PCB",
+            "قوانین طراحی صنعتی (Design Rules) و پلی‌گان‌ریزی",
+            "تولید فایل‌های Gerber جهت سفارش ساخت برد مدار چاپی"
+          ],
+          "equipmentNeeded": "سیستم‌های مهندسی کارگاه فاتحان",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-10.jpg",
+          "seoTitle": "دوره آموزش Altium Designer | طراحی برد PCB در فاتحان",
+          "seoDescription": "آموزش تخصصی طراحی برد مدار چاپی با نرم‌افزار Altium Designer در آموزشگاه فاتحان اندیشه.",
+          "focusKeyword": "آموزش Altium"
+        },
+        {
+          "id": "CRS-FAT-14",
+          "code": "FAT-PROTEUS",
+          "title": "PROTEUS",
+          "slug": "proteus-circuit-simulation",
+          "ageGroup": "C",
+          "ageRangeFa": "گروه سنی B و C",
+          "category": "الکترونیک",
+          "tuitionApprovedToman": 10400000,
+          "tuitionEarlyBirdToman": 5500000,
+          "tuitionNormalToman": 7200000,
+          "tuitionPrivateToman": 14000000,
+          "sessionsCount": 16,
+          "hoursPerSession": 2,
+          "levelFa": "شبیه‌سازی تخصصی مدارات و میکروکنترلرها",
+          "prerequisites": "الکترونیک پایه",
+          "summaryFa": "آموزش جامع شبیه‌سازی مدارهای آنالوگ، دیجیتال و میکروکنترلرهای AVR و Arduino در محیط نرم‌افزار Proteus (سطوح ۱ تا ۳) پیش از ساخت عملی.",
+          "syllabusPoints": [
+            "شبیه‌سازی زنده مدارات الکترونیکی با اسیلوسکوپ و ولتمتر مجازی",
+            "بارگذاری فایل Hex میکروکنترلر و تست برنامه روی شماتیک",
+            "خطایابی و بهینه‌سازی عملکرد مدار پیش از لحیم‌کاری",
+            "پروژه عملی شبیه‌سازی کامل مدار کنترلی ربات هوشمند"
+          ],
+          "equipmentNeeded": "سیستم کامپیوتری کارگاه فاتحان",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-08.jpg",
+          "seoTitle": "دوره آموزش Proteus | شبیه‌سازی مدار در آموزشگاه فاتحان",
+          "seoDescription": "دوره تخصصی شبیه‌سازی مدارات الکترونیکی و میکروکنترلرها با نرم‌افزار Proteus در آکادمی فاتحان.",
+          "focusKeyword": "آموزش Proteus"
+        },
+        {
+          "id": "CRS-FAT-15",
+          "code": "FAT-SOLID",
+          "title": "Solid (سالیدورک و طراحی سه‌بعدی)",
+          "slug": "solidworks-3d-cad",
+          "ageGroup": "C",
+          "ageRangeFa": "گروه سنی C (بالای ۱۳ سال)",
+          "category": "طراحی و ساخت سه‌بعدی",
+          "tuitionApprovedToman": 10400000,
+          "tuitionEarlyBirdToman": 5500000,
+          "tuitionNormalToman": 7200000,
+          "tuitionPrivateToman": 14000000,
+          "sessionsCount": 20,
+          "hoursPerSession": 2,
+          "levelFa": "طراحی صنعتی سه‌بعدی و پرینتر ۳D",
+          "prerequisites": "آشنایی با کامپیوتر",
+          "summaryFa": "آموزش جامع طراحی قطعات مکانیکی و صنعتی در نرم‌افزار SolidWorks (محیط‌های Part، Assembly و Drawing) و خروجی مستقیم برای پرینتر سه‌بعدی کارگاه.",
+          "syllabusPoints": [
+            "ترسیم اسکچ‌های دوبعدی دقیق و قیدگذاری مهندسی",
+            "حجم‌دهی سه‌بعدی پیشرفته (Extrude, Revolve, Sweep, Loft)",
+            "مونتاژ مکانیزم‌های رباتیک و شبیه‌سازی حرکت چرخ‌دنده‌ها",
+            "خروجی STL و چاپ قطعه طراحی‌شده با پرینتر سه‌بعدی آموزشگاه"
+          ],
+          "equipmentNeeded": "سیستم‌های طراحی سه‌بعدی و پرینتر ۳D کارگاه",
+          "status": "ثبت‌نام فعال",
+          "featuredImageUrl": "/assets/kits/kit-05.jpg",
+          "seoTitle": "دوره آموزش SolidWorks و پرینتر سه‌بعدی | آموزشگاه فاتحان",
+          "seoDescription": "آموزش عملی نرم‌افزار سالیدورک (SolidWorks) و طراحی برای پرینتر سه‌بعدی در آموزشگاه رباتیک فاتحان اندیشه.",
+          "focusKeyword": "آموزش SolidWorks اندیشه"
+        }
+      ]
+    },
+    "freeCourses": {
+      "moduleId": "fatehan_free_courses",
+      "titleFa": "دوره‌ها و کارگاه‌های رایگان استعدادیابی (با گرید قابل تنظیم ۲/۳/۴ ستونه)",
+      "apiEndpoints": {
+        "list": "GET /api/v2/free-courses",
+        "create": "POST /api/v2/free-courses",
+        "update": "PUT /api/v2/free-courses/:id",
+        "delete": "DELETE /api/v2/free-courses/:id",
+        "registerLead": "POST /api/v2/consultations"
+      },
+      "routes": ["/free-courses"],
+      "uiComponents": [
+        "themes/fatehan/pages/FatehanMultiPages.tsx (FatehanFreeCoursesPage)",
+        "themes/fatehan/components/FatehanStorefrontHome.tsx"
+      ],
+      "pageConfigSchema": {
+        "gridColumns": "2 | 3 | 4",
+        "heroBadge": "string",
+        "heroTitle": "string",
+        "heroHighlightWord": "string (optional)",
+        "heroDescription": "string",
+        "heroCtaText": "string",
+        "listSectionTitle": "string",
+        "listSectionSubtitle": "string",
+        "seoTitle": "string (optional)",
+        "seoDescription": "string (optional)",
+        "focusKeyword": "string (optional)"
+      },
+      "defaultPageConfig": {
+        "gridColumns": 2,
+        "heroBadge": "آموزش رایگان آکادمی رباتیک و هوش مصنوعی فاتحان",
+        "heroTitle": "دوره رایگان هوش مصنوعی، رباتیک و کدنویسی",
+        "heroDescription": "در دوره‌های رایگان آکادمی فاتحان، با انجام ۴ پروژه عملی و کاربردی، مسیر ورود به دنیای هوش مصنوعی، ساخت ربات و برنامه‌نویسی را به ساده‌ترین و جذاب‌ترین شکل تجربه کنید!",
+        "heroCtaText": "ثبت نام دوره رایگان",
+        "listSectionTitle": "لیست کارگاه‌ها و دوره‌های رایگان آکادمی فاتحان",
+        "listSectionSubtitle": "هر یک از دوره‌های رایگان زیر شامل پروژه‌های عملی گام‌به‌گام است:"
+      },
+      "itemSchema": {
+        "id": "string",
+        "slug": "string",
+        "title": "string",
+        "subtitle": "string",
+        "badge": "string",
+        "ageRange": "string",
+        "duration": "string",
+        "projectsCount": "number",
+        "projects": "string[]",
+        "description": "string",
+        "imageUrl": "string",
+        "ctaText": "string",
+        "seoTitle": "string (optional)",
+        "seoDescription": "string (optional)",
+        "focusKeyword": "string (optional)"
+      },
+      "defaultData": [
+        {
+          "id": "FREE-FAT-01",
+          "slug": "free-ai-and-robotics-starter",
+          "title": "دوره رایگان هوش مصنوعی و برنامه‌نویسی رباتیک (ویژه شروع)",
+          "subtitle": "آموزش رایگان آکادمی فاتحان — با انجام ۴ پروژه عملی و کاربردی",
+          "badge": "۱۰۰٪ رایگان + گواهی شرکت",
+          "ageRange": "۷ تا ۱۶ سال",
+          "duration": "۴ جلسه (پروژه‌محور)",
+          "projectsCount": 4,
+          "projects": [
+            "پروژه ۱: آشنایی با مغز متفکر ربات‌ها و منطق شرطی هوشمند",
+            "پروژه ۲: ساخت اولین بازی و انیمیشن تعاملی با کدنویسی بلوکی",
+            "پروژه ۳: تشخیص اشیاء و تصویر با هوش مصنوعی مقدماتی",
+            "پروژه ۴: جلسه عملی کارگاهی و استعدادیابی حضوری با مربیان"
+          ],
+          "description": "در دوره رایگان هوش مصنوعی و مبانی رباتیک فاتحان، دانش‌آموزان با انجام ۴ پروژه عملی و جذاب، مسیر ورود به دنیای تکنولوژی، منطق الگوریتم و ساخت ربات‌های هوشمند را تجربه می‌کنند.",
+          "imageUrl": "/assets/blog/blog-03.jpg",
+          "ctaText": "ثبت‌نام رایگان در این دوره",
+          "seoTitle": "دوره رایگان هوش مصنوعی و رباتیک کودکان | آکادمی فاتحان",
+          "seoDescription": "ثبت‌نام دوره رایگان هوش مصنوعی و برنامه‌نویسی رباتیک با ۴ پروژه عملی در آموزشگاه تخصصی رباتیک فاتحان اندیشه.",
+          "focusKeyword": "دوره رایگان هوش مصنوعی و رباتیک"
+        },
+        {
+          "id": "FREE-FAT-02",
+          "slug": "free-creative-mechanics-workshop",
+          "title": "کارگاه رایگان ساخت اولین سازه و مکانیزم حرکتی (کودک خلاق)",
+          "subtitle": "آشنایی عملی با چرخ‌دنده‌ها، اهرم‌ها و موتورهای رباتیک",
+          "badge": "کارگاه رایگان استعدادیابی",
+          "ageRange": "۶ تا ۱۰ سال",
+          "duration": "۲ ساعت کارگاه حضوری + ویدیو",
+          "projectsCount": 2,
+          "projects": [
+            "آشنایی با قطعات مکانیکی ایمن و ابزارهای ساخت",
+            "ساخت مکانیزم انتقال نیرو با چرخ‌دنده‌های رنگی",
+            "تست حرکت سازه در پیست کارگاه و سنجش استعداد مکانیکی"
+          ],
+          "description": "فرصتی بی‌نظیر برای کودکان ۶ تا ۱۰ سال تا در محیط واقعی کارگاه فاتحان، با قطعات استاندارد مکانیکی اولین خودرو یا پرتابگر متحرک خود را بسازند.",
+          "imageUrl": "/assets/blog/blog-02.jpg",
+          "ctaText": "ثبت‌نام رایگان در این دوره",
+          "seoTitle": "کارگاه رایگان رباتیک و مکانیک کودکان | آموزشگاه فاتحان",
+          "seoDescription": "ثبت‌نام کارگاه رایگان ساخت سازه و استعدادیابی رباتیک ویژه کودکان ۶ تا ۱۰ سال در اندیشه.",
+          "focusKeyword": "کارگاه رایگان رباتیک کودکان"
+        },
+        {
+          "id": "FREE-FAT-03",
+          "slug": "free-scratch-game-dev",
+          "title": "آموزش رایگان بازی‌سازی دوبعدی با اسکرچ (Scratch 3.0)",
+          "subtitle": "تبدیل علاقه به بازی‌های کامپیوتری به مهارت برنامه‌نویسی",
+          "badge": "آموزش رایگان ویدیویی و حضوری",
+          "ageRange": "۸ تا ۱۳ سال",
+          "duration": "۳ بخش آموزشی + تمرین عملی",
+          "projectsCount": 3,
+          "projects": [
+            "آشنایی با محیط فارسی و گرافیکی Scratch 3.0",
+            "حرکت دادن کاراکتر ربات با کلیدهای صفحه‌کلید",
+            "طراحی سیستم امتیازگیری و مراحل بازی"
+          ],
+          "description": "به جای اینکه فرزندتان فقط بازیکن بازی‌های موبایل باشد، در این دوره رایگان یاد می‌گیرد چطور خودش کاراکتر، مرحله و امتیازدهی یک بازی واقعی را طراحی کند!",
+          "imageUrl": "/assets/blog/blog-01.jpg",
+          "ctaText": "ثبت‌نام رایگان در این دوره",
+          "seoTitle": "آموزش رایگان اسکرچ (Scratch) برای کودکان | فاتحان",
+          "seoDescription": "دوره رایگان بازی‌سازی و برنامه‌نویسی اسکرچ ویژه دانش‌آموزان در آکادمی فاتحان.",
+          "focusKeyword": "آموزش رایگان اسکرچ"
+        },
+        {
+          "id": "FREE-FAT-04",
+          "slug": "free-3d-printing-intro",
+          "title": "آشنایی رایگان با پرینتر سه‌بعدی و تبدیل ایده به قطعه واقعی",
+          "subtitle": "مشاهده زنده چاپ سه‌بعدی قطعات ربات در کارگاه فاتحان",
+          "badge": "بازدید و آموزش رایگان",
+          "ageRange": "۱۰ تا ۱۸ سال",
+          "duration": "۱ جلسه کارگاهی + فایل آموزشی",
+          "projectsCount": 2,
+          "projects": [
+            "چگونه پرینتر سه‌بعدی لایه‌به‌لایه قطعه را می‌سازد؟",
+            "طراحی اولین مدل سه‌بعدی در کمتر از ۲۰ دقیقه",
+            "مشاهده پرینت زنده قطعه در کارگاه آموزشگاه فاتحان"
+          ],
+          "description": "در این دوره رایگان، نوجوانان با نحوه کار پرینترهای سه‌بعدی صنعتی، فیلامنت‌های PLA و نحوه طراحی یک سرکلیدی یا چرخ‌دنده سه‌بعدی آشنا می‌شوند.",
+          "imageUrl": "/assets/blog/blog-05.jpg",
+          "ctaText": "ثبت‌نام رایگان در این دوره",
+          "seoTitle": "آموزش رایگان پرینتر سه‌بعدی ویژه نوجوانان | فاتحان",
+          "seoDescription": "آشنایی عملی و رایگان با طراحی سه‌بعدی و پرینتر 3D در آموزشگاه تخصصی فاتحان اندیشه.",
+          "focusKeyword": "آموزش رایگان پرینتر سه بعدی"
+        }
+      ]
+    },
+    "tuitionCalculator": {
+      "moduleId": "fatehan_tuition_calculator",
+      "titleFa": "محاسبه‌گر هوشمند شهریه، طرح‌های تخفیف و ثبت‌نام مستقیم",
+      "routes": ["/calculator", "/courses", "/"],
+      "uiComponents": [
+        "themes/fatehan/pages/FatehanMultiPages.tsx (FatehanTuitionCalculatorPage & embedded inside FatehanCoursesPage)",
+        "themes/fatehan/components/FatehanStorefrontHome.tsx"
+      ],
+      "inputs": {
+        "selectedCourseId": "string (references courses[].id)",
+        "selectedPlan": "'early' | 'normal' | 'approved' | 'private'",
+        "siblingsCount": "integer (min: 1, max: 4, default: 1)"
+      },
+      "pricingPlans": [
+        {
+          "id": "early",
+          "labelFa": "تخفیف زودهنگام یک‌مرحله‌ای",
+          "shortDescFa": "یک‌مرحله‌ای",
+          "courseField": "tuitionEarlyBirdToman"
+        },
+        {
+          "id": "normal",
+          "labelFa": "تخفیف ثبت‌نام به‌موقع (دو‌مرحله‌ای)",
+          "shortDescFa": "دو‌مرحله‌ای",
+          "courseField": "tuitionNormalToman"
+        },
+        {
+          "id": "approved",
+          "labelFa": "شهریه مصوب",
+          "shortDescFa": "نرخ پایه",
+          "courseField": "tuitionApprovedToman"
+        },
+        {
+          "id": "private",
+          "labelFa": "کلاس خصوصی ۱ تا ۳ نفره",
+          "shortDescFa": "۱ تا ۳ نفر",
+          "courseField": "tuitionPrivateToman"
+        }
+      ],
+      "exactFormula": {
+        "step1_unitPriceToman": "course[plan.courseField] (fallback: course.tuitionApprovedToman)",
+        "step2_siblingDiscountRule": "siblingsCount > 1 ? 0.95 : 1.0 (5% extra family discount for 2+ siblings enrolled simultaneously)",
+        "step3_totalPriceToman": "Math.round(unitPriceToman * siblingsCount * siblingMultiplier)",
+        "step4_equivalentRial": "totalPriceToman * 10",
+        "step5_baseRegularTotalToman": "course.tuitionApprovedToman * siblingsCount",
+        "step6_totalSavingsToman": "Math.max(0, baseRegularTotalToman - totalPriceToman)",
+        "step7_cartItemMapping": {
+          "id": "ENR-${course.id}-${selectedPlan}-${siblingsCount}",
+          "sku": "ENR-${course.code}",
+          "name": "ثبت‌نام ${course.title} (${planLabel} - ${siblingsCount} نفر)",
+          "type": "دوره آموزشی حضوری",
+          "category": "ثبت‌نام دوره‌های آموزشی",
+          "priceToman": "course.tuitionApprovedToman * siblingsCount",
+          "salePriceToman": "totalPriceToman"
+        }
+      },
+      "checkoutTaxRule": {
+        "vatPercent": 10,
+        "formula": "taxableTotal = Math.max(0, cartSubtotal - couponDiscountToman); vatTaxToman = Math.round(taxableTotal * 0.10); grandTotalToman = taxableTotal + vatTaxToman;"
+      }
+    },
+    "ageRoadmaps": {
+      "moduleId": "fatehan_age_roadmaps",
+      "titleFa": "نقشه راه آموزشی ۳ رده سنی + مشاور هوشمند انتخاب دوره",
+      "uiComponent": "themes/fatehan/components/FatehanStorefrontHome.tsx",
+      "pageBuilderOverrideBlockId": "BLK-HOME-ROADMAP",
+      "schema": {
+        "id": "'kids' | 'teens' | 'youth'",
+        "badge": "string (age range label)",
+        "title": "string",
+        "goal": "string",
+        "steps": "Array<{ step: string; name: string; desc: string }>"
+      },
+      "defaultData": [
+        {
+          "id": "kids",
+          "badge": "۷ تا ۱۰ سال (دبستان)",
+          "title": "مسیر کاشفان کوچک",
+          "goal": "شکوفایی خلاقیت، تقویت دست‌ورزی، درک مقدماتی فیزیک حرکت و تفکر الگوریتمی",
+          "steps": [
+            {
+              "step": "گام اول",
+              "name": "مکانیک و سازه خلاق",
+              "desc": "آشنایی با چرخ‌دنده‌ها، اهرم‌ها و ساخت ماشین‌های متحرک هیجان‌انگیز."
+            },
+            {
+              "step": "گام دوم",
+              "name": "الکترونیک مقدماتی و ایمن",
+              "desc": "شناخت باتری، لامپ، موتور، کلید و ساخت اولین ربات‌های نوری ساده."
+            },
+            {
+              "step": "گام سوم",
+              "name": "کدنویسی تصویری (Scratch)",
+              "desc": "ساخت انیمیشن و بازی‌های دو بعدی با بلوک‌های رنگی بدون نیاز به تایپ انگلیسی."
+            },
+            {
+              "step": "گام چهارم",
+              "name": "پروژه ربات مسابقه‌ای مقدماتی",
+              "desc": "مونتاژ ربات فوتبالیست کنترلی و شرکت در رقابت‌های دوستانه کارگاه."
+            }
+          ]
+        },
+        {
+          "id": "teens",
+          "badge": "۱۱ تا ۱۴ سال (متوسطه اول)",
+          "title": "مسیر مهندسان نوجوان",
+          "goal": "تسلط بر طراحی مدار، سنسورهای محیطی، مدل‌سازی سه‌بعدی و بردهای هوشمند",
+          "steps": [
+            {
+              "step": "گام اول",
+              "name": "الکترونیک کاربردی و سنسورها",
+              "desc": "بستن مدارهای واقعی روی بردبورد و کار با سنسورهای اولتراسونیک، مادون قرمز و دما."
+            },
+            {
+              "step": "گام دوم",
+              "name": "طراحی و چاپ سه‌بعدی",
+              "desc": "طراحی شاسی و قطعات اختصاصی ربات در کامپیوتر و پرینت واقعی آن‌ها در کارگاه."
+            },
+            {
+              "step": "گام سوم",
+              "name": "بردهای هوشمند آردوینو (Arduino)",
+              "desc": "کدنویسی به زبان C/C++ و پایتون برای کنترل هوشمند موتورها و تصمیم‌گیری ربات."
+            },
+            {
+              "step": "گام چهارم",
+              "name": "ساخت ربات‌های خودمختار مسابقه‌ای",
+              "desc": "طراحی ربات مسیریاب، حل‌کننده ماز و آمادگی برای جشنواره‌های رباتیک کشوری."
+            }
+          ]
+        },
+        {
+          "id": "youth",
+          "badge": "۱۵ تا ۱۸ سال (متوسطه دوم)",
+          "title": "مسیر فاتحان آینده",
+          "goal": "ورود حرفه‌ای به مهندسی مکاترونیک، پایتون پیشرفته، هوش مصنوعی و ساخت نمونه‌های صنعتی",
+          "steps": [
+            {
+              "step": "گام اول",
+              "name": "برنامه‌نویسی پیشرفته پایتون",
+              "desc": "تسلط بر الگوریتم‌ها، ساختار داده‌ها، ماژول‌ها و توسعه نرم‌افزارهای کاربردی."
+            },
+            {
+              "step": "گام دوم",
+              "name": "هوش مصنوعی و بینایی ماشین",
+              "desc": "پردازش تصویر با OpenCV، تشخیص چهره، ردیابی اجسام و فرامین هوشمند."
+            },
+            {
+              "step": "گام سوم",
+              "name": "اینترنت اشیاء (IoT) و مکاترونیک",
+              "desc": "اتصال بردهای پیشرفته ESP32 به اینترنت، مانیتورینگ از راه دور و کنترل صنعتی."
+            },
+            {
+              "step": "گام چهارم",
+              "name": "پروژه نهایی و رزومه علمی",
+              "desc": "توسعه یک اختراع کاربردی برای مسابقات خوارزمی و ساخت رزومه تخصصی ورود به دانشگاه."
+            }
+          ]
+        }
+      ],
+      "smartCourseFinder": {
+        "ageOptions": ["7-10", "11-14", "15-18"],
+        "interestOptions": ["build", "code", "circuit", "print"]
+      }
+    },
+    "robotSimulatorLab": {
+      "moduleId": "fatehan_robot_simulator_lab",
+      "titleFa": "آزمایشگاه و شبیه‌ساز تعاملی هدایت ربات (مسیر پیست ۵×۴)",
+      "routes": ["/lab", "/"],
+      "uiComponents": [
+        "themes/fatehan/pages/FatehanMultiPages.tsx (FatehanSimulatorPage)",
+        "themes/fatehan/components/FatehanStorefrontHome.tsx"
+      ],
+      "gridSpec": {
+        "columns": 5,
+        "rows": 4,
+        "coordinateSystem": "x in [0..4] (left-to-right), y in [0..3] (top-to-bottom)",
+        "startPosition": { "x": 0, "y": 3 },
+        "goalFlagPosition": { "x": 4, "y": 0 },
+        "voltageObstacles": [
+          { "x": 1, "y": 3 },
+          { "x": 2, "y": 1 },
+          { "x": 3, "y": 2 }
+        ],
+        "collectibleSkillGears": [
+          { "id": 1, "x": 1, "y": 1 },
+          { "id": 2, "x": 3, "y": 0 }
+        ]
+      },
+      "movementRules": {
+        "outOfBounds": "Reject move when nx < 0 || nx > 4 || ny < 0 || ny > 3; status='collision'",
+        "obstacleHit": "Reject move if (nx, ny) matches any voltageObstacle; status='collision'",
+        "gearCollect": "Add gear.id to collectedGears if not already collected; status='gear'",
+        "winCondition": "Reached flagPos (4, 0); status='win' + trigger toast notification",
+        "autoPilotDemoRoute": [
+          { "dx": 0, "dy": -1, "stepDelayMs": 380, "name": "حرکت به سمت بالا" },
+          { "dx": 0, "dy": -1, "stepDelayMs": 760, "name": "حرکت به سمت بالا" },
+          { "dx": 1, "dy": 0, "stepDelayMs": 1140, "name": "دریافت چرخ‌دنده اول" },
+          { "dx": 0, "dy": -1, "stepDelayMs": 1520, "name": "صعود به ردیف بالا" },
+          { "dx": 1, "dy": 0, "stepDelayMs": 1900, "name": "حرکت به راست" },
+          { "dx": 1, "dy": 0, "stepDelayMs": 2280, "name": "دریافت چرخ‌دنده دوم" },
+          { "dx": 1, "dy": 0, "stepDelayMs": 2660, "name": "فتح قله فاتحان!" }
+        ]
+      }
+    },
+    "headerAnnouncements": {
+      "moduleId": "fatehan_header_announcements",
+      "titleFa": "سیستم اعلانات زنگوله هدر (عمومی + منشن اختصاصی کاربری)",
+      "apiEndpoints": {
+        "list": "GET /api/v2/announcements",
+        "create": "POST /api/v2/announcements",
+        "delete": "DELETE /api/v2/announcements/:id"
+      },
+      "uiComponents": [
+        "themes/fatehan/components/StorefrontHeader.tsx",
+        "themes/fatehan/pages/BlogAndAccountRoutes.tsx (CustomerAccountDashboardPage)"
+      ],
+      "visibilityRules": {
+        "public": "Displayed to all visitors in header notification bell dropdown",
+        "user_mention": "Displayed ONLY when loggedInCustomer.phone === announcement.mentionedPhone (with special @mention badge and highlighted styling)",
+        "bellAnimation": "CSS class .dpa-bell-shake triggers whenever unread/visible announcements > 0"
+      },
+      "schema": {
+        "id": "string",
+        "title": "string",
+        "message": "string",
+        "createdAt": "string (Jalali date string)",
+        "badgeText": "string (optional)",
+        "targetType": "'public' | 'user_mention'",
+        "mentionedPhone": "string (optional, required when targetType='user_mention')",
+        "mentionedUserName": "string (optional)",
+        "linkUrl": "string (optional storefront route, e.g. '/free-courses')",
+        "isImportant": "boolean (optional)"
+      },
+      "defaultData": [
+        {
+          "id": "ANN-201",
+          "title": "🎁 آغاز ثبت‌نام دوره رایگان هوش مصنوعی و رباتیک (۴ پروژه عملی)",
+          "message": "ظرفیت کارگاه رایگان آشنایی با هوش مصنوعی و ساخت ۴ پروژه عملی رباتیک برای دانش‌آموزان باز شد. همین حالا از منوی «دوره رایگان» ثبت‌نام کنید.",
+          "createdAt": "۱۴۰۴/۰۸/۰۵",
+          "badgeText": "دوره رایگان جدید",
+          "targetType": "public",
+          "linkUrl": "/free-courses",
+          "isImportant": true
+        },
+        {
+          "id": "ANN-202",
+          "title": "⏰ تمدید تخفیف ثبت‌نام زودهنگام ترم پاییز و زمستان فاتحان",
+          "message": "والدین گرامی می‌توانند با استفاده از طرح ثبت‌نام زودهنگام (یک‌مرحله‌ای یا دومرحله‌ای) از تخفیف ویژه شهریه در هر ۱۵ دوره رسمی بهره‌مند شوند.",
+          "createdAt": "۱۴۰۴/۰۸/۰۴",
+          "badgeText": "تخفیف شهریه",
+          "targetType": "public",
+          "linkUrl": "/courses",
+          "isImportant": false
+        },
+        {
+          "id": "ANN-203",
+          "title": "🌟 پیام اختصاصی به @09122685759 — تایید ایده رباتیک در کارگاه فاتحان",
+          "message": "ایده ثبت‌شده شما در بخش «فکر کن، بساز، کشف کن (ایده‌ها)» توسط مربیان ارشد کارگاه فاتحان بررسی و تایید شد! جزئیات پاسخ را در حساب کاربری خود مشاهده نمایید.",
+          "createdAt": "۱۴۰۴/۰۸/۰۵",
+          "badgeText": "منشن اختصاصی @شما",
+          "targetType": "user_mention",
+          "mentionedPhone": "09122685759",
+          "mentionedUserName": "مدیریت / کارآموز ویژه فاتحان",
+          "linkUrl": "/my-account",
+          "isImportant": true
+        }
+      ]
+    },
+    "studentIdeas": {
+      "moduleId": "fatehan_student_ideas",
+      "titleFa": "بانک ایده‌های کارآموزان (مودال DREAM · BUILD · فکر کن، بساز، کشف کن)",
+      "apiEndpoints": {
+        "list": "GET /api/v2/ideas",
+        "create": "POST /api/v2/ideas",
+        "replyOrUpdateStatus": "PATCH /api/v2/ideas/:id"
+      },
+      "uiComponents": [
+        "themes/fatehan/components/FatehanStorefrontHome.tsx (Interactive DREAM · BUILD Modal)",
+        "themes/fatehan/pages/BlogAndAccountRoutes.tsx (CustomerAccountDashboardPage -> 'ideas' tab)"
+      ],
+      "workflowSpec": {
+        "submission": "Students click the DREAM · BUILD badge on homepage or open the 'ایده‌های من' tab in /my-account, write title + note + name + phone + ageGroup.",
+        "autoAccountSync": "If not logged in, submitting an idea registers/syncs a customer session keyed by mobile number so their submitted notes and mentor replies stay visible in /my-account.",
+        "adminModerationStatuses": ["جدید", "بررسی شده", "تایید و تقدیر شده"]
+      },
+      "schema": {
+        "id": "string",
+        "title": "string",
+        "note": "string",
+        "studentName": "string",
+        "phone": "string (customer mobile identifier)",
+        "ageGroup": "string (optional)",
+        "createdAt": "string (Jalali timestamp)",
+        "status": "'جدید' | 'بررسی شده' | 'تایید و تقدیر شده'",
+        "adminReply": "string (optional mentor feedback)"
+      },
+      "defaultData": [
+        {
+          "id": "IDEA-101",
+          "title": "ربات هوشمند آبیاری گلدان‌های آپارتمانی با سنسور رطوبت",
+          "note": "می‌خواهم با استفاده از بسته اسمارت و سنسور رطوبت خاک، رباتی بسازم که وقتی خاک خشک شد خودش به گلدان آب بدهد و روی موبایل پیام بفرستد.",
+          "studentName": "امیرعلی محمدی",
+          "phone": "09122685759",
+          "ageGroup": "۱۱ تا ۱۴ سال",
+          "createdAt": "۱۴۰۴/۰۸/۰۵ - ۱۶:۳۰",
+          "status": "تایید و تقدیر شده",
+          "adminReply": "آفرین امیرعلی عزیز! ایده بسیار کاربردی و جذابی است. در جلسه این هفته کارگاه الکترونیک، ماژول رله و سنسور رطوبت خاک را برایت آماده کرده‌ایم تا با هم بسازیم."
+        },
+        {
+          "id": "IDEA-102",
+          "title": "دستکش کنترلی بی‌سیم برای هدایت ربات فوتبالیست با حرکت دست",
+          "note": "به جای ریموت معمولی، یک سنسور شتاب‌سنج روی دستکش نصب کنیم تا هر طرف دستمان را خم کردیم ربات به همان سمت حرکت کند.",
+          "studentName": "مهندس امیر احمدی",
+          "phone": "09121002003",
+          "ageGroup": "۱۲ تا ۱۶ سال",
+          "createdAt": "۱۴۰۴/۰۸/۰۴ - ۱۱:۱۵",
+          "status": "بررسی شده",
+          "adminReply": "ایده فوق‌العاده‌ای برای پروژه پایانی ترم برنامه‌نویسی ARC3 است. می‌توانیم با ماژول ژیروسکوپ MPU6050 و ریموت بی‌سیم پیاده‌سازی‌اش کنیم."
+        }
+      ]
+    }
+  },
+  "cmsV2IntegrationContract": {
+    "recommendedSingleBootstrapEndpoint": "GET /api/v2/storefront/bootstrap",
+    "bootstrapResponseKeys": [
+      "settings",
+      "typography",
+      "headerMenu",
+      "footerMenu",
+      "mobileBottomMenu",
+      "departments",
+      "courses",
+      "freeCourses",
+      "freeCoursesPage",
+      "aboutPage",
+      "builderBlocks",
+      "products",
+      "cmsPosts",
+      "cmsComments",
+      "orders",
+      "coupons",
+      "cashbackConfig",
+      "paymentGateways",
+      "customerAddresses",
+      "studentIdeas",
+      "announcements"
+    ],
+    "mutationEndpoints": {
+      "submitComment": "POST /api/v2/comments",
+      "submitStudentIdea": "POST /api/v2/ideas",
+      "submitConsultationLead": "POST /api/v2/consultations",
+      "sendOtp": "POST /api/v2/auth/send-otp",
+      "verifyOtp": "POST /api/v2/auth/verify-otp",
+      "saveCustomerAddress": "POST /api/v2/customer/addresses",
+      "deleteCustomerAddress": "DELETE /api/v2/customer/addresses/:id",
+      "createPaymentRequest": "POST /api/v2/checkout/request",
+      "verifyPayment": "POST /api/v2/checkout/verify"
+    }
+  }
+}

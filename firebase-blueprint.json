@@ -1,0 +1,324 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A digital product or learning package in the Skill 98 store.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Product or package title",
+          "minLength": 2,
+          "maxLength": 140
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL-safe identifier",
+          "minLength": 2,
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "category": {
+          "type": "string",
+          "description": "Product category",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "itemType": {
+          "type": "string",
+          "description": "Whether this item is a single product or a comprehensive bundle package",
+          "enum": ["product", "package"]
+        },
+        "price": {
+          "type": "number",
+          "description": "Price in Tomans"
+        },
+        "originalPrice": {
+          "type": "number",
+          "description": "Original price before discount in Tomans"
+        },
+        "shortDescription": {
+          "type": "string",
+          "description": "Concise summary of the product or package",
+          "minLength": 5,
+          "maxLength": 600
+        },
+        "modulesCount": {
+          "type": "number",
+          "description": "Number of chapters or included items"
+        },
+        "durationHours": {
+          "type": "number",
+          "description": "Total hours or support duration"
+        },
+        "level": {
+          "type": "string",
+          "description": "Skill level",
+          "minLength": 2,
+          "maxLength": 50
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Cover image path or URL",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "featured": {
+          "type": "boolean",
+          "description": "Whether highlighted on the storefront"
+        },
+        "status": {
+          "type": "string",
+          "description": "Publication status in CMS",
+          "enum": ["published", "draft"]
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the admin who created the product",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": [
+        "title",
+        "slug",
+        "category",
+        "itemType",
+        "price",
+        "originalPrice",
+        "shortDescription",
+        "modulesCount",
+        "durationHours",
+        "level",
+        "imageUrl",
+        "featured",
+        "status",
+        "authorId",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPublic": {
+      "title": "UserPublic",
+      "description": "Publicly non-sensitive user profile document.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "User UID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "description": "User role",
+          "enum": ["customer", "admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Profile update timestamp"
+        }
+      },
+      "required": ["uid", "displayName", "role", "createdAt", "updatedAt"]
+    },
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Isolated PII and authentication metadata for a user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner UID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "minLength": 3,
+          "maxLength": 180
+        },
+        "phone": {
+          "type": "string",
+          "description": "User mobile number for OTP",
+          "minLength": 0,
+          "maxLength": 20
+        },
+        "otpVerified": {
+          "type": "boolean",
+          "description": "Whether two-step OTP verification is active"
+        },
+        "lastLoginMethod": {
+          "type": "string",
+          "description": "Last authentication method used",
+          "enum": ["google", "otp_sms", "session_token"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["uid", "email", "phone", "otpVerified", "lastLoginMethod", "updatedAt"]
+    },
+    "UserSession": {
+      "title": "UserSession",
+      "description": "Security session record under a user profile.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Owner user UID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "deviceLabel": {
+          "type": "string",
+          "description": "Browser and OS label",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "authMethod": {
+          "type": "string",
+          "description": "Authentication factor used",
+          "enum": ["google_oauth", "otp_mobile", "passkey_guard"]
+        },
+        "ipMasked": {
+          "type": "string",
+          "description": "Masked IP summary for session audit",
+          "minLength": 3,
+          "maxLength": 45
+        },
+        "status": {
+          "type": "string",
+          "description": "Session state",
+          "enum": ["active", "revoked"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Session start time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Session state change time"
+        }
+      },
+      "required": ["uid", "deviceLabel", "authMethod", "ipMasked", "status", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order for products or packages in Skill 98.",
+      "type": "object",
+      "properties": {
+        "buyerId": {
+          "type": "string",
+          "description": "UID of the purchasing user",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "buyerName": {
+          "type": "string",
+          "description": "Customer display name",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total order price in Tomans"
+        },
+        "itemsSummary": {
+          "type": "string",
+          "description": "Summary of purchased products and packages",
+          "minLength": 2,
+          "maxLength": 500
+        },
+        "itemsCount": {
+          "type": "number",
+          "description": "Total quantity of items"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Selected payment gateway",
+          "enum": ["zarinpal_online", "wallet_credit", "crypto_tether"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Order fulfillment state",
+          "enum": ["paid", "pending", "completed", "cancelled"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Order creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Order last update timestamp"
+        }
+      },
+      "required": [
+        "buyerId",
+        "buyerName",
+        "totalAmount",
+        "itemsSummary",
+        "itemsCount",
+        "paymentMethod",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Catalog of digital products and learning packages managed by Skill 98 admins."
+    },
+    "/users/{userId}": {
+      "schema": "UserPublic",
+      "description": "Public user profile documents without PII."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": "UserPrivate",
+      "description": "Isolated PII and OTP verification status for each user."
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "UserSession",
+      "description": "Active and revoked authentication sessions for user security auditing."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Storefront orders placed by authenticated users."
+    }
+  }
+}

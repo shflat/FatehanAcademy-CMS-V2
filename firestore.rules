@@ -1,0 +1,239 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Primitive Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == '3mad.aria@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+          'title', 'slug', 'category', 'itemType', 'price', 'originalPrice',
+          'shortDescription', 'modulesCount', 'durationHours', 'level',
+          'imageUrl', 'featured', 'status', 'authorId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'slug', 'category', 'itemType', 'price', 'originalPrice',
+          'shortDescription', 'modulesCount', 'durationHours', 'level',
+          'imageUrl', 'featured', 'status', 'authorId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.title is string && data.title.size() >= 2 && data.title.size() <= 140 &&
+        data.slug is string && data.slug.size() >= 2 && data.slug.size() <= 100 && data.slug.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.category is string && data.category.size() >= 2 && data.category.size() <= 60 &&
+        data.itemType is string && (data.itemType == 'product' || data.itemType == 'package') &&
+        data.price is number && data.price >= 0 && data.price <= 1000000000 &&
+        data.originalPrice is number && data.originalPrice >= 0 && data.originalPrice <= 1000000000 &&
+        data.shortDescription is string && data.shortDescription.size() >= 5 && data.shortDescription.size() <= 600 &&
+        data.modulesCount is number && data.modulesCount >= 1 && data.modulesCount <= 500 &&
+        data.durationHours is number && data.durationHours >= 0 && data.durationHours <= 2000 &&
+        data.level is string && data.level.size() >= 2 && data.level.size() <= 50 &&
+        data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 500 &&
+        data.featured is bool &&
+        data.status is string && (data.status == 'published' || data.status == 'draft') &&
+        data.authorId is string && data.authorId.size() >= 1 && data.authorId.size() <= 128 && data.authorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.authorId == request.auth.uid || isAdmin()) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUserPublic(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'role', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'displayName', 'role', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.uid == request.auth.uid || isAdmin()) &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+        data.role is string && (data.role == 'customer' || data.role == 'admin') &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll(['uid', 'email', 'phone', 'otpVerified', 'lastLoginMethod', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'phone', 'otpVerified', 'lastLoginMethod', 'updatedAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.uid == request.auth.uid || isAdmin()) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 180 &&
+        data.phone is string && data.phone.size() >= 0 && data.phone.size() <= 20 &&
+        data.otpVerified is bool &&
+        data.lastLoginMethod is string && (data.lastLoginMethod == 'google' || data.lastLoginMethod == 'otp_sms' || data.lastLoginMethod == 'session_token') &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidUserSession(data) {
+      return data.keys().hasAll(['uid', 'deviceLabel', 'authMethod', 'ipMasked', 'status', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'deviceLabel', 'authMethod', 'ipMasked', 'status', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.uid == request.auth.uid || isAdmin()) &&
+        data.deviceLabel is string && data.deviceLabel.size() >= 2 && data.deviceLabel.size() <= 120 &&
+        data.authMethod is string && (data.authMethod == 'google_oauth' || data.authMethod == 'otp_mobile' || data.authMethod == 'passkey_guard') &&
+        data.ipMasked is string && data.ipMasked.size() >= 3 && data.ipMasked.size() <= 45 &&
+        data.status is string && (data.status == 'active' || data.status == 'revoked') &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+          'buyerId', 'buyerName', 'totalAmount', 'itemsSummary',
+          'itemsCount', 'paymentMethod', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'buyerId', 'buyerName', 'totalAmount', 'itemsSummary',
+          'itemsCount', 'paymentMethod', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.buyerId is string && data.buyerId.size() >= 1 && data.buyerId.size() <= 128 && data.buyerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.buyerId == request.auth.uid || isAdmin()) &&
+        data.buyerName is string && data.buyerName.size() >= 1 && data.buyerName.size() <= 100 &&
+        data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 2000000000 &&
+        data.itemsSummary is string && data.itemsSummary.size() >= 2 && data.itemsSummary.size() <= 500 &&
+        data.itemsCount is number && data.itemsCount >= 1 && data.itemsCount <= 100 &&
+        data.paymentMethod is string && (data.paymentMethod == 'zarinpal_online' || data.paymentMethod == 'wallet_credit' || data.paymentMethod == 'crypto_tether') &&
+        data.status is string && (data.status == 'paid' || data.status == 'pending' || data.status == 'completed' || data.status == 'cancelled') &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // 4. Collection Rules
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && isOwner(adminId);
+      allow list, create, update, delete: if false;
+    }
+
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (existing().status == 'published' || isAdmin());
+      allow list: if existing().status == 'published' || isAdmin();
+      allow create: if isValidId(productId) && isValidProduct(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+      allow update: if isValidId(productId) && isValidProduct(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().authorId == existing().authorId &&
+        incoming().updatedAt == request.time &&
+        isAdmin() && (
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'slug', 'category', 'itemType', 'price', 'originalPrice',
+            'shortDescription', 'modulesCount', 'durationHours', 'level',
+            'imageUrl', 'featured', 'status', 'updatedAt'
+          ])
+        );
+      allow delete: if isValidId(productId) && isAdmin();
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if (isVerifiedUser() && existing().uid == request.auth.uid) || isAdmin();
+      allow create: if isValidId(userId) && isOwner(userId) && isValidUserPublic(incoming()) &&
+        incoming().uid == userId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (incoming().role == 'customer' || isAdmin());
+      allow update: if isValidId(userId) && isValidUserPublic(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (isOwner(userId) && incoming().role == existing().role && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt']))
+        );
+      allow delete: if isValidId(userId) && isAdmin();
+
+      match /private/{docId} {
+        allow get: if isValidId(userId) && isValidId(docId) && (isOwner(userId) || isAdmin());
+        allow list: if false;
+        allow create: if isValidId(userId) && isValidId(docId) && isOwner(userId) &&
+          isValidUserPrivate(incoming()) &&
+          incoming().uid == userId &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/users/$(userId)).data.uid == request.auth.uid;
+        allow update: if isValidId(userId) && isValidId(docId) &&
+          isValidUserPrivate(incoming()) &&
+          incoming().uid == existing().uid &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/users/$(userId)).data.uid == request.auth.uid && (
+            isAdmin() ||
+            (isOwner(userId) && incoming().email == existing().email && incoming().diff(existing()).affectedKeys().hasOnly(['phone', 'otpVerified', 'lastLoginMethod', 'updatedAt']))
+          );
+        allow delete: if isValidId(userId) && isValidId(docId) && isAdmin();
+      }
+
+      match /sessions/{sessionId} {
+        allow get: if isValidId(userId) && isValidId(sessionId) && (isOwner(userId) || isAdmin());
+        allow list: if (isOwner(userId) && existing().uid == request.auth.uid) || isAdmin();
+        allow create: if isValidId(userId) && isValidId(sessionId) && isOwner(userId) &&
+          isValidUserSession(incoming()) &&
+          incoming().uid == userId &&
+          incoming().status == 'active' &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/users/$(userId)).data.uid == request.auth.uid;
+        allow update: if isValidId(userId) && isValidId(sessionId) &&
+          isValidUserSession(incoming()) &&
+          incoming().uid == existing().uid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          get(/databases/$(database)/documents/users/$(userId)).data.uid == request.auth.uid && (
+            isAdmin() ||
+            (isOwner(userId) && existing().status == 'active' && incoming().status == 'revoked' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+          );
+        allow delete: if isValidId(userId) && isValidId(sessionId) && isAdmin();
+      }
+    }
+
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (existing().buyerId == request.auth.uid || isAdmin());
+      allow list: if (isVerifiedUser() && existing().buyerId == request.auth.uid) || isAdmin();
+      allow create: if isValidId(orderId) && isVerifiedUser() &&
+        isValidOrder(incoming()) &&
+        incoming().buyerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow update: if isValidId(orderId) &&
+        isValidOrder(incoming()) &&
+        incoming().buyerId == existing().buyerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (isVerifiedUser() && existing().buyerId == request.auth.uid &&
+           existing().status != 'completed' && existing().status != 'cancelled' &&
+           incoming().status == 'cancelled' &&
+           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+        );
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+  }
+}

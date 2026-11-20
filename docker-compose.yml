@@ -1,0 +1,78 @@
+services:
+  skill98-postgres:
+    image: postgres:16-alpine
+    container_name: skill98-postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-skill98}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-skill98_pg_secure_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-skill98_db}
+    networks:
+      - ai-internal
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-skill98} -d $${POSTGRES_DB:-skill98_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  skill98-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skill98-studio
+    restart: always
+    depends_on:
+      skill98-postgres:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - UPLOAD_DIR=/app/uploads
+      - APP_URL=${APP_URL:-}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-skill98}:${POSTGRES_PASSWORD:-skill98_pg_secure_pass}@skill98-postgres:5432/${POSTGRES_DB:-skill98_db}
+      - OTP_HMAC_SECRET=${OTP_HMAC_SECRET:-dpatech-skill98-hmac-sha256-secret-key}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - ZARINPAL_MERCHANT_ID=${ZARINPAL_MERCHANT_ID:-}
+      - KAVENEGAR_API_KEY=${KAVENEGAR_API_KEY:-}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+
+    networks:
+      - ai-public
+      - ai-internal
+
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.skill98-studio.rule=Host(`${APP_DOMAIN:-skill98.ir}`)"
+      - "traefik.http.routers.skill98-studio.entrypoints=websecure"
+      - "traefik.http.routers.skill98-studio.tls.certresolver=myresolver"
+      - "traefik.http.routers.skill98-studio.middlewares=skill98-sec"
+
+      - "traefik.http.middlewares.skill98-sec.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.skill98-sec.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.skill98-sec.headers.contentTypeNosniff=true"
+
+      - "traefik.http.services.skill98-studio.loadbalancer.server.port=3000"
+      - "traefik.docker.network=ai-public"
+
+volumes:
+  pgdata:
+    driver: local
+  app_uploads:
+    driver: local
+  app_data:
+    driver: local
+
+networks:
+  ai-public:
+    external: true
+  ai-internal:
+    external: true

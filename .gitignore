@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build & Production
+dist/
+build/
+.vite/
+server.js
+
+# Local SQLite Database & Locks
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/*.db.corrupt_*
+data/backups/
+data/.runtime-secrets.json
+data/permissions.hash.json
+*.sqlite
+*.sqlite3
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+
+# User Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Logs & OS
+logs/
+*.log
+.DS_Store
+Thumbs.db

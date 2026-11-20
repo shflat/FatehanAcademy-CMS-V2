@@ -1,0 +1,34 @@
+{
+  "id": "/",
+  "name": "اسکیل ۹۸ | سامانه جامع مدیریت محتوا و فروشگاه",
+  "short_name": "اسکیل ۹۸",
+  "description": "فروشگاه تخصصی اسکیل‌ها، محصولات دیجیتال و مدیریت محتوای بومی با پشتیبانی آفلاین PWA",
+  "dir": "rtl",
+  "lang": "fa",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1D4ED8",
+  "background_color": "#0F172A",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,2525 @@
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Check, RotateCcw, Sparkles } from 'lucide-react';
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  User,
+} from 'firebase/auth';
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  where,
+  serverTimestamp,
+  Timestamp,
+} from 'firebase/firestore';
+import {
+  db,
+  auth,
+  googleProvider,
+  BOOTSTRAPPED_ADMIN_EMAIL,
+  OperationType,
+  handleFirestoreError,
+  sanitizeSlugOrId,
+  truncateString,
+} from './firebase';
+import type {
+  ActiveTab,
+  AiEngineConfig,
+  CartItem,
+  CatalogFilter,
+  CmsDynamicPage,
+  CmsRoleDefinition,
+  CmsSessionRecord,
+  CouponRule,
+  MediaAssetItem,
+  OtpSecurityConfig,
+  PaymentDisplayConfig,
+  PaymentGatewayId,
+  PaymentGatewayOption,
+  SkillArticle,
+  SkillProduct,
+  ThemeConfig,
+  UserRoleType,
+} from './core/types';
+import {
+  apiFetch,
+  apiJson,
+  readStoredSession,
+  writeStoredSession,
+} from './core/apiClient';
+import {
+  initSmoothScroll,
+  triggerBarbaGsapTransition,
+  animatePageEntrance,
+  scrollToTopImmediate,
+  scrollToElementSmooth,
+  MuuriGridController,
+} from './core/motionAndDragEngine';
+import { downloadSkill98StarterZip } from './core/zipGenerator';
+import {
+  resolveRegisteredTheme,
+  createCmsV2ApiAdapter,
+} from '../themes/registry';
+import {
+  IMAGES,
+  INITIAL_SKILL98_CATALOG,
+  INITIAL_ARTICLES,
+  INITIAL_COUPONS,
+  INITIAL_PAYMENT_GATEWAYS,
+  INITIAL_CMS_ROLES,
+  INITIAL_CMS_SESSIONS,
+  DEFAULT_OTP_SECURITY_CONFIG,
+  DEFAULT_AI_ENGINE_CONFIG,
+  DEFAULT_THEME_CONFIG,
+  INITIAL_MEDIA_LIBRARY,
+  DEFAULT_PAYMENT_DISPLAY_CONFIG,
+} from './data/skill98Data';
+import { resolveStaticImageUrl } from './data/mediaAssets';
+import { getAccentStyles } from './theme/accentStyles';
+import { SiteHeader } from './theme/components/SiteHeader';
+import { SiteFooter } from './theme/components/SiteFooter';
+import { MobileBottomNav } from './theme/components/MobileBottomNav';
+import { StorefrontView } from './theme/components/StorefrontView';
+import { SingleProductView } from './theme/components/SingleProductView';
+import { ArticlesView } from './theme/components/ArticlesView';
+import { DynamicPageView } from './theme/components/DynamicPageView';
+import { SkillDetailModal } from './modules/catalog/SkillDetailModal';
+import {
+  AuthModal,
+  normalizeDigits,
+  normalizeIranMobile,
+  toLatinDigits,
+  type AuthStep,
+} from './modules/auth/AuthModal';
+import { CartDrawerModal } from './modules/cart/CartDrawerModal';
+import { CustomerDashboardView } from './modules/dashboard/CustomerDashboardView';
+import { TargetGuideAndZipView } from './modules/guide/TargetGuideAndZipView';
+import { AdminCmsView, type OrderRecord } from './modules/admin/AdminCmsView';
+import { GoftinoLiveChatWidget } from '../modules/mod_live_chat/GoftinoLiveChatWidget';
+import { PWAInstallBanner } from '../modules/mod_notifications_pwa/PWAInstallBanner';
+import { StorefrontPopupsRenderer } from '../modules/mod_announcements_popups/StorefrontPopupsRenderer';
+import { initWebVitalsReporter } from './core/webVitalsReporter';
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('store');
+  const [themeConfig, setThemeConfig] =
+    useState<ThemeConfig>(DEFAULT_THEME_CONFIG);
+  const [dynamicPages, setDynamicPages] = useState<CmsDynamicPage[]>([]);
+  const [activeDynamicPage, setActiveDynamicPage] =
+    useState<CmsDynamicPage | null>(null);
+  const [activeProduct, setActiveProduct] = useState<SkillProduct | null>(
+    () => INITIAL_SKILL98_CATALOG[0] || null
+  );
+
+  // Refs for Barba.js + GSAP + Muuri Interactive Grid
+  const mainContainerRef = useRef<HTMLElement | null>(null);
+  const transitionOverlayRef = useRef<HTMLDivElement | null>(null);
+  const dragControllerRef = useRef<MuuriGridController | null>(null);
+  const [isMuuriDragEnabled, setIsMuuriDragEnabled] = useState(true);
+  const [hasDisplacedLayout, setHasDisplacedLayout] = useState(false);
+
+  // Restored session (client cache backed by HMAC/token server session)
+  const initialSession = useMemo(() => readStoredSession(), []);
+
+  useEffect(() => {
+    initWebVitalsReporter();
+  }, []);
+
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [userRole, setUserRole] = useState<UserRoleType>(
+    initialSession?.userRole || 'guest'
+  );
+  const [loggedInRoleId, setLoggedInRoleId] = useState<string>(
+    initialSession?.roleId || 'role_customer'
+  );
+  const [loggedInName, setLoggedInName] = useState<string | null>(
+    initialSession?.fullName || null
+  );
+  const [loggedInPhone, setLoggedInPhone] = useState<string>(
+    initialSession?.phone || ''
+  );
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authStep, setAuthStep] = useState<AuthStep>('phone');
+  const [phoneInput, setPhoneInput] = useState('');
+  const [fullNameInput, setFullNameInput] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+  const [simulatedSmsCodeBanner, setSimulatedSmsCodeBanner] = useState<
+    string | null
+  >(null);
+  const [pendingActionAfterAuth, setPendingActionAfterAuth] = useState<
+    | { type: 'checkout' }
+    | { type: 'claim_skill'; skill: SkillProduct }
+    | null
+  >(null);
+  const prevAnyModalOpenRef = useRef(false);
+  const isPopStateHandlingRef = useRef(false);
+
+  // Platform State
+  const [cloudProducts, setCloudProducts] = useState<SkillProduct[]>([]);
+  const [localProducts, setLocalProducts] = useState<SkillProduct[]>(() =>
+    INITIAL_SKILL98_CATALOG.map((p) => ({
+      ...p,
+      imageUrl: resolveStaticImageUrl(p.imageUrl),
+    }))
+  );
+  const [articles, setArticles] = useState<SkillArticle[]>(() =>
+    INITIAL_ARTICLES.map((a) => ({
+      ...a,
+      featuredImageUrl: resolveStaticImageUrl(a.featuredImageUrl),
+    }))
+  );
+  const [activeArticle, setActiveArticle] = useState<SkillArticle | null>(() =>
+    INITIAL_ARTICLES[0]
+      ? {
+          ...INITIAL_ARTICLES[0],
+          featuredImageUrl: resolveStaticImageUrl(
+            INITIAL_ARTICLES[0].featuredImageUrl
+          ),
+        }
+      : null
+  );
+  const [mediaItems, setMediaItems] = useState<MediaAssetItem[]>(() =>
+    INITIAL_MEDIA_LIBRARY.map((m) => ({
+      ...m,
+      url: resolveStaticImageUrl(m.url),
+    }))
+  );
+  const [claimedSkillIds, setClaimedSkillIds] = useState<string[]>([]);
+  const [dashboardSelectedSkillId, setDashboardSelectedSkillId] = useState<
+    string | undefined
+  >(undefined);
+  const [coupons, setCoupons] = useState<CouponRule[]>(INITIAL_COUPONS);
+  const [gateways, setGateways] = useState<PaymentGatewayOption[]>(() => {
+    try {
+      const saved = localStorage.getItem('skill98_gateways_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return INITIAL_PAYMENT_GATEWAYS;
+  });
+  const [aiConfig, setAiConfig] = useState<AiEngineConfig>(
+    DEFAULT_AI_ENGINE_CONFIG
+  );
+  const [cmsRoles, setCmsRoles] =
+    useState<CmsRoleDefinition[]>(INITIAL_CMS_ROLES);
+  const [cmsSessions, setCmsSessions] =
+    useState<CmsSessionRecord[]>(INITIAL_CMS_SESSIONS);
+  const [otpConfig, setOtpConfig] = useState<OtpSecurityConfig>(
+    DEFAULT_OTP_SECURITY_CONFIG
+  );
+
+  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([
+    'skill-gsap-motion-mastery',
+    'skill-lenis-barba-transitions',
+  ]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+
+  // Storefront filters & Modals
+  const [catalogFilter, setCatalogFilter] = useState<CatalogFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAllCatalogSkills, setShowAllCatalogSkills] = useState(false);
+  const [selectedSkillModal, setSelectedSkillModal] =
+    useState<SkillProduct | null>(null);
+
+  // Cart & Gateway state
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponRule | null>(null);
+  const [couponMessage, setCouponMessage] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const [selectedGatewayId, setSelectedGatewayId] =
+    useState<PaymentGatewayId>('irankish');
+  const [paymentDisplayConfig, setPaymentDisplayConfig] =
+    useState<PaymentDisplayConfig>(DEFAULT_PAYMENT_DISPLAY_CONFIG);
+  const isDbHydratedRef = useRef(false);
+  const skipNextCmsSyncRef = useRef(false);
+
+  const [checkoutSuccessBanner, setCheckoutSuccessBanner] = useState<
+    string | null
+  >(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3800);
+  };
+
+  // Sync live <meta name="robots"> from CMS SEO Crawl Visibility setting (default OFF -> noindex, nofollow)
+  useEffect(() => {
+    void apiJson<{ ok?: boolean; visibility?: { allowSearchEngines?: boolean } }>(
+      '/api/v1/seo/visibility'
+    )
+      .then(({ ok, data }) => {
+        const allowIndex = Boolean(ok && data.visibility?.allowSearchEngines);
+        let meta = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.name = 'robots';
+          document.head.appendChild(meta);
+        }
+        meta.content = allowIndex ? 'index, follow' : 'noindex, nofollow';
+      })
+      .catch(() => {
+        // Default safe fallback: noindex until explicitly enabled
+      });
+  }, []);
+
+  // 1. Initialize Lenis Smooth Scroll
+  useEffect(() => {
+    if (themeConfig.enableLenisSmoothScroll === false) return;
+    const { destroy } = initSmoothScroll();
+    return () => destroy();
+  }, [themeConfig.enableLenisSmoothScroll]);
+
+  // 2A. Sync Dark/Light mode on <html>
+  useEffect(() => {
+    const root = document.documentElement;
+    if (themeConfig.darkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [themeConfig.darkMode]);
+
+  // 2B. Sync Dynamic Favicon
+  useEffect(() => {
+    const favHref = themeConfig.faviconUrl || '/favicon.svg';
+    let link =
+      document.querySelector<HTMLLinkElement>('link#dynamic-favicon') ||
+      document.querySelector<HTMLLinkElement>("link[rel*='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'dynamic-favicon';
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = favHref;
+  }, [themeConfig.faviconUrl]);
+
+  // 2C. Cache Payment Gateways locally
+  useEffect(() => {
+    try {
+      localStorage.setItem('skill98_gateways_v1', JSON.stringify(gateways));
+    } catch {
+      // ignore storage errors
+    }
+  }, [gateways]);
+
+  // 2D. Hydrate Storefront & CMS State from Server Database
+  const hydrateFromDatabase = async () => {
+    try {
+      const res = await apiFetch('/api/storefront/bootstrap');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.products) && data.products.length > 0) {
+        setLocalProducts(
+          data.products.map((p: SkillProduct) => ({
+            ...p,
+            imageUrl: resolveStaticImageUrl(p.imageUrl),
+          }))
+        );
+      }
+      if (Array.isArray(data.articles) && data.articles.length > 0) {
+        const mappedArts = data.articles.map((a: SkillArticle) => ({
+          ...a,
+          featuredImageUrl: resolveStaticImageUrl(a.featuredImageUrl),
+        }));
+        setArticles(mappedArts);
+        setActiveArticle((prev) =>
+          prev
+            ? mappedArts.find((m: SkillArticle) => m.id === prev.id) ||
+              mappedArts[0]
+            : mappedArts[0]
+        );
+      }
+      if (Array.isArray(data.coupons)) setCoupons(data.coupons);
+      if (Array.isArray(data.mediaItems)) {
+        setMediaItems(
+          data.mediaItems.map((m: MediaAssetItem) => ({
+            ...m,
+            url: resolveStaticImageUrl(m.url),
+          }))
+        );
+      }
+      if (Array.isArray(data.orders)) {
+        setOrders(data.orders);
+      }
+      if (Array.isArray(data.gateways) && data.gateways.length > 0) {
+        setGateways(data.gateways);
+      }
+      if (data.paymentDisplayConfig) {
+        setPaymentDisplayConfig(data.paymentDisplayConfig);
+      }
+      if (data.themeConfig) setThemeConfig(data.themeConfig);
+      if (data.aiConfig) setAiConfig(data.aiConfig);
+      if (data.otpConfig) setOtpConfig(data.otpConfig);
+      if (Array.isArray(data.roles)) setCmsRoles(data.roles);
+      if (Array.isArray(data.sessions)) setCmsSessions(data.sessions);
+
+      // Check /product/:slug URL path routing
+      const currentRawPath = window.location.pathname.replace(/^\/+|\/+$/g, '');
+      if (currentRawPath.startsWith('product/')) {
+        const prodSlug = currentRawPath.slice(8).toLowerCase();
+        const catalogSource: SkillProduct[] =
+          Array.isArray(data.products) && data.products.length > 0
+            ? data.products
+            : INITIAL_SKILL98_CATALOG;
+        const matchedProd = catalogSource.find(
+          (p) => p.slug.toLowerCase() === prodSlug || p.id.toLowerCase() === prodSlug
+        );
+        if (matchedProd) {
+          setActiveProduct({
+            ...matchedProd,
+            imageUrl: resolveStaticImageUrl(matchedProd.imageUrl),
+          });
+          setActiveTab('product_single');
+        }
+      }
+
+      // Hydrate Dynamic Pages & check URL path routing (/page/:slug or /:slug)
+      try {
+        const pgRes = await apiFetch('/api/v1/pages');
+        if (pgRes.ok) {
+          const pgData = await pgRes.json();
+          if (Array.isArray(pgData.items)) {
+            setDynamicPages(pgData.items);
+            const rawPath = window.location.pathname.replace(/^\/+|\/+$/g, '');
+            const cleanSlug = rawPath.startsWith('page/')
+              ? rawPath.slice(5)
+              : rawPath;
+            if (cleanSlug && !rawPath.startsWith('product/')) {
+              const matched = (pgData.items as CmsDynamicPage[]).find(
+                (p) => p.slug.toLowerCase() === cleanSlug.toLowerCase()
+              );
+              if (matched) {
+                setActiveDynamicPage(matched);
+                setActiveTab('page_single');
+              }
+            }
+          }
+        }
+      } catch {
+        // ignore pages hydration error
+      }
+
+      skipNextCmsSyncRef.current = true;
+    } catch {
+      // keep initial defaults if offline
+    } finally {
+      isDbHydratedRef.current = true;
+    }
+  };
+
+  const handleOpenDynamicPage = (page: CmsDynamicPage) => {
+    setActiveDynamicPage(page);
+    document.title = page.seoTitle || `${page.title} | ${themeConfig.brandNameFa}`;
+    scrollToTopImmediate();
+    navigateWithTransition('page_single');
+  };
+
+  const openSingleProductPage = (product: SkillProduct) => {
+    setActiveProduct(product);
+    document.title =
+      product.seoTitle || `${product.title} | ${themeConfig.brandNameFa}`;
+    try {
+      window.history.pushState(
+        { tab: 'product_single', productId: product.id, modalOpen: false },
+        '',
+        `#product/${product.slug}`
+      );
+    } catch {
+      // ignore history error in sandboxed iframe
+    }
+    scrollToTopImmediate();
+    navigateWithTransition('product_single', { skipHistoryPush: true });
+  };
+
+  useEffect(() => {
+    void hydrateFromDatabase();
+  }, []);
+
+  // 2E. Persist Admin CMS changes back to Server Database (strictly admin-guarded)
+  useEffect(() => {
+    if (!isDbHydratedRef.current) return;
+    if (userRole !== 'admin' && userRole !== 'super_admin') return;
+    if (skipNextCmsSyncRef.current) {
+      skipNextCmsSyncRef.current = false;
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void apiFetch('/api/cms/state/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          products: localProducts,
+          articles,
+          coupons,
+          mediaItems,
+          gateways,
+          themeConfig,
+          aiConfig,
+          otpConfig,
+          roles: cmsRoles,
+          sessions: cmsSessions,
+        }),
+      }).catch(() => {
+        // Ignore aborted or transient background sync errors
+      });
+    }, 650);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [
+    userRole,
+    localProducts,
+    articles,
+    coupons,
+    mediaItems,
+    gateways,
+    themeConfig,
+    aiConfig,
+    otpConfig,
+    cmsRoles,
+    cmsSessions,
+  ]);
+
+  // 2F. Sync active session & per-phone claimed skills/orders in localStorage
+  useEffect(() => {
+    if (!loggedInPhone || userRole === 'guest') return;
+    const currentStored = readStoredSession();
+    writeStoredSession({
+      phone: loggedInPhone,
+      fullName: loggedInName || 'کاربر اسکیل ۹۸',
+      userRole,
+      roleId: loggedInRoleId,
+      sessionToken: currentStored?.sessionToken,
+    });
+    try {
+      const raw = localStorage.getItem('skill98_profiles_by_phone_v1');
+      const map = raw ? JSON.parse(raw) : {};
+      const existing = map[loggedInPhone] || {};
+      map[loggedInPhone] = {
+        phone: loggedInPhone,
+        fullName: loggedInName || existing.fullName || 'کاربر اسکیل ۹۸',
+        claimedSkillIds,
+        orders: orders.filter((o) => o.buyerId === loggedInPhone),
+      };
+      localStorage.setItem('skill98_profiles_by_phone_v1', JSON.stringify(map));
+    } catch {
+      // ignore storage errors
+    }
+  }, [
+    loggedInPhone,
+    loggedInName,
+    userRole,
+    loggedInRoleId,
+    claimedSkillIds,
+    orders,
+  ]);
+
+  // 2G. Validate persisted session against server DB on mount + handle gateway callback (?payment_verify=1)
+  useEffect(() => {
+    let active = true;
+
+    const restoreSessionFromServer = async () => {
+      try {
+        const res = await apiFetch('/api/auth/session');
+        if (!active) return;
+
+        if (res.status === 403) {
+          writeStoredSession(null);
+          setUserRole('guest');
+          setLoggedInRoleId('role_customer');
+          setLoggedInName(null);
+          setLoggedInPhone('');
+          return;
+        }
+
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.authenticated && data?.user) {
+          const u = data.user;
+          const restoredRole: Exclude<UserRoleType, 'guest'> =
+            u.role === 'super_admin'
+              ? 'super_admin'
+              : u.role === 'admin'
+              ? 'admin'
+              : 'customer';
+          const resolvedRoleId = u.roleId || 'role_customer';
+          const resolvedFullName = u.fullName || 'کاربر اسکیل ۹۸';
+
+          writeStoredSession({
+            phone: u.phone,
+            fullName: resolvedFullName,
+            userRole: restoredRole,
+            roleId: resolvedRoleId,
+            sessionToken: data.sessionToken
+              ? String(data.sessionToken)
+              : readStoredSession()?.sessionToken,
+          });
+
+          setUserRole(restoredRole);
+          setLoggedInRoleId(resolvedRoleId);
+          setLoggedInName(resolvedFullName);
+          setLoggedInPhone(u.phone);
+
+          if (Array.isArray(u.claimedSkillIds) && u.claimedSkillIds.length > 0) {
+            setClaimedSkillIds((prev) =>
+              Array.from(new Set([...prev, ...u.claimedSkillIds]))
+            );
+          }
+          if (Array.isArray(u.orders)) {
+            setOrders((prev) => {
+              const cleanedPrev = prev.filter(
+                (o) => o.id !== 'ord_981042' && o.buyerId !== 'guest_preview'
+              );
+              const ids = new Set(cleanedPrev.map((o) => o.id));
+              const merged = u.orders.filter(
+                (o: OrderRecord) => !ids.has(o.id)
+              );
+              return [...merged, ...cleanedPrev];
+            });
+          }
+          if (Array.isArray(data.sessions)) {
+            setCmsSessions(data.sessions);
+          }
+          if (restoredRole === 'admin' || restoredRole === 'super_admin') {
+            void hydrateFromDatabase();
+          }
+        } else if (initialSession?.phone) {
+          const profRes = await apiFetch(
+            `/api/user/profile?phone=${encodeURIComponent(initialSession.phone)}`
+          );
+          if (profRes.ok && active) {
+            const prof = await profRes.json();
+            if (Array.isArray(prof.claimedSkillIds)) {
+              setClaimedSkillIds((prev) =>
+                Array.from(new Set([...prev, ...prof.claimedSkillIds]))
+              );
+            }
+            if (Array.isArray(prof.orders)) {
+              setOrders((prev) => {
+                const ids = new Set(prev.map((o) => o.id));
+                const merged = prof.orders.filter(
+                  (o: OrderRecord) => !ids.has(o.id)
+                );
+                return [...merged, ...prev];
+              });
+            }
+          }
+        }
+      } catch {
+        // Offline / transient network error keeps cached session intact
+      }
+    };
+
+    const verifyGatewayReturn = async () => {
+      try {
+        const sp = new URLSearchParams(window.location.search);
+        if (sp.get('payment_verify') !== '1') return;
+        const authority =
+          sp.get('Authority') || sp.get('authority') || sp.get('trackId') || '';
+        const paymentStatus =
+          sp.get('PaymentStatus') ||
+          sp.get('Status') ||
+          sp.get('success') ||
+          '';
+        const rawPending = localStorage.getItem('skill98_pending_payment_v1');
+        if (!authority && !rawPending) return;
+
+        const pending = rawPending ? JSON.parse(rawPending) : {};
+        const { ok, data } = await apiJson<{
+          ok?: boolean;
+          refId?: string;
+          error?: string;
+        }>('/api/payment/verify', {
+          method: 'POST',
+          body: JSON.stringify({
+            gatewayId: pending.gatewayId || 'novinopay',
+            authority: authority || pending.authority || '',
+            paymentStatus,
+            amountTomans: pending.amountTomans || 0,
+            orderId: pending.orderId || '',
+            phone: pending.phone || initialSession?.phone || '',
+            buyerName: pending.buyerName || initialSession?.fullName || '',
+            skillIds: pending.skillIds || [],
+          }),
+        });
+        localStorage.removeItem('skill98_pending_payment_v1');
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+
+        if (ok && data.ok) {
+          if (Array.isArray(pending.skillIds) && pending.skillIds.length > 0) {
+            setClaimedSkillIds((prev) =>
+              Array.from(new Set([...prev, ...pending.skillIds]))
+            );
+          }
+          setCart([]);
+          setCheckoutSuccessBanner(
+            `پرداخت شما از طریق درگاه بانکی با کد پیگیری (${data.refId}) تایید و اسکیل‌ها فعال شدند!`
+          );
+          setActiveTab('dashboard');
+          showToast('پرداخت تایید شد و اسکیل‌های شما آزاد شدند.');
+        } else {
+          showToast(
+            data?.error ||
+              'تراکنش پرداخت تایید نشد یا توسط کاربر لغو گردید.'
+          );
+        }
+      } catch {
+        // ignore URL parse error
+      }
+    };
+
+    void restoreSessionFromServer();
+    void verifyGatewayReturn();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Seamless Barba.js + GSAP View Navigation with History Stack
+  const navigateWithTransition = (
+    nextTab: ActiveTab,
+    options?: { skipHistoryPush?: boolean; articleId?: string }
+  ) => {
+    const applyTab = () => {
+      setActiveTab(nextTab);
+    };
+
+    if (!options?.skipHistoryPush && nextTab !== activeTab) {
+      try {
+        window.history.pushState(
+          {
+            tab: nextTab,
+            articleId: options?.articleId || activeArticle?.id || null,
+            modalOpen: false,
+          },
+          '',
+          `#${nextTab}`
+        );
+      } catch {
+        // Ignore history errors in restricted sandboxes
+      }
+    }
+
+    if (nextTab === activeTab) {
+      scrollToTopImmediate();
+      return;
+    }
+    if (themeConfig.enableBarbaTransitions !== false) {
+      triggerBarbaGsapTransition(
+        mainContainerRef.current,
+        transitionOverlayRef.current,
+        applyTab
+      );
+    } else {
+      applyTab();
+      scrollToTopImmediate();
+    }
+  };
+
+  // Push history entry when opening any modal
+  useEffect(() => {
+    const anyModalOpen = Boolean(
+      selectedSkillModal || isCartOpen || isAuthModalOpen
+    );
+    if (
+      anyModalOpen &&
+      !prevAnyModalOpenRef.current &&
+      !isPopStateHandlingRef.current
+    ) {
+      try {
+        window.history.pushState(
+          {
+            tab: activeTab,
+            articleId: activeArticle?.id || null,
+            modalOpen: true,
+          },
+          '',
+          window.location.hash || `#${activeTab}`
+        );
+      } catch {
+        // ignore
+      }
+    }
+    prevAnyModalOpenRef.current = anyModalOpen;
+  }, [selectedSkillModal, isCartOpen, isAuthModalOpen, activeTab, activeArticle]);
+
+  // Listen to browser/mobile hardware Back button (popstate)
+  useEffect(() => {
+    try {
+      if (!window.history.state || !window.history.state.tab) {
+        window.history.replaceState(
+          { tab: 'store', articleId: null, modalOpen: false },
+          '',
+          window.location.pathname + window.location.search
+        );
+      }
+    } catch {
+      // ignore
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      isPopStateHandlingRef.current = true;
+
+      if (isAuthModalOpen || isCartOpen || selectedSkillModal) {
+        setIsAuthModalOpen(false);
+        setIsCartOpen(false);
+        setSelectedSkillModal(null);
+        setAuthStep('phone');
+        setOtpInput('');
+        setSimulatedSmsCodeBanner(null);
+        setTimeout(() => {
+          isPopStateHandlingRef.current = false;
+        }, 60);
+        return;
+      }
+
+      const targetTab = (event.state?.tab as ActiveTab) || 'store';
+      if (targetTab === 'article_single' && event.state?.articleId) {
+        const foundArticle = articles.find(
+          (a) => a.id === event.state.articleId
+        );
+        if (foundArticle) setActiveArticle(foundArticle);
+      }
+
+      if (targetTab !== activeTab) {
+        navigateWithTransition(targetTab, { skipHistoryPush: true });
+      }
+
+      setTimeout(() => {
+        isPopStateHandlingRef.current = false;
+      }, 60);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeTab, articles, isAuthModalOpen, isCartOpen, selectedSkillModal]);
+
+  // Merge cloud & local catalog
+  const activeCatalog = useMemo(() => {
+    if (cloudProducts.length === 0) return localProducts;
+    const cloudIds = new Set(cloudProducts.map((p) => p.id));
+    const remainingLocal = localProducts.filter((p) => !cloudIds.has(p.id));
+    return [...cloudProducts, ...remainingLocal];
+  }, [cloudProducts, localProducts]);
+
+  const filteredCatalog = useMemo(() => {
+    return activeCatalog.filter((item) => {
+      if (item.status !== 'published' && activeTab === 'store') return false;
+      if (catalogFilter === 'Claude' && item.category !== 'Claude')
+        return false;
+      if (catalogFilter === 'ChatGPT' && item.category !== 'ChatGPT')
+        return false;
+      if (catalogFilter === 'Codex' && item.category !== 'Codex') return false;
+      if (catalogFilter === 'pro' && item.price === 0) return false;
+      if (catalogFilter === 'bookmarked' && !bookmarkedIds.includes(item.id))
+        return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        return (
+          item.title.toLowerCase().includes(q) ||
+          item.category.toLowerCase().includes(q) ||
+          (item.subCategory || '').toLowerCase().includes(q) ||
+          item.shortDescription.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [activeCatalog, catalogFilter, searchQuery, activeTab, bookmarkedIds]);
+
+  const displayedCatalog = useMemo(() => {
+    if (
+      showAllCatalogSkills ||
+      searchQuery.trim() !== '' ||
+      catalogFilter !== 'all'
+    ) {
+      return filteredCatalog;
+    }
+    return filteredCatalog.slice(0, 12);
+  }, [filteredCatalog, showAllCatalogSkills, searchQuery, catalogFilter]);
+
+  // 3A. Run GSAP Entrance on tab switch
+  useEffect(() => {
+    if (themeConfig.enableGsapAnimations !== false) {
+      animatePageEntrance(mainContainerRef.current);
+    }
+  }, [activeTab, themeConfig.enableGsapAnimations]);
+
+  // 3B. Muuri Interactive Grid Binding
+  useEffect(() => {
+    const muuriEnabled =
+      isMuuriDragEnabled && themeConfig.enableMuuriDrag !== false;
+    if (!dragControllerRef.current) {
+      dragControllerRef.current = new MuuriGridController(muuriEnabled);
+    } else {
+      dragControllerRef.current.setEnabled(muuriEnabled);
+    }
+    dragControllerRef.current.setOnDisplacementChange(setHasDisplacedLayout);
+
+    if (!muuriEnabled) {
+      dragControllerRef.current.unbindAll();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      dragControllerRef.current?.bindContainer(mainContainerRef.current);
+    }, 30);
+
+    return () => {
+      clearTimeout(timer);
+      dragControllerRef.current?.unbindAll();
+    };
+  }, [
+    activeTab,
+    catalogFilter,
+    filteredCatalog.length,
+    isMuuriDragEnabled,
+    themeConfig.enableMuuriDrag,
+    themeConfig.productGridColumns,
+  ]);
+
+  useEffect(() => {
+    setHasDisplacedLayout(false);
+  }, [activeTab, catalogFilter]);
+
+  useEffect(() => {
+    scrollToTopImmediate();
+  }, [activeTab, activeArticle?.id]);
+
+  const handleResetDraggedElements = () => {
+    dragControllerRef.current?.resetAllPositions(mainContainerRef.current);
+    setHasDisplacedLayout(false);
+    showToast('موقعیت تمامی کارت‌ها و المان‌ها به چیدمان استاندارد بازگشت.');
+  };
+
+  const openFullArticlePage = (article: SkillArticle) => {
+    setActiveArticle(article);
+    if (activeTab === 'article_single') {
+      try {
+        window.history.pushState(
+          { tab: 'article_single', articleId: article.id, modalOpen: false },
+          '',
+          '#article_single'
+        );
+      } catch {
+        // ignore
+      }
+      scrollToTopImmediate();
+      return;
+    }
+    navigateWithTransition('article_single', { articleId: article.id });
+  };
+
+  // Checkout gateways show ONLY gateways that are enabled AND marked "نمایش در سایت" (showOnStorefront !== false)
+  const activeGateways = useMemo(() => {
+    const selectedList = gateways.filter(
+      (g) => g.enabled && g.showOnStorefront !== false
+    );
+    if (selectedList.length === 0 && paymentDisplayConfig.enablePaymentSimulator) {
+      return [
+        {
+          id: 'sandbox_test' as PaymentGatewayId,
+          title: 'درگاه آزمایشی (سندباکس)',
+          subtitle: 'پرداخت تستی و تایید خودکار تراکنش بدون کسر وجه',
+          enabled: true,
+          showOnStorefront: true,
+          sandboxMode: true,
+        },
+      ];
+    }
+    return selectedList;
+  }, [gateways, paymentDisplayConfig.enablePaymentSimulator]);
+
+  useEffect(() => {
+    if (activeGateways.length > 0) {
+      if (!activeGateways.some((g) => g.id === selectedGatewayId)) {
+        const preferred = activeGateways.find(
+          (g) => g.id === paymentDisplayConfig.defaultGatewayId
+        );
+        setSelectedGatewayId(preferred ? preferred.id : activeGateways[0].id);
+      }
+    }
+  }, [activeGateways, selectedGatewayId, paymentDisplayConfig.defaultGatewayId]);
+
+  const accentStyles = useMemo(
+    () => getAccentStyles(themeConfig.accentPreset),
+    [themeConfig.accentPreset]
+  );
+
+  const isFirebaseAdmin = Boolean(
+    currentUser &&
+      currentUser.emailVerified &&
+      BOOTSTRAPPED_ADMIN_EMAIL &&
+      currentUser.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase()
+  );
+
+  // Firebase Auth Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      setIsAuthReady(true);
+
+      if (!user) return;
+
+      const computedRole: UserRoleType =
+        user.emailVerified &&
+        BOOTSTRAPPED_ADMIN_EMAIL &&
+        user.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase()
+          ? 'super_admin'
+          : 'customer';
+
+      setUserRole((prev) => (prev === 'super_admin' || prev === 'admin' ? prev : computedRole));
+      setLoggedInName((prev) => prev || user.displayName || 'کاربر اسکیل ۹۸');
+
+      const uid = sanitizeSlugOrId(user.uid, 'user_98');
+      const userPublicPath = `users/${uid}`;
+
+      try {
+        await setDoc(
+          doc(db, 'users', uid),
+          {
+            uid,
+            displayName: truncateString(
+              user.displayName || 'کاربر اسکیل ۹۸',
+              1,
+              100,
+              'کاربر اسکیل ۹۸'
+            ),
+            role: computedRole === 'super_admin' ? 'admin' : 'customer',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, userPublicPath);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Firestore Real-time Listeners
+  useEffect(() => {
+    if (!isAuthReady) return;
+
+    let cancelled = false;
+    let unsubProducts: (() => void) | null = null;
+    let unsubOrders: (() => void) | null = null;
+
+    const attachListeners = () => {
+      if (cancelled) return;
+      const productsPath = 'products';
+      const productsQuery = isFirebaseAdmin
+        ? collection(db, 'products')
+        : query(collection(db, 'products'), where('status', '==', 'published'));
+
+      unsubProducts = onSnapshot(
+        productsQuery,
+        (snapshot) => {
+          const loaded: SkillProduct[] = snapshot.docs.map((docSnap) => {
+            const d = docSnap.data();
+            const cat = String(d.category || 'Codex');
+            return {
+              id: docSnap.id,
+              title: String(d.title || ''),
+              slug: String(d.slug || docSnap.id),
+              category: cat,
+              subCategory:
+                cat === 'Claude'
+                  ? 'نوشتن و تحلیل'
+                  : cat === 'ChatGPT'
+                  ? 'ایده و اجرا'
+                  : 'کدنویسی',
+              itemType: d.itemType === 'package' ? 'package' : 'product',
+              price: Number(d.price || 0),
+              originalPrice: Number(d.originalPrice || 0),
+              shortDescription: String(d.shortDescription || ''),
+              modulesCount: Number(d.modulesCount || 1),
+              durationHours: Number(d.durationHours || 1),
+              level: String(d.level || 'نسخه ۱.۰'),
+              imageUrl: resolveStaticImageUrl(
+                d.imageUrl ? String(d.imageUrl) : IMAGES.fullstackPkg
+              ),
+              featured: Boolean(d.featured),
+              status: d.status === 'draft' ? 'draft' : 'published',
+              authorId: String(d.authorId || 'admin'),
+              posterColor:
+                cat === 'Claude'
+                  ? 'terracotta'
+                  : cat === 'ChatGPT'
+                  ? 'sage'
+                  : d.itemType === 'package'
+                  ? 'slate'
+                  : 'cobalt',
+              posterIconType:
+                cat === 'Claude'
+                  ? 'starburst'
+                  : cat === 'ChatGPT'
+                  ? 'radial'
+                  : d.itemType === 'package'
+                  ? 'shield'
+                  : 'braces',
+            };
+          });
+          setCloudProducts(loaded);
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.LIST, productsPath);
+        }
+      );
+
+      if (!currentUser) return;
+
+      const uid = sanitizeSlugOrId(currentUser.uid, 'user_98');
+      const ordersPath = 'orders';
+      const ordersQuery = isFirebaseAdmin
+        ? collection(db, 'orders')
+        : query(collection(db, 'orders'), where('buyerId', '==', uid));
+
+      unsubOrders = onSnapshot(
+        ordersQuery,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const loadedOrders: OrderRecord[] = snapshot.docs.map((oDoc) => {
+              const d = oDoc.data();
+              const ts =
+                d.createdAt instanceof Timestamp
+                  ? d.createdAt.toDate()
+                  : new Date();
+              return {
+                id: oDoc.id,
+                buyerId: String(d.buyerId || uid),
+                buyerName: String(d.buyerName || 'کاربر اسکیل ۹۸'),
+                totalAmount: Number(d.totalAmount || 0),
+                itemsSummary: String(d.itemsSummary || ''),
+                itemsCount: Number(d.itemsCount || 1),
+                paymentMethod:
+                  d.paymentMethod === 'wallet_credit'
+                    ? 'wallet_credit'
+                    : d.paymentMethod === 'crypto_tether'
+                    ? 'crypto_tether'
+                    : 'zarinpal_online',
+                status:
+                  d.status === 'completed'
+                    ? 'completed'
+                    : d.status === 'cancelled'
+                    ? 'cancelled'
+                    : d.status === 'pending'
+                    ? 'pending'
+                    : 'paid',
+                createdAtLabel: ts.toLocaleDateString('fa-IR'),
+              };
+            });
+            setOrders(loadedOrders);
+          }
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.LIST, ordersPath);
+        }
+      );
+    };
+
+    const delayTimer = currentUser
+      ? setTimeout(attachListeners, 0)
+      : setTimeout(attachListeners, 1200);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(delayTimer);
+      unsubProducts?.();
+      unsubOrders?.();
+    };
+  }, [isAuthReady, currentUser, isFirebaseAdmin]);
+
+  const canAccessAdmin = userRole === 'admin' || userRole === 'super_admin';
+
+  const publishedArticles = useMemo(
+    () =>
+      articles.filter((a) => {
+        if (a.status !== 'published') return false;
+        if (!canAccessAdmin && a.id === 'art-dpatech-cms-core-pagebuilder-seo') {
+          return false;
+        }
+        return true;
+      }),
+    [articles, canAccessAdmin]
+  );
+
+  const handleToggleBookmark = (skillId: string) => {
+    setBookmarkedIds((prev) => {
+      const exists = prev.includes(skillId);
+      const next = exists
+        ? prev.filter((id) => id !== skillId)
+        : [...prev, skillId];
+      showToast(
+        exists
+          ? 'اسکیل از فهرست نشان‌شده‌ها برداشته شد.'
+          : 'اسکیل به فهرست نشان‌شده‌های شما اضافه شد.'
+      );
+      return next;
+    });
+  };
+
+  const handleQuickSkillAction = (item: SkillProduct) => {
+    if (item.price === 0) {
+      const alreadyClaimed = claimedSkillIds.includes(item.id);
+      if (alreadyClaimed) {
+        setDashboardSelectedSkillId(item.id);
+        navigateWithTransition('dashboard');
+        showToast(
+          `وارد پیشخوان کاربری شدید؛ اکنون می‌توانید فایل «${item.title}» را مطالعه یا دانلود کنید.`
+        );
+      } else {
+        if (userRole === 'guest') {
+          setPendingActionAfterAuth({ type: 'claim_skill', skill: item });
+          setIsAuthModalOpen(true);
+          showToast(
+            'برای ثبت دائمی این فایل در سوابق شما، لطفاً شماره همراه خود را وارد و تایید نمایید.'
+          );
+          return;
+        }
+        setClaimedSkillIds((prev) =>
+          prev.includes(item.id) ? prev : [...prev, item.id]
+        );
+        setDashboardSelectedSkillId(item.id);
+        if (loggedInPhone) {
+          void apiJson('/api/user/claim-skill', {
+            method: 'POST',
+            body: JSON.stringify({
+              phone: loggedInPhone,
+              skillId: item.id,
+              skillTitle: item.title,
+            }),
+          }).catch(() => {
+            // Keep optimistic local claim if background request fails
+          });
+        }
+        showToast(
+          `اسکیل «${item.title}» به حساب کاربری شما اضافه شد! اکنون روی «دانلود از پیشخوان ←» کلیک کنید.`
+        );
+      }
+    } else {
+      handleAddToCart(item);
+    }
+  };
+
+  const completeVerifiedLogin = (
+    role: Exclude<UserRoleType, 'guest'>,
+    verifiedPhone: string,
+    customDisplayName?: string,
+    assignedRoleId?: string,
+    sessionToken?: string
+  ) => {
+    let savedFullName: string | undefined;
+    try {
+      const raw = localStorage.getItem('skill98_profiles_by_phone_v1');
+      if (raw) {
+        const map = JSON.parse(raw);
+        const existing = map[verifiedPhone];
+        if (existing) {
+          savedFullName = existing.fullName;
+          if (
+            Array.isArray(existing.claimedSkillIds) &&
+            existing.claimedSkillIds.length > 0
+          ) {
+            setClaimedSkillIds((prev) =>
+              Array.from(new Set([...prev, ...existing.claimedSkillIds]))
+            );
+          }
+          if (Array.isArray(existing.orders) && existing.orders.length > 0) {
+            const validOrders = existing.orders.filter(
+              (o: OrderRecord) =>
+                o.buyerId === verifiedPhone && o.id !== 'ord_981042'
+            );
+            if (validOrders.length > 0) {
+              setOrders((prev) => {
+                const existingIds = new Set(prev.map((o) => o.id));
+                const newOnes = validOrders.filter(
+                  (o: OrderRecord) => !existingIds.has(o.id)
+                );
+                return [...newOnes, ...prev];
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+
+    const chosenName =
+      fullNameInput.trim() ||
+      customDisplayName ||
+      savedFullName ||
+      (role === 'super_admin'
+        ? 'مدیر ارشد سیستم'
+        : role === 'admin'
+        ? 'ادمین سیستم'
+        : 'کاربر اسکیل ۹۸');
+
+    const finalRoleId =
+      assignedRoleId ||
+      (role === 'super_admin'
+        ? 'role_super_admin'
+        : role === 'admin'
+        ? 'role_admin'
+        : 'role_customer');
+
+    writeStoredSession({
+      phone: verifiedPhone,
+      fullName: chosenName,
+      userRole: role,
+      roleId: finalRoleId,
+      sessionToken: sessionToken || readStoredSession()?.sessionToken,
+    });
+
+    setUserRole(role);
+    setLoggedInRoleId(finalRoleId);
+    setLoggedInName(chosenName);
+    setLoggedInPhone(verifiedPhone);
+    setIsAuthModalOpen(false);
+    setAuthStep('phone');
+    setOtpInput('');
+    setSimulatedSmsCodeBanner(null);
+
+    if (role === 'admin' || role === 'super_admin') {
+      void hydrateFromDatabase();
+    }
+
+    // Hydrate user claims & persisted orders from DB
+    void (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/user/profile?phone=${encodeURIComponent(verifiedPhone)}`
+        );
+        if (res.ok) {
+          const prof = await res.json();
+          if (
+            Array.isArray(prof.claimedSkillIds) &&
+            prof.claimedSkillIds.length > 0
+          ) {
+            setClaimedSkillIds((prev) =>
+              Array.from(new Set([...prev, ...prof.claimedSkillIds]))
+            );
+          }
+          if (Array.isArray(prof.orders) && prof.orders.length > 0) {
+            setOrders((prev) => {
+              const ids = new Set(prev.map((o) => o.id));
+              const merged = prof.orders.filter(
+                (o: OrderRecord) => !ids.has(o.id)
+              );
+              return [...merged, ...prev];
+            });
+          }
+        }
+      } catch {
+        // ignore offline
+      }
+    })();
+
+    if (pendingActionAfterAuth?.type === 'claim_skill') {
+      const skillToClaim = pendingActionAfterAuth.skill;
+      setClaimedSkillIds((prev) =>
+        prev.includes(skillToClaim.id) ? prev : [...prev, skillToClaim.id]
+      );
+      setDashboardSelectedSkillId(skillToClaim.id);
+      setPendingActionAfterAuth(null);
+      void apiJson('/api/user/claim-skill', {
+        method: 'POST',
+        body: JSON.stringify({
+          phone: verifiedPhone,
+          skillId: skillToClaim.id,
+          skillTitle: skillToClaim.title,
+        }),
+      }).catch(() => {
+        // Keep optimistic local claim
+      });
+      showToast(
+        `${chosenName} عزیز، اسکیل «${skillToClaim.title}» در حساب شما (${verifiedPhone}) ثبت شد!`
+      );
+      return;
+    }
+
+    if (pendingActionAfterAuth?.type === 'checkout') {
+      setPendingActionAfterAuth(null);
+      setIsCartOpen(true);
+      showToast(
+        `${chosenName} عزیز، شماره همراه شما تایید شد. اکنون می‌توانید تسویه‌حساب خود را تکمیل کنید.`
+      );
+      return;
+    }
+
+    showToast(
+      role === 'customer'
+        ? `${chosenName} عزیز خوش آمدید! سوابق و پیشخوان کاربری شما فعال شد.`
+        : 'ورود مدیریت تایید شد! منوهای «پیشخوان من» و «مدیریت سیستم» فعال شدند.'
+    );
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const cred = await signInWithPopup(auth, googleProvider);
+      const idToken = await cred.user.getIdToken();
+      const { ok, data } = await apiJson<{
+        authenticated?: boolean;
+        sessionToken?: string;
+        user?: {
+          phone: string;
+          fullName: string;
+          role: Exclude<UserRoleType, 'guest'>;
+          roleId: string;
+        };
+      }>('/api/auth/google-session', {
+        method: 'POST',
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (ok && data?.authenticated && data?.user) {
+        completeVerifiedLogin(
+          data.user.role,
+          data.user.phone,
+          data.user.fullName,
+          data.user.roleId,
+          data.sessionToken
+        );
+        return;
+      }
+      setIsAuthModalOpen(false);
+      showToast('ورود با حساب گوگل انجام شد و پیشخوان کاربری فعال گردید.');
+    } catch {
+      showToast(
+        'امکان ورود با گوگل در حال حاضر وجود ندارد. لطفاً با شماره موبایل وارد شوید.'
+      );
+    }
+  };
+
+  const dispatchSmsOtpForPhone = async (normalizedPhone: string) => {
+    try {
+      const { ok, data } = await apiJson<{
+        error?: string;
+        smsPreviewCode?: string;
+        message?: string;
+      }>('/api/sms/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({
+          phone: normalizedPhone,
+          smsProvider: otpConfig.smsProvider,
+          patternCode: otpConfig.patternCode,
+        }),
+      });
+      if (!ok) {
+        showToast(data.error || 'خطا در ارسال کد تایید.');
+        return false;
+      }
+      setAuthStep('code');
+      setSimulatedSmsCodeBanner(null);
+      showToast(data.message || 'کد تایید به شماره همراه شما ارسال شد.');
+      return true;
+    } catch {
+      showToast('خطا در برقراری ارتباط با سرور پیامک. لطفاً دوباره تلاش کنید.');
+      return false;
+    }
+  };
+
+  const handlePhoneLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isAuthSubmitting) return;
+    const normalizedPhone = normalizeIranMobile(phoneInput);
+
+    if (authStep === 'phone') {
+      if (!/^09\d{9}$/.test(normalizedPhone)) {
+        showToast(
+          'لطفاً شماره موبایل را با فرمت صحیح ۱۱ رقمی (مانند 09123456789) وارد کنید.'
+        );
+        return;
+      }
+      setPhoneInput(normalizedPhone);
+      setIsAuthSubmitting(true);
+      try {
+        let existsInDb = false;
+        let requiresMasterCode = false;
+        let savedName = '';
+
+        try {
+          const checkRes = await apiJson<{
+            exists?: boolean;
+            requiresMasterCode?: boolean;
+            fullName?: string | null;
+          }>('/api/auth/check-phone', {
+            method: 'POST',
+            body: JSON.stringify({ phone: normalizedPhone }),
+          });
+          if (checkRes.ok) {
+            requiresMasterCode = Boolean(checkRes.data.requiresMasterCode);
+            if (checkRes.data.exists) {
+              existsInDb = true;
+              if (checkRes.data.fullName) {
+                savedName = String(checkRes.data.fullName);
+              }
+            }
+          }
+        } catch {
+          // Check local returning profile fallback below
+        }
+
+        if (requiresMasterCode) {
+          setSimulatedSmsCodeBanner(null);
+          setOtpInput('');
+          setAuthStep('master_code');
+          showToast('شماره مدیریت شناسایی شد. لطفاً کد مستر را وارد کنید.');
+          return;
+        }
+
+        if (!existsInDb) {
+          try {
+            const raw = localStorage.getItem('skill98_profiles_by_phone_v1');
+            if (raw) {
+              const map = JSON.parse(raw);
+              if (map[normalizedPhone]?.fullName) {
+                existsInDb = true;
+                savedName = String(map[normalizedPhone].fullName);
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        if (existsInDb) {
+          if (savedName) setFullNameInput(savedName);
+          await dispatchSmsOtpForPhone(normalizedPhone);
+        } else {
+          setFullNameInput('');
+          setAuthStep('register_name');
+        }
+      } finally {
+        setIsAuthSubmitting(false);
+      }
+      return;
+    }
+
+    if (authStep === 'register_name') {
+      if (!fullNameInput.trim() || fullNameInput.trim().length < 2) {
+        showToast('لطفاً نام و نام خانوادگی خود را وارد کنید.');
+        return;
+      }
+      setIsAuthSubmitting(true);
+      try {
+        await dispatchSmsOtpForPhone(normalizedPhone);
+      } finally {
+        setIsAuthSubmitting(false);
+      }
+      return;
+    }
+
+    // Verify OTP or Hashed Admin Master Code via server
+    const cleanCode =
+      authStep === 'master_code'
+        ? toLatinDigits(otpInput).trim()
+        : normalizeDigits(otpInput);
+    if (!cleanCode || cleanCode.length < 4) {
+      showToast(
+        authStep === 'master_code'
+          ? 'لطفاً کد مستر امنیتی را به صورت کامل وارد کنید.'
+          : 'لطفاً کد تایید را به صورت کامل وارد کنید.'
+      );
+      return;
+    }
+
+    setIsAuthSubmitting(true);
+    try {
+      const { ok, data } = await apiJson<{
+        error?: string;
+        role?: string;
+        roleId?: string;
+        displayName?: string;
+        sessionToken?: string;
+        sessions?: CmsSessionRecord[];
+      }>('/api/sms/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({
+          phone: normalizedPhone,
+          code: cleanCode,
+          fullName: fullNameInput.trim() || undefined,
+        }),
+      });
+      if (!ok) {
+        showToast(data.error || 'کد واردشده نامعتبر است.');
+        return;
+      }
+      const assignedRole: Exclude<UserRoleType, 'guest'> =
+        data.role === 'super_admin'
+          ? 'super_admin'
+          : data.role === 'admin'
+          ? 'admin'
+          : 'customer';
+      if (Array.isArray(data.sessions)) {
+        setCmsSessions(data.sessions);
+      }
+      completeVerifiedLogin(
+        assignedRole,
+        normalizedPhone,
+        fullNameInput.trim() || data.displayName || undefined,
+        typeof data.roleId === 'string' ? data.roleId : undefined,
+        typeof data.sessionToken === 'string' ? data.sessionToken : undefined
+      );
+    } catch {
+      showToast('خطا در برقراری ارتباط با سرور برای بررسی کد.');
+    } finally {
+      setIsAuthSubmitting(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch {
+      // Ignore Firebase signOut failure
+    }
+    try {
+      await apiFetch('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // Ignore logout request error
+    }
+    writeStoredSession(null);
+    setUserRole('guest');
+    setLoggedInRoleId('role_customer');
+    setLoggedInName(null);
+    setLoggedInPhone('');
+    setSimulatedSmsCodeBanner(null);
+    if (activeTab === 'dashboard' || activeTab === 'admin') {
+      navigateWithTransition('store');
+    }
+    showToast('از حساب کاربری خارج شدید.');
+  };
+
+  // Cart & Coupon Logic
+  const handleAddToCart = (product: SkillProduct) => {
+    setCart((prev) => {
+      const existing = prev.find((c) => c.product.id === product.id);
+      if (existing) {
+        return prev.map((c) =>
+          c.product.id === product.id ? { ...c, quantity: c.quantity + 1 } : c
+        );
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    setSelectedSkillModal(null);
+    setCouponMessage(null);
+    setIsCartOpen(true);
+  };
+
+  const handleUpdateCartQty = (productId: string, delta: number) => {
+    setCart((prev) =>
+      prev
+        .map((c) =>
+          c.product.id === productId
+            ? { ...c, quantity: Math.max(0, c.quantity + delta) }
+            : c
+        )
+        .filter((c) => c.quantity > 0)
+    );
+  };
+
+  const cartSubtotalAmount = useMemo(
+    () => cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+    [cart]
+  );
+
+  const cartTotalItems = useMemo(
+    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    [cart]
+  );
+
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon || cartSubtotalAmount === 0) return 0;
+    return Math.round(
+      (cartSubtotalAmount * appliedCoupon.discountPercent) / 100
+    );
+  }, [appliedCoupon, cartSubtotalAmount]);
+
+  const cartFinalPayable = useMemo(
+    () => Math.max(0, cartSubtotalAmount - discountAmount),
+    [cartSubtotalAmount, discountAmount]
+  );
+
+  const handleApplyCouponCode = (codeToApply?: string) => {
+    const rawCode = (codeToApply ?? couponInput).trim().toUpperCase();
+    if (!rawCode) {
+      setCouponMessage({ type: 'error', text: 'لطفاً کد تخفیف را وارد کنید.' });
+      return;
+    }
+
+    const found = coupons.find(
+      (c) => c.code.toUpperCase() === rawCode && c.active
+    );
+    if (!found) {
+      setAppliedCoupon(null);
+      setCouponMessage({
+        type: 'error',
+        text: 'کد تخفیف واردشده معتبر نیست یا منقضی شده است.',
+      });
+      return;
+    }
+
+    setCouponInput(found.code);
+    setAppliedCoupon(found);
+    setCouponMessage({
+      type: 'success',
+      text: `کد تخفیف ${found.code} (${found.discountPercent.toLocaleString('fa-IR')}٪ تخفیف - ${found.description}) اعمال شد.`,
+    });
+  };
+
+  const handleCompleteCheckout = async () => {
+    if (cart.length === 0) return;
+
+    if (userRole === 'guest') {
+      setPendingActionAfterAuth({ type: 'checkout' });
+      setIsAuthModalOpen(true);
+      showToast(
+        'برای ثبت سفارش و ماندگاری سوابق خرید، لطفاً ابتدا با شماره موبایل و کد تایید وارد شوید.'
+      );
+      return;
+    }
+
+    if (activeGateways.length === 0) {
+      showToast(
+        'در حال حاضر هیچ درگاه پرداختی فعال نیست. لطفاً از بخش مدیریت درگاه شاپرک را فعال نمایید.'
+      );
+      return;
+    }
+
+    const selectedGw =
+      activeGateways.find((g) => g.id === selectedGatewayId) || activeGateways[0];
+    const orderId = `ord_${Date.now()}`;
+    let gatewayRef = `SHP-${Date.now().toString().slice(-6)}`;
+    let livePaymentRedirectUrl = '';
+    let liveAuthority = '';
+
+    try {
+      const { data: paymentData } = await apiJson<{
+        referenceId?: string;
+        gatewayMode?: string;
+        paymentUrl?: string;
+        authority?: string;
+      }>('/api/payment/request', {
+        method: 'POST',
+        body: JSON.stringify({
+          gatewayId: selectedGw.id,
+          merchantId: selectedGw?.merchantId,
+          terminalId: selectedGw?.terminalId,
+          amountToman: cartFinalPayable,
+          buyerPhone: loggedInPhone || undefined,
+          orderId,
+          description: `خرید از ${themeConfig.brandNameFa} (${loggedInPhone})`,
+          itemsCount: cartTotalItems,
+        }),
+      });
+      if (paymentData.referenceId) {
+        gatewayRef = String(paymentData.referenceId);
+      }
+      if (paymentData.gatewayMode === 'live_api' && paymentData.paymentUrl) {
+        livePaymentRedirectUrl = String(paymentData.paymentUrl);
+        liveAuthority = String(paymentData.authority || '');
+      }
+    } catch {
+      // Fallback reference id
+    }
+
+    const summary = truncateString(
+      cart.map((c) => `${c.product.title} (${c.quantity}×)`).join(' + '),
+      2,
+      500,
+      'سفارش اسکیل ۹۸'
+    );
+
+    if (
+      livePaymentRedirectUrl &&
+      !paymentDisplayConfig.enablePaymentSimulator
+    ) {
+      const buyerDisplay =
+        loggedInName || currentUser?.displayName || 'خریدار اسکیل ۹۸';
+      const purchasedIds = cart.map((c) => c.product.id);
+      try {
+        await apiJson('/api/orders/create', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: orderId,
+            phone: loggedInPhone || currentUser?.uid || 'customer_98',
+            buyerName: buyerDisplay,
+            totalAmount: cartFinalPayable,
+            discountAmount,
+            couponCode: appliedCoupon?.code,
+            itemsSummary: `${summary} · در انتظار پرداخت (${selectedGw.title})`,
+            itemsCount: Math.min(100, cartTotalItems),
+            paymentMethod: selectedGw.id,
+            gatewayRef: liveAuthority || gatewayRef,
+            status: 'pending',
+            skillIds: [],
+          }),
+        });
+        localStorage.setItem(
+          'skill98_pending_payment_v1',
+          JSON.stringify({
+            orderId,
+            gatewayId: selectedGw.id,
+            authority: liveAuthority,
+            amountTomans: cartFinalPayable,
+            phone: loggedInPhone || '',
+            buyerName: buyerDisplay,
+            skillIds: purchasedIds,
+          })
+        );
+      } catch {
+        // Proceed to redirect even if background log fails
+      }
+      window.location.assign(livePaymentRedirectUrl);
+      return;
+    }
+
+    const normalizedPm: 'zarinpal_online' | 'wallet_credit' | 'crypto_tether' =
+      selectedGw.id === 'wallet_credit'
+        ? 'wallet_credit'
+        : selectedGw.id === 'crypto_tether'
+        ? 'crypto_tether'
+        : 'zarinpal_online';
+
+    const newLocalOrder: OrderRecord = {
+      id: orderId,
+      buyerId: loggedInPhone || currentUser?.uid || 'customer_98',
+      buyerName:
+        loggedInName || currentUser?.displayName || 'خریدار اسکیل ۹۸',
+      totalAmount: cartFinalPayable,
+      discountAmount,
+      couponCode: appliedCoupon?.code,
+      itemsSummary: `${summary} · کد پیگیری شاپرک: ${gatewayRef}`,
+      itemsCount: Math.min(100, cartTotalItems),
+      paymentMethod: selectedGw.id,
+      status: 'paid',
+      createdAtLabel: new Date().toLocaleDateString('fa-IR'),
+    };
+
+    if (currentUser && currentUser.emailVerified) {
+      const uid = sanitizeSlugOrId(currentUser.uid, 'user_98');
+      const orderPath = `orders/${orderId}`;
+      try {
+        await setDoc(doc(db, 'orders', orderId), {
+          buyerId: uid,
+          buyerName: truncateString(
+            loggedInName || currentUser.displayName || 'خریدار اسکیل ۹۸',
+            1,
+            100,
+            'خریدار اسکیل ۹۸'
+          ),
+          totalAmount: Math.max(0, Math.min(2000000000, cartFinalPayable)),
+          itemsSummary: truncateString(
+            `${summary} · کد پیگیری: ${gatewayRef}`,
+            2,
+            500,
+            'سفارش اسکیل ۹۸'
+          ),
+          itemsCount: Math.max(1, Math.min(100, cartTotalItems)),
+          paymentMethod: normalizedPm,
+          status: 'paid',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, orderPath);
+      }
+    }
+
+    void apiJson('/api/orders/create', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: orderId,
+        phone: loggedInPhone || newLocalOrder.buyerId,
+        buyerName: newLocalOrder.buyerName,
+        totalAmount: cartFinalPayable,
+        discountAmount,
+        couponCode: appliedCoupon?.code,
+        itemsSummary: newLocalOrder.itemsSummary,
+        itemsCount: newLocalOrder.itemsCount,
+        paymentMethod: selectedGw.id,
+        gatewayRef,
+        skillIds: cart.map((c) => c.product.id),
+      }),
+    }).catch(() => {
+      // Keep local order if background persistence fails transiently
+    });
+
+    setOrders((prev) => [newLocalOrder, ...prev]);
+
+    const purchasedIds = cart.map((c) => c.product.id);
+    setClaimedSkillIds((prev) =>
+      Array.from(new Set([...prev, ...purchasedIds]))
+    );
+    if (purchasedIds[0]) {
+      setDashboardSelectedSkillId(purchasedIds[0]);
+    }
+
+    setCart([]);
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponMessage(null);
+    setIsCartOpen(false);
+    setCheckoutSuccessBanner(
+      `سفارش #${orderId.slice(-6)} به نام «${loggedInName || 'شما'}» با کد رهگیری درگاه (${gatewayRef}) ثبت و تسویه شد! در «پیشخوان من» فایل‌های خود را دانلود نمایید.`
+    );
+    navigateWithTransition('dashboard');
+  };
+
+  // Admin CMS Handlers
+  const handleSaveProduct = async (
+    productData: Omit<SkillProduct, 'authorId'>,
+    existingId?: string
+  ) => {
+    const cleanId = sanitizeSlugOrId(
+      existingId || productData.slug || productData.id,
+      'skill_98'
+    );
+    const authorUid = currentUser
+      ? sanitizeSlugOrId(currentUser.uid, 'admin_98')
+      : 'admin_98';
+
+    const fullItem: SkillProduct = {
+      ...productData,
+      id: cleanId,
+      slug: cleanId,
+      authorId: authorUid,
+    };
+
+    setLocalProducts((prev) => {
+      const exists = prev.some((p) => p.id === cleanId);
+      if (exists) {
+        return prev.map((p) => (p.id === cleanId ? fullItem : p));
+      }
+      return [fullItem, ...prev];
+    });
+
+    if (isFirebaseAdmin && currentUser) {
+      const path = `products/${cleanId}`;
+      try {
+        await setDoc(doc(db, 'products', cleanId), {
+          title: truncateString(fullItem.title, 2, 140, 'اسکیل ۹۸'),
+          slug: cleanId,
+          category: truncateString(fullItem.category, 2, 60, 'Codex'),
+          itemType: fullItem.itemType,
+          price: Math.max(0, Math.min(1000000000, fullItem.price)),
+          originalPrice: Math.max(
+            0,
+            Math.min(1000000000, fullItem.originalPrice)
+          ),
+          shortDescription: truncateString(
+            fullItem.shortDescription,
+            5,
+            600,
+            'توضیحات اسکیل ۹۸'
+          ),
+          modulesCount: Math.max(1, Math.min(500, fullItem.modulesCount)),
+          durationHours: Math.max(0, Math.min(2000, fullItem.durationHours)),
+          level: truncateString(fullItem.level, 2, 50, 'نسخه ۱.۰'),
+          imageUrl: truncateString(
+            fullItem.imageUrl,
+            1,
+            500,
+            IMAGES.fullstackPkg
+          ),
+          featured: Boolean(fullItem.featured),
+          status: fullItem.status,
+          authorId: authorUid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, path);
+      }
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    setLocalProducts((prev) => prev.filter((p) => p.id !== productId));
+    if (isFirebaseAdmin) {
+      const cleanId = sanitizeSlugOrId(productId, 'skill_98');
+      const path = `products/${cleanId}`;
+      try {
+        await deleteDoc(doc(db, 'products', cleanId));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, path);
+      }
+    }
+    showToast('محصول مورد نظر از کاتالوگ حذف شد.');
+  };
+
+  const handleSaveArticle = (article: SkillArticle) => {
+    setArticles((prev) => {
+      const exists = prev.some((a) => a.id === article.id);
+      if (exists) {
+        return prev.map((a) => (a.id === article.id ? article : a));
+      }
+      return [article, ...prev];
+    });
+    setActiveArticle(article);
+    showToast('مقاله به همراه تصویر شاخص ذخیره و منتشر شد.');
+  };
+
+  const handleDeleteArticle = (articleId: string) => {
+    setArticles((prev) => prev.filter((a) => a.id !== articleId));
+    showToast('مقاله حذف شد.');
+  };
+
+  const handleSaveMediaItem = (item: MediaAssetItem) => {
+    setMediaItems((prev) => {
+      const exists = prev.some((m) => m.id === item.id);
+      if (exists) {
+        return prev.map((m) => (m.id === item.id ? item : m));
+      }
+      return [item, ...prev];
+    });
+  };
+
+  const handleDeleteMediaItem = (id: string) => {
+    setMediaItems((prev) => prev.filter((m) => m.id !== id));
+    showToast('تصویر از گالری رسانه حذف شد.');
+  };
+
+  const handleSaveCoupon = (coupon: CouponRule) => {
+    setCoupons((prev) => {
+      const exists = prev.some(
+        (c) => c.code.toUpperCase() === coupon.code.toUpperCase()
+      );
+      if (exists) {
+        return prev.map((c) =>
+          c.code.toUpperCase() === coupon.code.toUpperCase() ? coupon : c
+        );
+      }
+      return [coupon, ...prev];
+    });
+    showToast(`کد تخفیف ${coupon.code} ذخیره شد.`);
+  };
+
+  const handleDeleteCoupon = (code: string) => {
+    setCoupons((prev) => prev.filter((c) => c.code !== code));
+    showToast('کد تخفیف حذف شد.');
+  };
+
+  const handleRevokeSession = (sessionId: string) => {
+    setCmsSessions((prev) =>
+      prev.map((s) => (s.id === sessionId ? { ...s, status: 'revoked' } : s))
+    );
+    void apiJson<{ sessions?: CmsSessionRecord[] }>(
+      `/api/auth/sessions/${encodeURIComponent(sessionId)}`,
+      { method: 'DELETE' }
+    )
+      .then(({ ok, data }) => {
+        if (ok && Array.isArray(data.sessions)) {
+          setCmsSessions(data.sessions);
+        }
+      })
+      .catch(() => {
+        // ignore offline
+      });
+    showToast('نشست مورد نظر در دیتابیس باطل شد.');
+  };
+
+  const handleSeedCatalog = async () => {
+    setLocalProducts(INITIAL_SKILL98_CATALOG);
+    showToast('کاتالوگ پایه به همراه اسکیل‌های رایگان گیت‌هاب بازنشانی شد.');
+  };
+
+  const handleUpdateOrderStatus = async (
+    orderId: string,
+    nextStatus: OrderRecord['status']
+  ) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: nextStatus } : o))
+    );
+    void apiJson(`/api/orders/${encodeURIComponent(orderId)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: nextStatus }),
+    }).catch(() => {
+      // Keep local status update if background request fails transiently
+    });
+    showToast('وضعیت سفارش به‌روزرسانی شد.');
+  };
+
+  const handleDownloadStarterZip = async () => {
+    const filename = await downloadSkill98StarterZip(themeConfig, activeCatalog);
+    showToast(`بسته ${filename} شامل قالب خام و راهنمای شروع دانلود شد.`);
+  };
+
+  const selectToolAndScroll = (tool: CatalogFilter) => {
+    const needsTabSwitch = activeTab !== 'store';
+    setCatalogFilter(tool);
+    if (needsTabSwitch) {
+      navigateWithTransition('store');
+      window.setTimeout(() => {
+        scrollToElementSmooth('#skills-catalog-section', -88);
+      }, 420);
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        scrollToElementSmooth('#skills-catalog-section', -88);
+      });
+    });
+  };
+
+  const displayUserName = currentUser?.displayName || loggedInName;
+  const isLoggedIn = userRole !== 'guest';
+  const activeThemeDef = resolveRegisteredTheme(themeConfig.activeThemeId);
+
+  if (
+    activeThemeDef.id === 'fatehan' &&
+    activeThemeDef.renderStandaloneRoot &&
+    activeTab !== 'admin'
+  ) {
+    return (
+      <div dir="rtl" className="min-h-screen relative">
+        {activeThemeDef.renderStandaloneRoot({
+          adapter: createCmsV2ApiAdapter(),
+        })}
+
+        {canAccessAdmin && (
+          <button
+            type="button"
+            onClick={() => navigateWithTransition('admin')}
+            className="fixed bottom-5 left-5 z-50 px-4 py-2.5 rounded-full bg-slate-950/90 hover:bg-blue-700 text-white text-xs font-extrabold shadow-xl border border-white/15 backdrop-blur-md flex items-center gap-2 cursor-pointer transition-colors"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>بازگشت به پنل مدیریت CMS / تغییر پوسته</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      dir="rtl"
+      data-barba="wrapper"
+      data-accent={themeConfig.accentPreset}
+      className="min-h-screen flex flex-col bg-[#F6F5F1] dark:bg-[#0F172A] text-stone-900 dark:text-slate-100 transition-colors duration-300 relative overflow-x-hidden max-w-[100vw]"
+    >
+      {/* Barba.js + GSAP Soft Frosted-Glass & Blur Page Transition Overlay */}
+      <div
+        ref={transitionOverlayRef}
+        className="fixed inset-0 z-50 bg-white/45 dark:bg-[#0F172A]/60 backdrop-blur-2xl pointer-events-none opacity-0 flex items-center justify-center transition-none"
+      >
+        <div className="px-6 py-3.5 rounded-2xl bg-white/85 dark:bg-[#162038]/90 backdrop-blur-xl border border-stone-200/80 dark:border-slate-700/80 shadow-2xl text-stone-900 dark:text-white font-extrabold text-sm sm:text-base tracking-tight flex items-center gap-2.5 smooth-nums whitespace-nowrap">
+          <Sparkles className="w-4 h-4 text-[#1D4ED8] dark:text-amber-400 animate-spin" />
+          <span>{themeConfig.brandNameFa} · انتقال نرم صفحه</span>
+        </div>
+      </div>
+
+      {/* Theme Header & Admin Motion Status Strip */}
+      <SiteHeader
+        activeTab={activeTab}
+        themeConfig={themeConfig}
+        accentStyles={accentStyles}
+        userRole={userRole}
+        isLoggedIn={isLoggedIn}
+        canAccessAdmin={canAccessAdmin}
+        displayUserName={displayUserName}
+        claimedCount={claimedSkillIds.length}
+        cartTotalItems={cartTotalItems}
+        isMuuriDragEnabled={isMuuriDragEnabled}
+        dynamicPages={dynamicPages}
+        onNavigate={(tab) => navigateWithTransition(tab)}
+        onSelectToolAndScroll={selectToolAndScroll}
+        onOpenDynamicPage={handleOpenDynamicPage}
+        onOpenAuthModal={() => {
+          if (isLoggedIn) {
+            navigateWithTransition(canAccessAdmin ? 'admin' : 'dashboard');
+            return;
+          }
+          setIsAuthModalOpen(true);
+        }}
+        onLogout={() => void handleLogout()}
+        onOpenCart={() => setIsCartOpen(true)}
+        onToggleMuuriDrag={() => {
+          setIsMuuriDragEnabled((prev) => !prev);
+          showToast(
+            !isMuuriDragEnabled
+              ? 'قابلیت جابه‌جایی المان‌ها با ماوس (Muuri Grid) فعال شد.'
+              : 'جابه‌جایی المان‌ها غیرفعال شد.'
+          );
+        }}
+        onResetDraggedElements={handleResetDraggedElements}
+      />
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-20 left-6 z-50 max-w-md px-4 py-3 rounded-xl border border-stone-700 bg-stone-900 text-white shadow-xl text-xs flex items-center gap-2.5">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="smooth-nums">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Checkout Confirmation Banner */}
+      {checkoutSuccessBanner && (
+        <div className="max-w-6xl mx-auto px-6 pt-6 w-full">
+          <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 text-sm flex items-center justify-between gap-4 smooth-nums">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 shrink-0" />
+              <span>{checkoutSuccessBanner}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCheckoutSuccessBanner(null)}
+              className="text-xs underline whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              بستن
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Container with Barba.js + GSAP lifecycle */}
+      <main
+        ref={mainContainerRef}
+        data-barba="container"
+        data-barba-namespace={activeTab}
+        className="flex-1 pb-24"
+      >
+        {activeTab === 'store' && (
+          <StorefrontView
+            themeConfig={themeConfig}
+            accentStyles={accentStyles}
+            activeCatalog={activeCatalog}
+            filteredCatalog={filteredCatalog}
+            displayedCatalog={displayedCatalog}
+            publishedArticles={publishedArticles}
+            catalogFilter={catalogFilter}
+            searchQuery={searchQuery}
+            bookmarkedIds={bookmarkedIds}
+            claimedSkillIds={claimedSkillIds}
+            showAllCatalogSkills={showAllCatalogSkills}
+            onChangeFilter={setCatalogFilter}
+            onChangeSearchQuery={setSearchQuery}
+            onToggleDarkMode={() =>
+              setThemeConfig((prev) => ({ ...prev, darkMode: !prev.darkMode }))
+            }
+            onToggleShowAllSkills={() =>
+              setShowAllCatalogSkills((prev) => !prev)
+            }
+            onSelectToolAndScroll={selectToolAndScroll}
+            onNavigate={(tab) => navigateWithTransition(tab)}
+            onOpenSkillDetails={(skill) => openSingleProductPage(skill)}
+            onQuickSkillAction={handleQuickSkillAction}
+            onToggleBookmark={handleToggleBookmark}
+            onOpenFullArticle={openFullArticlePage}
+          />
+        )}
+
+        {activeTab === 'product_single' && activeProduct && (
+          <SingleProductView
+            product={activeProduct}
+            allProducts={activeCatalog}
+            brandNameFa={themeConfig.brandNameFa}
+            bookmarkedIds={bookmarkedIds}
+            claimedSkillIds={claimedSkillIds}
+            accentStyles={accentStyles}
+            onBackToStore={() => navigateWithTransition('store')}
+            onSelectProduct={(prod) => openSingleProductPage(prod)}
+            onToggleBookmark={handleToggleBookmark}
+            onAddToCart={handleAddToCart}
+            onQuickSkillAction={handleQuickSkillAction}
+            onNavigateTab={(tab) => navigateWithTransition(tab)}
+            onFilterByCategory={(cat) => {
+              if (cat === 'Claude' || cat === 'ChatGPT' || cat === 'Codex') {
+                setCatalogFilter(cat);
+              } else {
+                setCatalogFilter('all');
+              }
+            }}
+          />
+        )}
+
+        {(activeTab === 'articles' || activeTab === 'article_single') && (
+          <ArticlesView
+            mode={activeTab}
+            brandNameFa={themeConfig.brandNameFa}
+            publishedArticles={publishedArticles}
+            activeArticle={activeArticle}
+            activeCatalog={activeCatalog}
+            claimedSkillIds={claimedSkillIds}
+            canAccessAdmin={canAccessAdmin}
+            onNavigate={(tab) => navigateWithTransition(tab)}
+            onOpenFullArticle={openFullArticlePage}
+            onQuickSkillAction={handleQuickSkillAction}
+            onOpenProductSingle={(prod) => openSingleProductPage(prod)}
+          />
+        )}
+
+        {activeTab === 'page_single' && activeDynamicPage && (
+          <DynamicPageView
+            page={activeDynamicPage}
+            allPages={dynamicPages}
+            products={activeCatalog}
+            onBackToStore={() => navigateWithTransition('store')}
+            onSelectPage={handleOpenDynamicPage}
+            onNavigateTab={(tab) => navigateWithTransition(tab)}
+            onSelectProduct={(prod) => openSingleProductPage(prod)}
+          />
+        )}
+
+        {activeTab === 'dashboard' && (
+          <CustomerDashboardView
+            userUid={currentUser?.uid || (isLoggedIn ? 'user_logged_in' : null)}
+            userDisplayName={displayUserName || null}
+            userPhone={loggedInPhone || undefined}
+            userRole={userRole}
+            orders={orders}
+            products={activeCatalog}
+            claimedSkillIds={claimedSkillIds}
+            initialSelectedSkillId={dashboardSelectedSkillId}
+            articles={publishedArticles}
+            sessions={cmsSessions}
+            bookmarkedIds={bookmarkedIds}
+            accentButtonClass={accentStyles.button}
+            accentTextClass={accentStyles.text}
+            onNavigateTab={navigateWithTransition}
+            onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            onCancelOrder={(orderId) =>
+              handleUpdateOrderStatus(orderId, 'cancelled')
+            }
+            onDownloadStarterZip={handleDownloadStarterZip}
+            onSelectSkillProduct={(prod) => openSingleProductPage(prod)}
+            onOpenFullArticle={openFullArticlePage}
+            onRevokeSession={handleRevokeSession}
+          />
+        )}
+
+        {activeTab === 'admin' && canAccessAdmin && (
+          <AdminCmsView
+            products={activeCatalog}
+            articles={articles}
+            mediaItems={mediaItems}
+            orders={orders}
+            coupons={coupons}
+            gateways={gateways}
+            aiConfig={aiConfig}
+            roles={cmsRoles}
+            sessions={cmsSessions}
+            otpConfig={otpConfig}
+            themeConfig={themeConfig}
+            activeUserRole={userRole === 'admin' ? 'admin' : 'super_admin'}
+            activeUserRoleId={loggedInRoleId}
+            activeUserName={displayUserName}
+            accentButtonClass={accentStyles.button}
+            accentTextClass={accentStyles.text}
+            onSwitchActiveRole={(r) => setUserRole(r)}
+            onSaveProduct={handleSaveProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onSaveArticle={handleSaveArticle}
+            onDeleteArticle={handleDeleteArticle}
+            onSaveMediaItem={handleSaveMediaItem}
+            onDeleteMediaItem={handleDeleteMediaItem}
+            onSaveCoupon={handleSaveCoupon}
+            onDeleteCoupon={handleDeleteCoupon}
+            onUpdateGateways={setGateways}
+            paymentDisplayConfig={paymentDisplayConfig}
+            onUpdatePaymentDisplayConfig={setPaymentDisplayConfig}
+            onRefreshFromServer={() => void hydrateFromDatabase()}
+            onUpdateAiConfig={setAiConfig}
+            onUpdateRoles={setCmsRoles}
+            onRevokeSession={handleRevokeSession}
+            onUpdateOtpConfig={setOtpConfig}
+            onSeedCatalog={handleSeedCatalog}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onUpdateTheme={setThemeConfig}
+            onOpenDynamicPage={handleOpenDynamicPage}
+            onDownloadStarterZip={handleDownloadStarterZip}
+          />
+        )}
+
+        {activeTab === 'guide' && (
+          <TargetGuideAndZipView
+            themeConfig={themeConfig}
+            accentButtonClass={accentStyles.button}
+            accentTextClass={accentStyles.text}
+            onDownloadZip={handleDownloadStarterZip}
+          />
+        )}
+      </main>
+
+      {/* Floating Compact Reset Layout FAB */}
+      {hasDisplacedLayout && (
+        <button
+          type="button"
+          onClick={handleResetDraggedElements}
+          data-no-muuri-drag="true"
+          aria-label="مرتب‌سازی چیدمان"
+          title="مرتب‌سازی چیدمان کارت‌ها"
+          className={`layout-reset-fab group fixed left-4 sm:left-6 z-50 h-11 min-w-11 w-fit px-3 rounded-full inline-flex items-center justify-center cursor-pointer transition-all duration-300 ease-out active:scale-95 border border-white/50 backdrop-blur-md whitespace-nowrap ${
+            cart.length > 0 && !isCartOpen && activeTab !== 'admin'
+              ? 'bottom-[162px] md:bottom-24'
+              : 'bottom-[86px] md:bottom-6'
+          } ${
+            themeConfig.accentPreset === 'emerald'
+              ? 'bg-gradient-to-l from-emerald-600 via-emerald-500 to-teal-500 text-white shadow-[0_10px_28px_-4px_rgba(5,150,105,0.6)]'
+              : themeConfig.accentPreset === 'amber'
+              ? 'bg-gradient-to-l from-amber-500 via-amber-400 to-yellow-300 text-stone-950 shadow-[0_10px_28px_-4px_rgba(245,158,11,0.55)]'
+              : themeConfig.accentPreset === 'rose'
+              ? 'bg-gradient-to-l from-rose-600 via-rose-500 to-pink-500 text-white shadow-[0_10px_28px_-4px_rgba(225,29,72,0.55)]'
+              : themeConfig.accentPreset === 'violet'
+              ? 'bg-gradient-to-l from-purple-600 via-violet-600 to-indigo-500 text-white shadow-[0_10px_28px_-4px_rgba(124,58,237,0.6)]'
+              : 'bg-gradient-to-l from-[#1E3A8A] via-[#1D4ED8] to-[#0EA5E9] text-white shadow-[0_10px_28px_-4px_rgba(29,78,216,0.6)]'
+          }`}
+        >
+          <RotateCcw className="w-5 h-5 shrink-0 transition-transform duration-300 group-hover:-rotate-90 relative z-10" />
+          <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[160px] group-hover:opacity-100 group-hover:mr-2 group-focus-visible:max-w-[160px] group-focus-visible:opacity-100 group-focus-visible:mr-2 transition-all duration-300 ease-out text-xs font-extrabold whitespace-nowrap relative z-10">
+            مرتب‌سازی چیدمان
+          </span>
+        </button>
+      )}
+
+      {/* Cart Floating Bar & 1-Step Slide-Over Checkout Drawer Modal */}
+      <CartDrawerModal
+        activeTab={activeTab}
+        isCartOpen={isCartOpen}
+        isLoggedIn={isLoggedIn}
+        loggedInPhone={loggedInPhone}
+        loggedInName={displayUserName}
+        cart={cart}
+        cartTotalItems={cartTotalItems}
+        cartSubtotalAmount={cartSubtotalAmount}
+        discountAmount={discountAmount}
+        cartFinalPayable={cartFinalPayable}
+        coupons={coupons}
+        couponInput={couponInput}
+        appliedCoupon={appliedCoupon}
+        couponMessage={couponMessage}
+        activeGateways={activeGateways}
+        selectedGatewayId={selectedGatewayId}
+        accentStyles={accentStyles}
+        onOpenCart={() => setIsCartOpen(true)}
+        onCloseCart={() => setIsCartOpen(false)}
+        onUpdateQty={handleUpdateCartQty}
+        onCouponInputChange={setCouponInput}
+        onApplyCoupon={handleApplyCouponCode}
+        onClearCoupon={() => {
+          setAppliedCoupon(null);
+          setCouponInput('');
+          setCouponMessage(null);
+        }}
+        onSelectGateway={setSelectedGatewayId}
+        onCompleteCheckout={() => void handleCompleteCheckout()}
+        onInlineLoginSuccess={completeVerifiedLogin}
+      />
+
+      {/* Authentication & Registration Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        themeConfig={themeConfig}
+        accentStyles={accentStyles}
+        authStep={authStep}
+        phoneInput={phoneInput}
+        fullNameInput={fullNameInput}
+        otpInput={otpInput}
+        isAuthSubmitting={isAuthSubmitting}
+        simulatedSmsCodeBanner={simulatedSmsCodeBanner}
+        onPhoneChange={setPhoneInput}
+        onFullNameChange={setFullNameInput}
+        onOtpChange={setOtpInput}
+        onAuthStepChange={setAuthStep}
+        onClearSimulatedBanner={() => setSimulatedSmsCodeBanner(null)}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setAuthStep('phone');
+          setOtpInput('');
+          setSimulatedSmsCodeBanner(null);
+          setPendingActionAfterAuth(null);
+        }}
+        onSubmit={(e) => void handlePhoneLoginSubmit(e)}
+        onGoogleLogin={() => void handleGoogleLogin()}
+      />
+
+      {/* Skill Details & Markdown Preview Modal */}
+      <SkillDetailModal
+        skill={selectedSkillModal}
+        brandNameFa={themeConfig.brandNameFa}
+        bookmarkedIds={bookmarkedIds}
+        claimedSkillIds={claimedSkillIds}
+        accentStyles={accentStyles}
+        onClose={() => setSelectedSkillModal(null)}
+        onToggleBookmark={handleToggleBookmark}
+        onQuickSkillAction={handleQuickSkillAction}
+        onAddToCart={handleAddToCart}
+      />
+
+      {/* Theme Editorial Footer */}
+      <SiteFooter
+        themeConfig={themeConfig}
+        dynamicPages={dynamicPages}
+        onSelectToolAndScroll={selectToolAndScroll}
+        onNavigate={(tab) => navigateWithTransition(tab)}
+        onOpenDynamicPage={handleOpenDynamicPage}
+      />
+
+      {/* Goftino-Style Self-Hosted Floating Live Chat Widget */}
+      {activeTab !== 'admin' && (
+        <>
+          <GoftinoLiveChatWidget
+            loggedInName={displayUserName}
+            loggedInPhone={loggedInPhone}
+            onInlineLoginSuccess={completeVerifiedLogin}
+            onDisplayNameUpdated={(nextName) => setLoggedInName(nextName)}
+          />
+          <PWAInstallBanner enabled />
+          <StorefrontPopupsRenderer enabled />
+        </>
+      )}
+
+      {/* Mobile Translucent Bottom Navigation */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        isLoggedIn={isLoggedIn}
+        canAccessAdmin={canAccessAdmin}
+        cartTotalItems={cartTotalItems}
+        accentStyles={accentStyles}
+        onNavigate={(tab) => navigateWithTransition(tab)}
+        onOpenAuthModal={() => {
+          if (isLoggedIn) {
+            navigateWithTransition(canAccessAdmin ? 'admin' : 'dashboard');
+            return;
+          }
+          setIsAuthModalOpen(true);
+        }}
+        onOpenCart={() => setIsCartOpen(true)}
+      />
+    </div>
+  );
+}

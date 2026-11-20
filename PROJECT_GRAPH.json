@@ -1,0 +1,6052 @@
+{
+  "generatedAt": "2026-11-20T14:49:58.970Z",
+  "cmsVersion": "v2.7.0",
+  "summary": {
+    "totalFiles": 203,
+    "totalLines": 78108,
+    "totalEndpoints": 212,
+    "totalDbTables": 69,
+    "byCategory": {
+      "root": 14,
+      "core": 21,
+      "modules": 113,
+      "database": 11,
+      "theme": 39,
+      "public_assets": 5
+    }
+  },
+  "dbTables": [
+    "mod_payment_hub_drivers",
+    "mod_inventory_stock",
+    "mod_inventory_reservations",
+    "mod_accounting_ledger",
+    "mod_forms_definitions",
+    "mod_forms_submissions",
+    "mod_ecommerce_shipments",
+    "mod_ecommerce_stock_alerts",
+    "mod_ecommerce_wallets",
+    "mod_live_chat_sessions",
+    "mod_live_chat_messages",
+    "mod_analytics_events",
+    "mod_analytics_province_sales",
+    "mod_gsc_keywords",
+    "mod_ai_digikala_imports",
+    "mod_seo_redirects",
+    "mod_booking_slots",
+    "mod_booking_appointments",
+    "mod_auto_backup_archives",
+    "users",
+    "products",
+    "articles",
+    "orders",
+    "coupons",
+    "media_items",
+    "payment_gateways",
+    "sms_triggers",
+    "site_settings",
+    "system_logs",
+    "backup_history",
+    "auth_sessions",
+    "rbac_permission_hashes",
+    "taxonomies",
+    "pages",
+    "menus",
+    "invoice_templates",
+    "mod_abandoned_carts",
+    "mod_academy_departments",
+    "mod_academy_courses",
+    "mod_academy_announcements",
+    "mod_academy_ideas",
+    "mod_academy_consultations",
+    "mod_affiliate_partners",
+    "mod_affiliate_clicks",
+    "mod_affiliate_commissions",
+    "mod_ai_provider_configs",
+    "mod_ai_agent_skills",
+    "mod_ai_agent_tasks",
+    "mod_ai_agent_conversations",
+    "mod_ai_approval_queue",
+    "mod_web_vitals",
+    "mod_announcements_popups",
+    "mod_b2b_tiers",
+    "mod_b2b_quotes",
+    "mod_bot_channels",
+    "mod_outbound_webhooks",
+    "mod_delivery_logs",
+    "mod_i18n_translations",
+    "mod_audit_trail",
+    "mod_pwa_subscriptions",
+    "mod_pwa_notifications",
+    "mod_product_reviews",
+    "mod_product_qa",
+    "mod_crm_rules",
+    "mod_crm_recommendations",
+    "mod_subscription_plans",
+    "mod_user_subscriptions",
+    "mod_wallet_transactions",
+    "mod_rma_requests"
+  ],
+  "apiEndpoints": [
+    {
+      "method": "GET",
+      "path": "*",
+      "file": "server.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/captcha/challenge",
+      "file": "src/server/core/captchaService.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/captcha/verify",
+      "file": "src/server/core/captchaService.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/db/status",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/db/test-connection",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/db/query",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/backup/history",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/backup/create",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/backup/download/:id",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/backup/restore",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/backup/settings",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/backup/test-bale",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/backup/test-smtp",
+      "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/sms/config",
+      "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sms/config",
+      "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/sms/test",
+      "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/payment/config",
+      "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/payment/config",
+      "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/payment/test-router",
+      "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/payment/router-php",
+      "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/logs",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/logs",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/logs/snooze",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/logs/export-csv",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/logs/diagnostics",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/permissions/hashes",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/permissions/resync",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/users",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/users",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/users/:phone",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/users/:phone",
+      "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/maintenance/clean-demo",
+      "file": "src/server/modules/admin/maintenanceCleanersRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/maintenance/orphan-media",
+      "file": "src/server/modules/admin/maintenanceCleanersRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/maintenance/orphan-media/clean",
+      "file": "src/server/modules/admin/maintenanceCleanersRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/registry",
+      "file": "src/server/modules/admin/modulesConfigRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/registry",
+      "file": "src/server/modules/admin/modulesConfigRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/permissions/matrix",
+      "file": "src/server/modules/admin/rbacMatrixRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/permissions/matrix",
+      "file": "src/server/modules/admin/rbacMatrixRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cms/ai-assist",
+      "file": "src/server/modules/ai/aiSeoRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/check-phone",
+      "file": "src/server/modules/auth/authRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sms/send-otp",
+      "file": "src/server/modules/auth/authRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sms/verify-otp",
+      "file": "src/server/modules/auth/authRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/google-session",
+      "file": "src/server/modules/auth/authRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/master-code",
+      "file": "src/server/modules/auth/authRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/session",
+      "file": "src/server/modules/auth/authRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/sessions",
+      "file": "src/server/modules/auth/authRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/auth/sessions/:id",
+      "file": "src/server/modules/auth/authRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "file": "src/server/modules/auth/authRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/taxonomies",
+      "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/taxonomies",
+      "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/taxonomies/:id",
+      "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/catalog/paginated",
+      "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/catalog/bulk",
+      "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pages",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/pages/:slug",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pages",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/pages/:id",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/menus",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/menus",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/menus/reorder",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/menus/:id",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/invoice-templates",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/invoice-templates",
+      "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/downloads/upload",
+      "file": "src/server/modules/downloads/downloadsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/downloads/my-library",
+      "file": "src/server/modules/downloads/downloadsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/downloads/token",
+      "file": "src/server/modules/downloads/downloadsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/downloads/stream/:token",
+      "file": "src/server/modules/downloads/downloadsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/media/upload",
+      "file": "src/server/modules/media/mediaEngineRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/media/migrate-base64",
+      "file": "src/server/modules/media/mediaEngineRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/create",
+      "file": "src/server/modules/orders/ordersRouter.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/orders/:id/status",
+      "file": "src/server/modules/orders/ordersRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/payment/request",
+      "file": "src/server/modules/orders/ordersRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/payment/verify",
+      "file": "src/server/modules/orders/ordersRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "file": "src/server/modules/storefront/storefrontRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/storefront/bootstrap",
+      "file": "src/server/modules/storefront/storefrontRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/cms/state/sync",
+      "file": "src/server/modules/storefront/storefrontRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/user/profile",
+      "file": "src/server/modules/storefront/storefrontRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/user/claim-skill",
+      "file": "src/server/modules/storefront/storefrontRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/abandoned-cart/heartbeat",
+      "file": "modules/mod_abandoned_cart/abandonedCartRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/abandoned-cart/list",
+      "file": "modules/mod_abandoned_cart/abandonedCartRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/abandoned-cart/:id/recover",
+      "file": "modules/mod_abandoned_cart/abandonedCartRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/academy/bootstrap",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/academy/admin/overview",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/academy/departments",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/academy/departments",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/academy/departments/:id",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/academy/courses",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/academy/courses",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/academy/courses/:id",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/academy/announcements",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/academy/announcements",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/academy/announcements/:id",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/academy/ideas",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/academy/ideas",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/modules/academy/ideas/:id",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/academy/ideas/:id",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/academy/consultations",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/academy/settings",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/modules/academy/settings",
+      "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/affiliate/track-click",
+      "file": "modules/mod_affiliate/affiliateRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/affiliate/overview",
+      "file": "modules/mod_affiliate/affiliateRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/affiliate/partners",
+      "file": "modules/mod_affiliate/affiliateRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/affiliate/commissions/:id/payout",
+      "file": "modules/mod_affiliate/affiliateRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/ai-digikala/history",
+      "file": "modules/mod_ai_digikala/aiDigikalaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-digikala/import",
+      "file": "modules/mod_ai_digikala/aiDigikalaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-digikala/score",
+      "file": "modules/mod_ai_digikala/aiDigikalaRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/ai-hub/agent/overview",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/mode",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/command",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/skills",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/ai-hub/agent/skills/:id",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/tasks/:id/run",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/approvals/:id/decide",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/bot-bridge/test",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/ai-hub/config",
+      "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/slots/save",
+      "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/image-studio",
+      "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/analytics/track",
+      "file": "modules/mod_analytics_gsc/analyticsGscRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/analytics/overview",
+      "file": "modules/mod_analytics_gsc/analyticsGscRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/analytics/vitals",
+      "file": "modules/mod_analytics_gsc/analyticsGscRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/analytics/gsc-sync",
+      "file": "modules/mod_analytics_gsc/analyticsGscRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/announcements/active",
+      "file": "modules/mod_announcements_popups/announcementsPopupsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/announcements",
+      "file": "modules/mod_announcements_popups/announcementsPopupsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/announcements",
+      "file": "modules/mod_announcements_popups/announcementsPopupsRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/announcements/:id",
+      "file": "modules/mod_announcements_popups/announcementsPopupsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/auto-backup/archives",
+      "file": "modules/mod_auto_backup/autoBackupRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/auto-backup/run-encrypted",
+      "file": "modules/mod_auto_backup/autoBackupRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/b2b-compare/compare",
+      "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/b2b-compare/quote",
+      "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/b2b-compare/admin/overview",
+      "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/b2b-compare/admin/tiers",
+      "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/b2b-compare/admin/tiers/:id",
+      "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/booking/slots",
+      "file": "modules/mod_booking/solarBookingRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/booking/slots",
+      "file": "modules/mod_booking/solarBookingRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/booking/appointments",
+      "file": "modules/mod_booking/solarBookingRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/bots-webhooks/overview",
+      "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/bots-webhooks/bot",
+      "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/bots-webhooks/bot/:id/test",
+      "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/bots-webhooks/webhook",
+      "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/bots-webhooks/webhook/:id/test",
+      "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/delivery-logs",
+      "file": "modules/mod_delivery_logs/deliveryLogsRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/delivery-logs/clear",
+      "file": "modules/mod_delivery_logs/deliveryLogsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/feeds/torob",
+      "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/feeds/emalls",
+      "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/ecommerce/shipments",
+      "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ecommerce/shipments",
+      "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ecommerce/stock-alerts",
+      "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/ecommerce/official-invoice/:orderId",
+      "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/ecommerce/shipping-config",
+      "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/modules/ecommerce/shipping-config",
+      "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/forms",
+      "file": "modules/mod_forms/formsEngineRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/forms",
+      "file": "modules/mod_forms/formsEngineRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/forms/:id/submit",
+      "file": "modules/mod_forms/formsEngineRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/forms/:id/export.csv",
+      "file": "modules/mod_forms/formsEngineRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/forms/:id/submissions",
+      "file": "modules/mod_forms/formsEngineRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/forms/:id",
+      "file": "modules/mod_forms/formsEngineRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/forms/submissions/:subId",
+      "file": "modules/mod_forms/formsEngineRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/i18n/dictionary",
+      "file": "modules/mod_i18n/i18nRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/i18n/admin/list",
+      "file": "modules/mod_i18n/i18nRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/i18n/admin/save",
+      "file": "modules/mod_i18n/i18nRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/inventory/stock",
+      "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/inventory/stock",
+      "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/inventory/reserve",
+      "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/accounting/ledger",
+      "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/accounting/ledger",
+      "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/live-chat/status",
+      "file": "modules/mod_live_chat/liveChatRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/live-chat/admin/unread-summary",
+      "file": "modules/mod_live_chat/liveChatRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/live-chat/link-session",
+      "file": "modules/mod_live_chat/liveChatRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/live-chat/visitor-message",
+      "file": "modules/mod_live_chat/liveChatRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/live-chat/admin/inbox",
+      "file": "modules/mod_live_chat/liveChatRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/live-chat/admin/priority",
+      "file": "modules/mod_live_chat/liveChatRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/live-chat/admin/reply",
+      "file": "modules/mod_live_chat/liveChatRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/live-chat/admin/create-thread",
+      "file": "modules/mod_live_chat/liveChatRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/live-chat/admin/session/:id",
+      "file": "modules/mod_live_chat/liveChatRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/maintenance/status",
+      "file": "modules/mod_maintenance_audit/maintenanceAuditRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/maintenance/admin/overview",
+      "file": "modules/mod_maintenance_audit/maintenanceAuditRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/maintenance/admin/config",
+      "file": "modules/mod_maintenance_audit/maintenanceAuditRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/pwa/public-key",
+      "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/pwa/subscribe",
+      "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/pwa/admin/overview",
+      "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/pwa/admin/rotate-vapid",
+      "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/pwa/admin/broadcast",
+      "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/payment-hub/drivers",
+      "file": "modules/mod_payment_hub/paymentHubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/payment-hub/drivers",
+      "file": "modules/mod_payment_hub/paymentHubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/payment-hub/calculate",
+      "file": "modules/mod_payment_hub/paymentHubRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/reviews-qa/product/:productId",
+      "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/reviews-qa/review",
+      "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/reviews-qa/question",
+      "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/reviews-qa/admin/list",
+      "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/reviews-qa/admin/moderate",
+      "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/seo/visibility",
+      "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/modules/seo-redirects/visibility",
+      "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/sitemap.xml",
+      "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/robots.txt",
+      "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/llms.txt",
+      "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/llm.txt",
+      "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/seo-redirects/rules",
+      "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/seo-redirects/rules",
+      "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/seo-redirects/rules/:id",
+      "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/smart-crm/admin/overview",
+      "file": "modules/mod_smart_crm/smartCrmRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/smart-crm/admin/rules",
+      "file": "modules/mod_smart_crm/smartCrmRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/smart-crm/admin/run-auto-match",
+      "file": "modules/mod_smart_crm/smartCrmRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/smart-crm/my-recommendations",
+      "file": "modules/mod_smart_crm/smartCrmRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/subscriptions/plans",
+      "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/subscriptions/admin/overview",
+      "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/subscriptions/admin/plans",
+      "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/subscriptions/my-status",
+      "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/subscriptions/subscribe",
+      "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/wallet-rma/overview",
+      "file": "modules/mod_wallet_rma/walletRmaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/wallet-rma/transaction",
+      "file": "modules/mod_wallet_rma/walletRmaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/wallet-rma/rma",
+      "file": "modules/mod_wallet_rma/walletRmaRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/wallet-rma/rma/:id/resolve",
+      "file": "modules/mod_wallet_rma/walletRmaRouter.ts"
+    }
+  ],
+  "files": [
+    {
+      "path": "server.ts",
+      "category": "root",
+      "lines": 231,
+      "imports": [
+        "dotenv",
+        "express",
+        "fs",
+        "path",
+        "url",
+        "vite",
+        "./src/server/core/cryptoSecurity.js",
+        "./src/server/database/index.js",
+        "./src/server/modules/admin/adminDbBackupRouter.js",
+        "./src/server/modules/admin/adminGatewaysSmsRouter.js",
+        "./src/server/modules/admin/adminUsersLogsRouter.js",
+        "./src/server/modules/ai/aiSeoRouter.js",
+        "./src/server/modules/auth/authRouter.js",
+        "./src/server/modules/catalog/taxonomiesPaginationRouter.js",
+        "./src/server/modules/cms/pagesMenusComposerRouter.js",
+        "./src/server/modules/media/mediaEngineRouter.js",
+        "./src/server/modules/orders/ordersRouter.js",
+        "./src/server/modules/storefront/storefrontRouter.js",
+        "./modules/mod_payment_hub/paymentHubRouter.js",
+        "./modules/mod_inventory_accounting/inventoryAccountingRouter.js",
+        "./modules/mod_forms/formsEngineRouter.js",
+        "./modules/mod_ecommerce_suite/ecommerceSuiteRouter.js",
+        "./modules/mod_live_chat/liveChatRouter.js",
+        "./modules/mod_analytics_gsc/analyticsGscRouter.js",
+        "./modules/mod_ai_digikala/aiDigikalaRouter.js",
+        "./modules/mod_seo_redirects/seoRedirectsRouter.js",
+        "./modules/mod_booking/solarBookingRouter.js",
+        "./modules/mod_auto_backup/autoBackupRouter.js",
+        "./modules/mod_smart_crm/smartCrmRouter.js",
+        "./modules/mod_subscriptions/subscriptionsRouter.js",
+        "./modules/mod_academy_suite/academySuiteRouter.js",
+        "./src/server/modules/downloads/downloadsRouter.js",
+        "./src/server/modules/admin/modulesConfigRouter.js",
+        "./src/server/core/captchaService.js",
+        "./src/server/modules/admin/rbacMatrixRouter.js",
+        "./src/server/modules/admin/maintenanceCleanersRouter.js",
+        "./modules/mod_delivery_logs/deliveryLogsRouter.js",
+        "./modules/mod_notifications_pwa/notificationsPwaRouter.js",
+        "./modules/mod_abandoned_cart/abandonedCartRouter.js",
+        "./modules/mod_announcements_popups/announcementsPopupsRouter.js",
+        "./modules/mod_reviews_qa/reviewsQaRouter.js",
+        "./modules/mod_wallet_rma/walletRmaRouter.js",
+        "./modules/mod_affiliate/affiliateRouter.js",
+        "./modules/mod_b2b_compare/b2bCompareRouter.js",
+        "./modules/mod_bots_webhooks/botsWebhooksRouter.js",
+        "./modules/mod_maintenance_audit/maintenanceAuditRouter.js",
+        "./modules/mod_i18n/i18nRouter.js",
+        "./modules/mod_ai_hub_agent/aiHubRouter.js"
+      ],
+      "exports": [],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "*",
+          "file": "server.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/App.tsx",
+      "category": "root",
+      "lines": 2526,
+      "imports": [
+        "react",
+        "lucide-react",
+        "firebase/auth",
+        "firebase/firestore",
+        "./firebase",
+        "./core/types",
+        "./core/apiClient",
+        "./core/motionAndDragEngine",
+        "./core/zipGenerator",
+        "../themes/registry",
+        "./data/skill98Data",
+        "./data/mediaAssets",
+        "./theme/accentStyles",
+        "./theme/components/SiteHeader",
+        "./theme/components/SiteFooter",
+        "./theme/components/MobileBottomNav",
+        "./theme/components/StorefrontView",
+        "./theme/components/SingleProductView",
+        "./theme/components/ArticlesView",
+        "./theme/components/DynamicPageView",
+        "./modules/catalog/SkillDetailModal",
+        "./modules/auth/AuthModal",
+        "./modules/cart/CartDrawerModal",
+        "./modules/dashboard/CustomerDashboardView",
+        "./modules/guide/TargetGuideAndZipView",
+        "./modules/admin/AdminCmsView",
+        "../modules/mod_live_chat/GoftinoLiveChatWidget",
+        "../modules/mod_notifications_pwa/PWAInstallBanner",
+        "../modules/mod_announcements_popups/StorefrontPopupsRenderer",
+        "./core/webVitalsReporter"
+      ],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/barba.d.ts",
+      "category": "root",
+      "lines": 29,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/components/OfflineCaptchaWidget.tsx",
+      "category": "root",
+      "lines": 90,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../core/apiClient"
+      ],
+      "exports": [
+        "OfflineCaptchaWidget"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/core/apiClient.ts",
+      "category": "core",
+      "lines": 81,
+      "imports": [],
+      "exports": [
+        "StoredClientSession",
+        "readStoredSession",
+        "writeStoredSession",
+        "getAuthHeaders",
+        "buildAuthHeaders",
+        "apiFetch",
+        "apiJson"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/core/iran-geo.ts",
+      "category": "core",
+      "lines": 87,
+      "imports": [
+        "./jalali"
+      ],
+      "exports": [
+        "IranProvinceEntry",
+        "IRAN_PROVINCES_AND_CITIES",
+        "getCitiesByProvince",
+        "isValidIranNationalId",
+        "isValidIranPostalCode",
+        "isValidIranMobile"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/core/jalali.ts",
+      "category": "core",
+      "lines": 156,
+      "imports": [],
+      "exports": [
+        "JalaliDateParts",
+        "GregorianDateParts",
+        "JALALI_MONTH_NAMES",
+        "toPersianDigits",
+        "toEnglishDigits",
+        "gregorianToJalali",
+        "jalaliToGregorian",
+        "formatIsoToJalali",
+        "jalaliStringToIsoUtc",
+        "formatToman"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/core/motionAndDragEngine.ts",
+      "category": "core",
+      "lines": 560,
+      "imports": [
+        "gsap",
+        "lenis",
+        "@barba/core",
+        "muuri"
+      ],
+      "exports": [
+        "scrollToTopImmediate",
+        "scrollToElementSmooth",
+        "initSmoothScroll",
+        "pauseSmoothScroll",
+        "resumeSmoothScroll",
+        "triggerBarbaGsapTransition",
+        "animatePageEntrance",
+        "MuuriGridController"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/core/permissions.ts",
+      "category": "core",
+      "lines": 100,
+      "imports": [
+        "./types.js"
+      ],
+      "exports": [
+        "ALL_CAPABILITY_KEYS",
+        "CAPABILITY_LABELS_FA",
+        "EMPTY_ROLE_PERMISSIONS",
+        "FULL_ROLE_PERMISSIONS",
+        "resolveEffectivePermissions",
+        "canUserUseAiSeo"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/core/rbacMatrix.ts",
+      "category": "core",
+      "lines": 85,
+      "imports": [],
+      "exports": [
+        "GranularActionKey",
+        "GranularActionSet",
+        "GranularResourceMeta",
+        "GRANULAR_ACTIONS",
+        "GRANULAR_RBAC_RESOURCES",
+        "GranularRbacMatrix",
+        "buildDefaultGranularMatrix"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/core/types.ts",
+      "category": "core",
+      "lines": 688,
+      "imports": [],
+      "exports": [
+        "AccentPresetId",
+        "AIToolCategory",
+        "PosterColorScheme",
+        "UserRoleType",
+        "ActiveTab",
+        "CatalogFilter",
+        "MediaVariants",
+        "MediaAssetItem",
+        "TaxonomyType",
+        "TaxonomyItem",
+        "ComposerColumnCount",
+        "ComposerWidgetType",
+        "ComposerWidgetInstance",
+        "ComposerRow",
+        "CmsDynamicPage",
+        "CmsMenuLocation",
+        "CmsMenuItem",
+        "CmsInvoiceTemplate",
+        "HomepageSectionKey",
+        "CustomPageWidget",
+        "CmsPluginItem",
+        "FooterTrustBadgesConfig",
+        "SeoCrawlVisibilityConfig",
+        "ThemeConfig",
+        "ProductTypeKind",
+        "ProductDownloadFile",
+        "SkillProduct",
+        "CartItem",
+        "SkillArticle",
+        "CouponRule",
+        "PaymentGatewayId",
+        "PaymentGatewayOption",
+        "PaymentDisplayConfig",
+        "SmsProviderId",
+        "SmsProviderCredential",
+        "SmsGatewaySettings",
+        "SiteModuleRegistryItem",
+        "SubscriptionPlanItem",
+        "UserSubscriptionRecord",
+        "SmartCrmRule",
+        "SmartCrmRecommendation",
+        "SmsTriggerEventKey",
+        "SmsTriggerRule",
+        "BackupScheduleConfig",
+        "BackupHistoryItem",
+        "SystemLogLevel",
+        "SystemLogCategory",
+        "SystemLogEntry",
+        "AiProviderId",
+        "AiEngineConfig",
+        "CmsRolePermissions",
+        "CmsPermissionKey",
+        "CmsRoleDefinition",
+        "HashedPermissionRecord",
+        "AdminUserRecord",
+        "CmsSessionRecord",
+        "OtpSecurityConfig",
+        "OrderRecord",
+        "ArchitecturePhase",
+        "StarterFileEntry"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/core/webVitalsReporter.ts",
+      "category": "core",
+      "lines": 65,
+      "imports": [
+        "./apiClient"
+      ],
+      "exports": [
+        "initWebVitalsReporter"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/core/zipGenerator.ts",
+      "category": "core",
+      "lines": 89,
+      "imports": [
+        "jszip",
+        "./types",
+        "../data/initialCatalog"
+      ],
+      "exports": [
+        "downloadSkill98StarterZip",
+        "downloadSingleSkillFile"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/data/defaults.ts",
+      "category": "root",
+      "lines": 643,
+      "imports": [
+        "../core/types.js",
+        "../core/permissions.js"
+      ],
+      "exports": [
+        "APP_VERSION",
+        "IMAGES",
+        "resolveStaticImageUrl",
+        "INITIAL_MEDIA_LIBRARY",
+        "BRAND_LOGO_PRESETS",
+        "BRAND_FAVICON_PRESETS",
+        "INITIAL_CUSTOM_WIDGETS",
+        "INITIAL_CMS_PLUGINS",
+        "DEFAULT_THEME_CONFIG",
+        "DEFAULT_PAYMENT_DISPLAY_CONFIG",
+        "DEFAULT_SMS_GATEWAY_SETTINGS",
+        "INITIAL_SMS_TRIGGER_RULES",
+        "DEFAULT_BACKUP_SCHEDULE_CONFIG",
+        "DEFAULT_OTP_SECURITY_CONFIG",
+        "INITIAL_CMS_SESSIONS",
+        "INITIAL_CMS_ROLES",
+        "DEFAULT_AI_ENGINE_CONFIG",
+        "INITIAL_COUPONS",
+        "INITIAL_PAYMENT_GATEWAYS"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/data/initialCatalog.ts",
+      "category": "root",
+      "lines": 1172,
+      "imports": [
+        "../core/types.js",
+        "./defaults.js",
+        "./verifiedSkillsCatalog.js",
+        "muuri",
+        "gsap",
+        "lenis",
+        "gsap",
+        "animejs",
+        "gsap",
+        "lenis",
+        "@barba/core",
+        "muuri"
+      ],
+      "exports": [
+        "INITIAL_SKILL98_CATALOG",
+        "createInteractiveMuuriGrid",
+        "revealStoreCards",
+        "INITIAL_ARTICLES",
+        "TARGET_ARCHITECTURE_GUIDE",
+        "STARTER_KIT_FILES",
+        "setupMotionEngine",
+        "FULL_TARGET_GUIDE_MARKDOWN"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/data/mediaAssets.ts",
+      "category": "root",
+      "lines": 104,
+      "imports": [
+        "../assets/images/skill98_ai_architecture_hero_1795088218603.jpg",
+        "../assets/images/skill98_mcp_agents_cover_1795088217282.jpg",
+        "../assets/images/skill98_motion_ui_cover_1795088220877.jpg",
+        "../assets/images/skill98_cloud_security_cover_1795088218781.jpg",
+        "../assets/images/skill98_mcp_agents_cover_1795088217282.jpg"
+      ],
+      "exports": [
+        "VITE_IMAGES",
+        "resolveStaticImageUrl",
+        "ResponsiveImageSlot",
+        "resolveResponsiveMediaUrl",
+        "isVideoMediaUrl"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/data/skill98Data.ts",
+      "category": "root",
+      "lines": 6,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/data/verifiedSkillsCatalog.ts",
+      "category": "root",
+      "lines": 1178,
+      "imports": [
+        "./skill98Data",
+        "@modelcontextprotocol/sdk/server/mcp.js",
+        "tailwindcss"
+      ],
+      "exports": [
+        "serverConfig",
+        "DialogSurface",
+        "products",
+        "useCartStore",
+        "generateMetadata",
+        "appRouter",
+        "DarkModeCard",
+        "normalizePersian",
+        "PaymentGatewayPort",
+        "ADDITIONAL_VERIFIED_SKILLS"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/firebase.ts",
+      "category": "root",
+      "lines": 102,
+      "imports": [
+        "firebase/app",
+        "firebase/auth",
+        "firebase/firestore",
+        "../firebase-applet-config.json"
+      ],
+      "exports": [
+        "db",
+        "auth",
+        "googleProvider",
+        "BOOTSTRAPPED_ADMIN_EMAIL",
+        "OperationType",
+        "FirestoreErrorInfo",
+        "handleFirestoreError",
+        "ID_REGEX",
+        "sanitizeSlugOrId",
+        "truncateString"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/index.css",
+      "category": "root",
+      "lines": 354,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/main.tsx",
+      "category": "root",
+      "lines": 6,
+      "imports": [
+        "react-dom/client",
+        "./App.tsx",
+        "./index.css"
+      ],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/AdminCmsView.tsx",
+      "category": "modules",
+      "lines": 1307,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../../core/apiClient",
+        "../../core/motionAndDragEngine",
+        "../../core/permissions",
+        "../../data/skill98Data",
+        "./panels/CatalogEditorPanel",
+        "./panels/PageBuilderPanel",
+        "./panels/MediaLibraryPanel",
+        "./panels/ArticlesSeoPanel",
+        "./panels/OrdersCouponsPanel",
+        "./panels/RbacPermissionsPanel",
+        "./panels/PaymentGatewaysPanel",
+        "./panels/SmsTriggersPanel",
+        "./panels/DbBackupPanel",
+        "./panels/LogsDiagnosticsPanel",
+        "./panels/UsersDirectoryPanel",
+        "./panels/AiSessionsThemePanel",
+        "./panels/EnterpriseCoreHubPanel",
+        "./panels/TaxonomiesManagerPanel",
+        "./panels/PagesManagerPanel",
+        "./panels/MenuBuilderInvoicePanel",
+        "./panels/ModulesControlCenterPanel",
+        "./panels/UnifiedSettingsHubPanel",
+        "../../../modules/mod_payment_hub/PayzitoPaymentHubPanel",
+        "../../../modules/mod_inventory_accounting/InventoryAccountingPanel",
+        "../../../modules/mod_forms/FormsManagerPanel",
+        "../../../modules/mod_live_chat/GoftinoOperatorInboxPanel",
+        "../../../modules/mod_analytics_gsc/NativeAnalyticsGscPanel",
+        "../../../modules/mod_ai_digikala/Phase6EnterpriseSuitePanel",
+        "../../../modules/mod_booking/SolarBookingAutoBackupPanel",
+        "../../../modules/mod_smart_crm/SmartCrmAdminPanel",
+        "../../../modules/mod_subscriptions/SubscriptionsAdminPanel",
+        "../../../modules/mod_academy_suite/AcademySuiteAdminPanel",
+        "../../../modules/mod_delivery_logs/DeliveryLogsPanel",
+        "../../../modules/mod_notifications_pwa/NotificationsPwaPanel",
+        "../../../modules/mod_abandoned_cart/AbandonedCartPanel",
+        "../../../modules/mod_announcements_popups/AnnouncementsPopupsPanel",
+        "../../../modules/mod_reviews_qa/ReviewsQaPanel",
+        "../../../modules/mod_wallet_rma/WalletRmaPanel",
+        "../../../modules/mod_affiliate/AffiliatePanel",
+        "../../../modules/mod_b2b_compare/B2bComparePanel",
+        "../../../modules/mod_bots_webhooks/BotsWebhooksPanel",
+        "../../../modules/mod_maintenance_audit/MaintenanceAuditPanel",
+        "../../../modules/mod_i18n/I18nPanel",
+        "../../../modules/mod_ai_hub_agent/AiHubAgentPanel",
+        "../../../modules/mod_live_chat/AdminGlobalChatAlarm"
+      ],
+      "exports": [
+        "AdminSection",
+        "AdminCmsView"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/components/MaintenanceCleanersCard.tsx",
+      "category": "modules",
+      "lines": 280,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/apiClient"
+      ],
+      "exports": [
+        "MaintenanceCleanersCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/components/MediaPickerModal.tsx",
+      "category": "modules",
+      "lines": 553,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../../../data/mediaAssets"
+      ],
+      "exports": [
+        "MediaPickerSelection",
+        "MediaPickerModal"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/components/RbacMatrixEditorCard.tsx",
+      "category": "modules",
+      "lines": 211,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/apiClient",
+        "../../../core/rbacMatrix"
+      ],
+      "exports": [
+        "RbacMatrixEditorCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/components/RichTextEditorToolbar.tsx",
+      "category": "modules",
+      "lines": 144,
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "exports": [
+        "RichTextEditorToolbar",
+        "skillReady"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/components/SeoVisibilityControlCard.tsx",
+      "category": "modules",
+      "lines": 320,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient"
+      ],
+      "exports": [
+        "SeoVisibilityControlCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/components/ServerPaginationBulkBar.tsx",
+      "category": "modules",
+      "lines": 271,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/apiClient"
+      ],
+      "exports": [
+        "BulkActionOption",
+        "ServerPaginationBulkBar"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/components/VisualComposerCanvas.tsx",
+      "category": "modules",
+      "lines": 896,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "./VisualComposerRenderer"
+      ],
+      "exports": [
+        "ComposerContentSummaryContext",
+        "VisualComposerCanvas"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/components/VisualComposerRenderer.tsx",
+      "category": "modules",
+      "lines": 721,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/jalali"
+      ],
+      "exports": [
+        "WidgetCatalogEntry",
+        "COMPOSER_WIDGET_CATALOG",
+        "VisualComposerRenderer"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/AiSessionsThemePanel.tsx",
+      "category": "modules",
+      "lines": 816,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient"
+      ],
+      "exports": [
+        "AiSessionsThemePanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/ArticlesSeoPanel.tsx",
+      "category": "modules",
+      "lines": 981,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../../../data/skill98Data",
+        "../../../data/mediaAssets",
+        "./CatalogEditorPanel",
+        "../components/ServerPaginationBulkBar",
+        "../components/VisualComposerCanvas",
+        "../components/RichTextEditorToolbar",
+        "../components/MediaPickerModal",
+        "../../../../modules/mod_ai_hub_agent/AiImageStudioWidget"
+      ],
+      "exports": [
+        "ArticlesSeoPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/CatalogEditorPanel.tsx",
+      "category": "modules",
+      "lines": 1615,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../../../data/skill98Data",
+        "../../../data/mediaAssets",
+        "../components/ServerPaginationBulkBar",
+        "../components/VisualComposerCanvas",
+        "../components/RichTextEditorToolbar",
+        "../components/MediaPickerModal",
+        "../../../../modules/mod_ai_hub_agent/AiImageStudioWidget"
+      ],
+      "exports": [
+        "ProductEditorDraft",
+        "createEmptyProductDraft",
+        "productToDraft",
+        "computeSeoScore",
+        "CatalogEditorPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/DbBackupPanel.tsx",
+      "category": "modules",
+      "lines": 1074,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../../../data/skill98Data",
+        "../components/MaintenanceCleanersCard"
+      ],
+      "exports": [
+        "DbBackupPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/EnterpriseCoreHubPanel.tsx",
+      "category": "modules",
+      "lines": 610,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/jalali",
+        "../../../core/iran-geo"
+      ],
+      "exports": [
+        "EnterpriseHubMode",
+        "EnterpriseCoreHubPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/LogsDiagnosticsPanel.tsx",
+      "category": "modules",
+      "lines": 396,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient"
+      ],
+      "exports": [
+        "LogsDiagnosticsPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/MediaLibraryPanel.tsx",
+      "category": "modules",
+      "lines": 799,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../../../data/mediaAssets",
+        "../components/ServerPaginationBulkBar"
+      ],
+      "exports": [
+        "MediaLibraryPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/MenuBuilderInvoicePanel.tsx",
+      "category": "modules",
+      "lines": 733,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../components/VisualComposerCanvas"
+      ],
+      "exports": [
+        "MenuBuilderInvoicePanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/ModulesControlCenterPanel.tsx",
+      "category": "modules",
+      "lines": 327,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient"
+      ],
+      "exports": [
+        "ModulesControlCenterPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/OrdersCouponsPanel.tsx",
+      "category": "modules",
+      "lines": 267,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../components/ServerPaginationBulkBar"
+      ],
+      "exports": [
+        "OrdersCouponsPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/PageBuilderPanel.tsx",
+      "category": "modules",
+      "lines": 721,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../data/skill98Data"
+      ],
+      "exports": [
+        "PageBuilderPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/PagesManagerPanel.tsx",
+      "category": "modules",
+      "lines": 522,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/jalali",
+        "../../../core/apiClient",
+        "../components/VisualComposerCanvas"
+      ],
+      "exports": [
+        "PagesManagerPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/PaymentGatewaysPanel.tsx",
+      "category": "modules",
+      "lines": 681,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../../../data/defaults"
+      ],
+      "exports": [
+        "PaymentGatewaysPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/RbacPermissionsPanel.tsx",
+      "category": "modules",
+      "lines": 563,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/permissions",
+        "../../../core/apiClient",
+        "../components/RbacMatrixEditorCard"
+      ],
+      "exports": [
+        "RbacPermissionsPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/SmsTriggersPanel.tsx",
+      "category": "modules",
+      "lines": 926,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../../../data/skill98Data"
+      ],
+      "exports": [
+        "SmsTriggersPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/TaxonomiesManagerPanel.tsx",
+      "category": "modules",
+      "lines": 459,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient"
+      ],
+      "exports": [
+        "TaxonomiesManagerPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/UnifiedSettingsHubPanel.tsx",
+      "category": "modules",
+      "lines": 821,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../../../data/defaults",
+        "./EnterpriseCoreHubPanel",
+        "./PaymentGatewaysPanel",
+        "./SmsTriggersPanel",
+        "./AiSessionsThemePanel",
+        "./UsersDirectoryPanel",
+        "./RbacPermissionsPanel",
+        "./DbBackupPanel",
+        "../../../../modules/mod_ai_hub_agent/AiHubAgentPanel",
+        "../components/MediaPickerModal",
+        "../components/SeoVisibilityControlCard",
+        "../../../../modules/mod_booking/SolarBookingAutoBackupPanel",
+        "../../../../modules/mod_ecommerce_suite/ShippingSettingsPanel",
+        "../../../../themes/registry"
+      ],
+      "exports": [
+        "UnifiedSettingsTabId",
+        "UnifiedSettingsHubPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/admin/panels/UsersDirectoryPanel.tsx",
+      "category": "modules",
+      "lines": 706,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient"
+      ],
+      "exports": [
+        "UsersDirectoryPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/auth/AuthModal.tsx",
+      "category": "modules",
+      "lines": 256,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../../theme/accentStyles"
+      ],
+      "exports": [
+        "AuthStep",
+        "toLatinDigits",
+        "formatLivePhoneInput",
+        "normalizeIranMobile",
+        "normalizeDigits",
+        "AuthModal"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/cart/CartDrawerModal.tsx",
+      "category": "modules",
+      "lines": 542,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../../theme/accentStyles",
+        "../../core/iran-geo",
+        "../../core/apiClient"
+      ],
+      "exports": [
+        "CartDrawerModal"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/catalog/SkillDetailModal.tsx",
+      "category": "modules",
+      "lines": 193,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../../theme/accentStyles",
+        "../../theme/components/SkillPosterCard"
+      ],
+      "exports": [
+        "SkillDetailModal"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/dashboard/CustomerDashboardView.tsx",
+      "category": "modules",
+      "lines": 1477,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../../core/apiClient",
+        "../../core/zipGenerator",
+        "../../data/mediaAssets"
+      ],
+      "exports": [
+        "CustomerDashboardView"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/modules/guide/TargetGuideAndZipView.tsx",
+      "category": "modules",
+      "lines": 308,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../../data/initialCatalog"
+      ],
+      "exports": [
+        "TargetGuideAndZipView"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/core/cacheEngine.ts",
+      "category": "core",
+      "lines": 96,
+      "imports": [],
+      "exports": [
+        "CacheEntry",
+        "CacheTelemetry",
+        "LruCacheEngine",
+        "cmsCache"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/core/captchaService.ts",
+      "category": "core",
+      "lines": 162,
+      "imports": [
+        "crypto",
+        "express",
+        "./envConfig.js"
+      ],
+      "exports": [
+        "generateOfflineCaptchaChallenge",
+        "verifyCaptchaToken",
+        "createCaptchaRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/captcha/challenge",
+          "file": "src/server/core/captchaService.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/captcha/verify",
+          "file": "src/server/core/captchaService.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/core/cryptoSecurity.ts",
+      "category": "core",
+      "lines": 168,
+      "imports": [
+        "crypto",
+        "express",
+        "@google/genai",
+        "./envConfig.js"
+      ],
+      "exports": [
+        "getAiClient",
+        "checkRateLimit",
+        "hashOtpCode",
+        "timingSafeHexEqual",
+        "resolveServerPort",
+        "getRequestBaseUrl",
+        "parseCookies",
+        "extractSessionToken",
+        "setSessionCookie",
+        "clearSessionCookie",
+        "extractClientDeviceAndIp"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/core/envConfig.ts",
+      "category": "core",
+      "lines": 124,
+      "imports": [
+        "crypto",
+        "fs",
+        "path"
+      ],
+      "exports": [
+        "normalizeIranPhone",
+        "ServerEnvConfig",
+        "getEnvConfig"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/core/permissionsEngine.ts",
+      "category": "core",
+      "lines": 366,
+      "imports": [
+        "crypto",
+        "fs",
+        "path",
+        "express",
+        "../../core/types.js",
+        "../../core/permissions.js",
+        "../../data/defaults.js",
+        "./envConfig.js",
+        "./cryptoSecurity.js",
+        "../database/connection.js",
+        "../database/settingsLogsRepo.js",
+        "../database/usersSessionsRepo.js"
+      ],
+      "exports": [
+        "PermissionsHashManifest",
+        "AuthenticatedRequest",
+        "computePermissionHash",
+        "syncPermissionsToDbAndFile",
+        "verifyRoleCapabilityHash",
+        "getHashedPermissionsReport",
+        "attachOptionalAuth",
+        "requireAuth",
+        "requirePermission"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/core/secretVault.ts",
+      "category": "core",
+      "lines": 72,
+      "imports": [
+        "crypto",
+        "./envConfig.js"
+      ],
+      "exports": [
+        "encryptSecret",
+        "decryptSecret",
+        "maskSecret",
+        "isMaskedPlaceholder"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/database/backupService.ts",
+      "category": "database",
+      "lines": 615,
+      "imports": [
+        "crypto",
+        "fs",
+        "path",
+        "nodemailer",
+        "../../core/types.js",
+        "../../data/defaults.js",
+        "./connection.js",
+        "./settingsLogsRepo.js"
+      ],
+      "exports": [
+        "getDatabaseStatus",
+        "runDatabaseReadWriteHealthTest",
+        "executeReadOnlySql",
+        "generateFullBackupPayload",
+        "sendSmtpBackupEmail",
+        "sendBaleNotification",
+        "createBackupSnapshot",
+        "getBackupHistory",
+        "getBackupFileById",
+        "restoreBackupFromContent",
+        "runScheduledBackupTick"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/database/catalogOrdersRepo.ts",
+      "category": "database",
+      "lines": 427,
+      "imports": [
+        "../../core/types.js",
+        "../../core/permissions.js",
+        "../../data/defaults.js",
+        "./connection.js",
+        "./settingsLogsRepo.js",
+        "./usersSessionsRepo.js",
+        "../../../modules/mod_smart_crm/smartCrmRouter.js"
+      ],
+      "exports": [
+        "getAllPaymentGateways",
+        "saveAllPaymentGateways",
+        "getAllSmsTriggers",
+        "saveAllSmsTriggers",
+        "getStorefrontBootstrapData",
+        "syncCmsEntities"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/database/connection.ts",
+      "category": "database",
+      "lines": 460,
+      "imports": [
+        "fs",
+        "path",
+        "pg"
+      ],
+      "exports": [
+        "SqlEngineKind",
+        "SqliteStatementLike",
+        "SqliteDbLike",
+        "DATA_DIR",
+        "BACKUP_DIR",
+        "SQLITE_PATH",
+        "TABLE_METADATA",
+        "formatPersianDateTime",
+        "getActiveEngine",
+        "getLastConnectionError",
+        "isDbInitialized",
+        "setSchedulerHandle",
+        "getSchedulerHandle",
+        "checkpointSqlitePassive",
+        "dbQuery",
+        "dbExec",
+        "cleanupOldCorruptSqliteArtifacts",
+        "quarantineCorruptSqliteFiles",
+        "connectStorageEngine",
+        "closeDatabaseCleanly"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/database/index.ts",
+      "category": "database",
+      "lines": 65,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/database/phase3Seeds.ts",
+      "category": "database",
+      "lines": 610,
+      "imports": [
+        "../../core/types.js",
+        "./connection.js"
+      ],
+      "exports": [
+        "INITIAL_DYNAMIC_PAGES",
+        "INITIAL_MENU_ITEMS",
+        "INITIAL_INVOICE_TEMPLATES",
+        "seedPhase3Tables"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/database/phase5ModulesSchema.ts",
+      "category": "database",
+      "lines": 326,
+      "imports": [
+        "./connection.js"
+      ],
+      "exports": [
+        "ModPaymentDriverRecord",
+        "INITIAL_PAYZITO_DRIVERS",
+        "createAndSeedPhase5ModulesSchema"
+      ],
+      "apiEndpoints": [],
+      "dbTables": [
+        "mod_payment_hub_drivers",
+        "mod_inventory_stock",
+        "mod_inventory_reservations",
+        "mod_accounting_ledger",
+        "mod_forms_definitions",
+        "mod_forms_submissions",
+        "mod_ecommerce_shipments",
+        "mod_ecommerce_stock_alerts",
+        "mod_ecommerce_wallets"
+      ]
+    },
+    {
+      "path": "src/server/database/phase6ModulesSchema.ts",
+      "category": "database",
+      "lines": 245,
+      "imports": [
+        "./connection.js"
+      ],
+      "exports": [
+        "createAndSeedPhase6ModulesSchema"
+      ],
+      "apiEndpoints": [],
+      "dbTables": [
+        "mod_live_chat_sessions",
+        "mod_live_chat_messages",
+        "mod_analytics_events",
+        "mod_analytics_province_sales",
+        "mod_gsc_keywords",
+        "mod_ai_digikala_imports",
+        "mod_seo_redirects",
+        "mod_booking_slots",
+        "mod_booking_appointments",
+        "mod_auto_backup_archives"
+      ]
+    },
+    {
+      "path": "src/server/database/schema.ts",
+      "category": "database",
+      "lines": 652,
+      "imports": [
+        "fs",
+        "path",
+        "../../core/types.js",
+        "../../data/defaults.js",
+        "../../data/initialCatalog.js",
+        "../core/envConfig.js",
+        "../core/permissionsEngine.js",
+        "./connection.js",
+        "./backupService.js",
+        "./phase3Seeds.js",
+        "./phase5ModulesSchema.js",
+        "./phase6ModulesSchema.js",
+        "./settingsLogsRepo.js",
+        "../../../modules/mod_smart_crm/smartCrmRouter.js",
+        "../../../modules/mod_subscriptions/subscriptionsRouter.js"
+      ],
+      "exports": [
+        "initDatabase"
+      ],
+      "apiEndpoints": [],
+      "dbTables": [
+        "users",
+        "products",
+        "articles",
+        "orders",
+        "coupons",
+        "media_items",
+        "payment_gateways",
+        "sms_triggers",
+        "site_settings",
+        "system_logs",
+        "backup_history",
+        "auth_sessions",
+        "rbac_permission_hashes",
+        "taxonomies",
+        "pages",
+        "menus",
+        "invoice_templates"
+      ]
+    },
+    {
+      "path": "src/server/database/settingsLogsRepo.ts",
+      "category": "database",
+      "lines": 119,
+      "imports": [
+        "crypto",
+        "../../core/types.js",
+        "./connection.js"
+      ],
+      "exports": [
+        "getSetting",
+        "setSetting",
+        "writeSystemLog",
+        "getSystemLogs",
+        "clearAllSystemLogs"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/database/smsService.ts",
+      "category": "database",
+      "lines": 498,
+      "imports": [
+        "../../core/types.js",
+        "../../data/defaults.js",
+        "./catalogOrdersRepo.js",
+        "./settingsLogsRepo.js",
+        "../../../modules/mod_delivery_logs/deliveryLogsRouter.js"
+      ],
+      "exports": [
+        "renderSmsTemplate",
+        "dispatchEventSms"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/database/usersSessionsRepo.ts",
+      "category": "database",
+      "lines": 347,
+      "imports": [
+        "crypto",
+        "../../core/types.js",
+        "../../data/defaults.js",
+        "./connection.js",
+        "./settingsLogsRepo.js"
+      ],
+      "exports": [
+        "DbUserRow",
+        "DbAuthSessionRow",
+        "findUserByPhone",
+        "findUserByEmail",
+        "countSuperAdmins",
+        "upsertUserByPhone",
+        "createAuthSession",
+        "findAuthSession",
+        "deleteAuthSession",
+        "revokeAuthSessionByToken",
+        "listActiveAuthSessions",
+        "listAdminUsers",
+        "upsertAdminUser",
+        "deleteAdminUserByPhone",
+        "addClaimedSkillsToUser"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/database.ts",
+      "category": "root",
+      "lines": 2,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/middleware/authMiddleware.ts",
+      "category": "root",
+      "lines": 43,
+      "imports": [
+        "express",
+        "../core/permissionsEngine.js"
+      ],
+      "exports": [
+        "requireAdmin",
+        "requireSuperAdmin"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/admin/adminDbBackupRouter.ts",
+      "category": "modules",
+      "lines": 273,
+      "imports": [
+        "express",
+        "../../../core/types.js",
+        "../../../data/defaults.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "createAdminDbBackupRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/admin/db/status",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/db/test-connection",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/db/query",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/backup/history",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/backup/create",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/backup/download/:id",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/backup/restore",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/backup/settings",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/backup/test-bale",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/backup/test-smtp",
+          "file": "src/server/modules/admin/adminDbBackupRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/admin/adminGatewaysSmsRouter.ts",
+      "category": "modules",
+      "lines": 261,
+      "imports": [
+        "express",
+        "../../../core/types.js",
+        "../../../data/defaults.js",
+        "../../core/cryptoSecurity.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "createAdminGatewaysSmsRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/admin/sms/config",
+          "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/sms/config",
+          "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/sms/test",
+          "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/payment/config",
+          "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/payment/config",
+          "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/payment/test-router",
+          "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/payment/router-php",
+          "file": "src/server/modules/admin/adminGatewaysSmsRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/admin/adminUsersLogsRouter.ts",
+      "category": "modules",
+      "lines": 435,
+      "imports": [
+        "express",
+        "../../../core/types.js",
+        "../../../data/defaults.js",
+        "../../core/envConfig.js",
+        "../../core/cryptoSecurity.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "createAdminUsersLogsRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/admin/logs",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/admin/logs",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/logs/snooze",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/logs/export-csv",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/logs/diagnostics",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/permissions/hashes",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/permissions/resync",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/users",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/users",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/admin/users/:phone",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/admin/users/:phone",
+          "file": "src/server/modules/admin/adminUsersLogsRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/admin/maintenanceCleanersRouter.ts",
+      "category": "modules",
+      "lines": 213,
+      "imports": [
+        "fs",
+        "path",
+        "express",
+        "../../database/connection.js",
+        "../../database/settingsLogsRepo.js",
+        "../../middleware/authMiddleware.js"
+      ],
+      "exports": [
+        "createMaintenanceCleanersRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/admin/maintenance/clean-demo",
+          "file": "src/server/modules/admin/maintenanceCleanersRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/admin/maintenance/orphan-media",
+          "file": "src/server/modules/admin/maintenanceCleanersRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/maintenance/orphan-media/clean",
+          "file": "src/server/modules/admin/maintenanceCleanersRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/admin/modulesConfigRouter.ts",
+      "category": "modules",
+      "lines": 334,
+      "imports": [
+        "express",
+        "../../../core/types.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "DEFAULT_SITE_MODULES_REGISTRY",
+        "createModulesConfigRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/registry",
+          "file": "src/server/modules/admin/modulesConfigRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/registry",
+          "file": "src/server/modules/admin/modulesConfigRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/admin/rbacMatrixRouter.ts",
+      "category": "modules",
+      "lines": 158,
+      "imports": [
+        "crypto",
+        "express",
+        "../../core/envConfig.js",
+        "../../database/settingsLogsRepo.js",
+        "../../middleware/authMiddleware.js",
+        "../../../core/rbacMatrix.js"
+      ],
+      "exports": [
+        "computeGranularMatrixHmac",
+        "createRbacMatrixRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/admin/permissions/matrix",
+          "file": "src/server/modules/admin/rbacMatrixRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/admin/permissions/matrix",
+          "file": "src/server/modules/admin/rbacMatrixRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/ai/aiSeoRouter.ts",
+      "category": "modules",
+      "lines": 120,
+      "imports": [
+        "express",
+        "@google/genai",
+        "../../core/cryptoSecurity.js",
+        "../../core/permissionsEngine.js",
+        "../../../../modules/mod_ai_hub_agent/aiHubSchema.js",
+        "../../../../modules/mod_ai_hub_agent/aiProviderGateway.js"
+      ],
+      "exports": [
+        "createAiSeoRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/cms/ai-assist",
+          "file": "src/server/modules/ai/aiSeoRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/auth/authRouter.ts",
+      "category": "modules",
+      "lines": 675,
+      "imports": [
+        "crypto",
+        "fs",
+        "path",
+        "express",
+        "../../../data/defaults.js",
+        "../../../core/types.js",
+        "../../core/envConfig.js",
+        "../../core/cryptoSecurity.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "createAuthRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/auth/check-phone",
+          "file": "src/server/modules/auth/authRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/sms/send-otp",
+          "file": "src/server/modules/auth/authRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/sms/verify-otp",
+          "file": "src/server/modules/auth/authRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/google-session",
+          "file": "src/server/modules/auth/authRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/master-code",
+          "file": "src/server/modules/auth/authRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/session",
+          "file": "src/server/modules/auth/authRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/auth/sessions",
+          "file": "src/server/modules/auth/authRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/auth/sessions/:id",
+          "file": "src/server/modules/auth/authRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/auth/logout",
+          "file": "src/server/modules/auth/authRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/catalog/taxonomiesPaginationRouter.ts",
+      "category": "modules",
+      "lines": 418,
+      "imports": [
+        "express",
+        "../../../core/types.js",
+        "../../core/cacheEngine.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "listAllTaxonomies",
+        "createTaxonomiesPaginationRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/taxonomies",
+          "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/taxonomies",
+          "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/taxonomies/:id",
+          "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/catalog/paginated",
+          "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/catalog/bulk",
+          "file": "src/server/modules/catalog/taxonomiesPaginationRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/cms/pagesMenusComposerRouter.ts",
+      "category": "modules",
+      "lines": 554,
+      "imports": [
+        "express",
+        "../../../core/types.js",
+        "../../core/cacheEngine.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "createPagesMenusComposerRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/pages",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/pages/:slug",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/pages",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/pages/:id",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/menus",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/menus",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/menus/reorder",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/menus/:id",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/invoice-templates",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/invoice-templates",
+          "file": "src/server/modules/cms/pagesMenusComposerRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/downloads/downloadsRouter.ts",
+      "category": "modules",
+      "lines": 419,
+      "imports": [
+        "crypto",
+        "express",
+        "fs",
+        "path",
+        "../../../core/types.js",
+        "../../core/envConfig.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "getProtectedDownloadsDir",
+        "createProtectedDownloadsRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/v1/downloads/upload",
+          "file": "src/server/modules/downloads/downloadsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/downloads/my-library",
+          "file": "src/server/modules/downloads/downloadsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/downloads/token",
+          "file": "src/server/modules/downloads/downloadsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/downloads/stream/:token",
+          "file": "src/server/modules/downloads/downloadsRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/media/mediaEngineRouter.ts",
+      "category": "modules",
+      "lines": 379,
+      "imports": [
+        "express",
+        "fs",
+        "path",
+        "../../../core/types.js",
+        "../../../core/jalali.js",
+        "../../../../core/agents/media-optimizer.js",
+        "../../core/cacheEngine.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js",
+        "../../../data/defaults.js"
+      ],
+      "exports": [
+        "migrateDatabaseBase64ToPhysicalWebp",
+        "createMediaEngineRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/v1/media/upload",
+          "file": "src/server/modules/media/mediaEngineRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/media/migrate-base64",
+          "file": "src/server/modules/media/mediaEngineRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/orders/ordersRouter.ts",
+      "category": "modules",
+      "lines": 534,
+      "imports": [
+        "crypto",
+        "express",
+        "../../../core/types.js",
+        "../../../data/defaults.js",
+        "../../core/cryptoSecurity.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "createOrdersRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/orders/create",
+          "file": "src/server/modules/orders/ordersRouter.ts"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/orders/:id/status",
+          "file": "src/server/modules/orders/ordersRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/payment/request",
+          "file": "src/server/modules/orders/ordersRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/payment/verify",
+          "file": "src/server/modules/orders/ordersRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/server/modules/storefront/storefrontRouter.ts",
+      "category": "modules",
+      "lines": 191,
+      "imports": [
+        "express",
+        "../../core/cacheEngine.js",
+        "../../core/cryptoSecurity.js",
+        "../../core/permissionsEngine.js",
+        "../../database/index.js"
+      ],
+      "exports": [
+        "createStorefrontRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/health",
+          "file": "src/server/modules/storefront/storefrontRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/storefront/bootstrap",
+          "file": "src/server/modules/storefront/storefrontRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/cms/state/sync",
+          "file": "src/server/modules/storefront/storefrontRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/user/profile",
+          "file": "src/server/modules/storefront/storefrontRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/user/claim-skill",
+          "file": "src/server/modules/storefront/storefrontRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/accentStyles.ts",
+      "category": "theme",
+      "lines": 68,
+      "imports": [
+        "../core/types"
+      ],
+      "exports": [
+        "AccentStyleTokens",
+        "getAccentStyles"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/ArticlesView.tsx",
+      "category": "theme",
+      "lines": 768,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../../data/mediaAssets",
+        "../../modules/admin/components/VisualComposerRenderer",
+        "./ProgressiveImage"
+      ],
+      "exports": [
+        "ArticlesView"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/DynamicPageView.tsx",
+      "category": "theme",
+      "lines": 108,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../../core/jalali",
+        "../../modules/admin/components/VisualComposerRenderer"
+      ],
+      "exports": [
+        "DynamicPageView"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/MobileBottomNav.tsx",
+      "category": "theme",
+      "lines": 131,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../accentStyles"
+      ],
+      "exports": [
+        "MobileBottomNav"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/ProgressiveImage.tsx",
+      "category": "theme",
+      "lines": 72,
+      "imports": [
+        "react"
+      ],
+      "exports": [
+        "ProgressiveImage"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/ResilientImage.tsx",
+      "category": "theme",
+      "lines": 42,
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "exports": [
+        "ResilientImage"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/SingleProductView.tsx",
+      "category": "theme",
+      "lines": 416,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../accentStyles",
+        "../../core/jalali",
+        "../../data/mediaAssets",
+        "../../data/skill98Data",
+        "./SkillPosterCard",
+        "../../modules/admin/components/VisualComposerRenderer",
+        "./ProgressiveImage",
+        "../../../modules/mod_reviews_qa/ProductReviewsQaWidget"
+      ],
+      "exports": [
+        "SingleProductView"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/SiteFooter.tsx",
+      "category": "theme",
+      "lines": 320,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../../data/defaults",
+        "../../data/mediaAssets",
+        "./ProgressiveImage"
+      ],
+      "exports": [
+        "SiteFooter"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/SiteHeader.tsx",
+      "category": "theme",
+      "lines": 370,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../accentStyles"
+      ],
+      "exports": [
+        "SiteHeader"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/SkillPosterCard.tsx",
+      "category": "theme",
+      "lines": 773,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types"
+      ],
+      "exports": [
+        "getPosterPalette",
+        "PosterGeometricSymbol",
+        "SkillPosterCard",
+        "HeroSkillDeckSlider"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/theme/components/StorefrontView.tsx",
+      "category": "theme",
+      "lines": 845,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../core/types",
+        "../accentStyles",
+        "../../data/mediaAssets",
+        "./ProgressiveImage",
+        "./SkillPosterCard"
+      ],
+      "exports": [
+        "StorefrontView"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "core/agents/clean-code-checker.js",
+      "category": "core",
+      "lines": 82,
+      "imports": [
+        "fs",
+        "path"
+      ],
+      "exports": [
+        "runCleanCodeCheck"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "core/agents/design-system-auditor.js",
+      "category": "core",
+      "lines": 127,
+      "imports": [
+        "fs",
+        "path"
+      ],
+      "exports": [
+        "runDesignSystemAudit"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "core/agents/media-optimizer.d.ts",
+      "category": "core",
+      "lines": 29,
+      "imports": [],
+      "exports": [
+        "OptimizeImageInput",
+        "OptimizeImageResult",
+        "optimizeAndStoreImageBuffer",
+        "auditMediaStorage"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "core/agents/media-optimizer.js",
+      "category": "core",
+      "lines": 100,
+      "imports": [
+        "fs",
+        "path",
+        "crypto"
+      ],
+      "exports": [
+        "ALLOWED_IMAGE_MIMES",
+        "RESPONSIVE_SIZES",
+        "resolveUploadRootDir",
+        "getUploadMonthDir",
+        "optimizeAndStoreImageBuffer"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "core/agents/project-indexer.js",
+      "category": "core",
+      "lines": 190,
+      "imports": [
+        "fs",
+        "path"
+      ],
+      "exports": [
+        "buildProjectGraph"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "core/agents/security-auditor.js",
+      "category": "core",
+      "lines": 115,
+      "imports": [
+        "fs",
+        "path"
+      ],
+      "exports": [
+        "runSecurityAudit"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_abandoned_cart/AbandonedCartPanel.tsx",
+      "category": "modules",
+      "lines": 156,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AbandonedCartPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_abandoned_cart/abandonedCartRouter.ts",
+      "category": "modules",
+      "lines": 161,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js",
+        "../../src/server/database/smsService.js",
+        "../mod_delivery_logs/deliveryLogsRouter.js"
+      ],
+      "exports": [
+        "createAbandonedCartRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/abandoned-cart/heartbeat",
+          "file": "modules/mod_abandoned_cart/abandonedCartRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/abandoned-cart/list",
+          "file": "modules/mod_abandoned_cart/abandonedCartRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/abandoned-cart/:id/recover",
+          "file": "modules/mod_abandoned_cart/abandonedCartRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_abandoned_carts"
+      ]
+    },
+    {
+      "path": "modules/mod_academy_suite/AcademySuiteAdminPanel.tsx",
+      "category": "modules",
+      "lines": 1018,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "./academySeeds",
+        "./academySeeds"
+      ],
+      "exports": [
+        "AcademySuiteAdminPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_academy_suite/academySeeds.ts",
+      "category": "modules",
+      "lines": 993,
+      "imports": [],
+      "exports": [
+        "AcademyDepartmentItem",
+        "AcademyCourseItem",
+        "AcademyAnnouncementItem",
+        "AcademyIdeaItem",
+        "AcademyAgeRoadmapItem",
+        "AcademyTuitionSettings",
+        "AcademySuiteSettings",
+        "INITIAL_ACADEMY_DEPARTMENTS",
+        "INITIAL_ACADEMY_COURSES",
+        "INITIAL_ACADEMY_ANNOUNCEMENTS",
+        "INITIAL_ACADEMY_IDEAS",
+        "INITIAL_ACADEMY_SETTINGS"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_academy_suite/academySuiteRouter.ts",
+      "category": "modules",
+      "lines": 729,
+      "imports": [
+        "express",
+        "../../src/core/types.js",
+        "../../src/core/jalali.js",
+        "../../src/data/defaults.js",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js",
+        "../../src/server/modules/admin/modulesConfigRouter.js",
+        "./academySeeds.js"
+      ],
+      "exports": [
+        "ensureAcademySuiteSchema",
+        "createModAcademySuiteRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/academy/bootstrap",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/academy/admin/overview",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/academy/departments",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/academy/departments",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/academy/departments/:id",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/academy/courses",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/academy/courses",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/academy/courses/:id",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/academy/announcements",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/academy/announcements",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/academy/announcements/:id",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/academy/ideas",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/academy/ideas",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/modules/academy/ideas/:id",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/academy/ideas/:id",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/academy/consultations",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/academy/settings",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v1/modules/academy/settings",
+          "file": "modules/mod_academy_suite/academySuiteRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_academy_departments",
+        "mod_academy_courses",
+        "mod_academy_announcements",
+        "mod_academy_ideas",
+        "mod_academy_consultations"
+      ]
+    },
+    {
+      "path": "modules/mod_affiliate/AffiliatePanel.tsx",
+      "category": "modules",
+      "lines": 152,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AffiliatePanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_affiliate/affiliateRouter.ts",
+      "category": "modules",
+      "lines": 137,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js"
+      ],
+      "exports": [
+        "createAffiliateRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/affiliate/track-click",
+          "file": "modules/mod_affiliate/affiliateRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/affiliate/overview",
+          "file": "modules/mod_affiliate/affiliateRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/affiliate/partners",
+          "file": "modules/mod_affiliate/affiliateRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/affiliate/commissions/:id/payout",
+          "file": "modules/mod_affiliate/affiliateRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_affiliate_partners",
+        "mod_affiliate_clicks",
+        "mod_affiliate_commissions"
+      ]
+    },
+    {
+      "path": "modules/mod_ai_digikala/Phase6EnterpriseSuitePanel.tsx",
+      "category": "modules",
+      "lines": 285,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "../../src/modules/admin/components/SeoVisibilityControlCard"
+      ],
+      "exports": [
+        "Phase6EnterpriseSuitePanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_digikala/aiDigikalaRouter.ts",
+      "category": "modules",
+      "lines": 230,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js"
+      ],
+      "exports": [
+        "RankMathCheckItem",
+        "evaluateRankMathSeoScore",
+        "createModAiDigikalaRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/ai-digikala/history",
+          "file": "modules/mod_ai_digikala/aiDigikalaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-digikala/import",
+          "file": "modules/mod_ai_digikala/aiDigikalaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-digikala/score",
+          "file": "modules/mod_ai_digikala/aiDigikalaRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/AiCommandCenterCard.tsx",
+      "category": "modules",
+      "lines": 327,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "./AiScheduledTasksCard"
+      ],
+      "exports": [
+        "AiCommandCenterCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/AiHubAgentPanel.tsx",
+      "category": "modules",
+      "lines": 222,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "./AiSlotsConfigCard",
+        "./AiCommandCenterCard",
+        "./AiSkillsApprovalsCard",
+        "./AiImageStudioWidget"
+      ],
+      "exports": [
+        "AiHubAgentPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/AiImageStudioWidget.tsx",
+      "category": "modules",
+      "lines": 202,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AiImageStudioWidget"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/AiScheduledTasksCard.tsx",
+      "category": "modules",
+      "lines": 79,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AgentTaskItem",
+        "AiScheduledTasksCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/AiSkillsApprovalsCard.tsx",
+      "category": "modules",
+      "lines": 234,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AiSkillsApprovalsCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/AiSlotsConfigCard.tsx",
+      "category": "modules",
+      "lines": 245,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AiSlotItem",
+        "AiSlotsConfigCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/agentToolsEngine.ts",
+      "category": "modules",
+      "lines": 307,
+      "imports": [
+        "../../src/server/database/connection.js",
+        "../../src/server/database/usersSessionsRepo.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "../../src/server/core/secretVault.js",
+        "../mod_delivery_logs/deliveryLogsRouter.js",
+        "./aiHubSchema.js",
+        "./aiProviderGateway.js"
+      ],
+      "exports": [
+        "isGenericDisplayName",
+        "extractNameFromChatMessage",
+        "updateVisitorUserProfileTool",
+        "queueAgentApproval",
+        "dispatchAgentBotBridgeAlert",
+        "handleLiveChatAgentAutomation"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts",
+      "category": "modules",
+      "lines": 253,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "./aiHubSchema.js",
+        "./aiProviderGateway.js",
+        "./agentToolsEngine.js"
+      ],
+      "exports": [
+        "registerSuperAdminAgentRoutes"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/ai-hub/agent/overview",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/mode",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/command",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/skills",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/ai-hub/agent/skills/:id",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/tasks/:id/run",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/approvals/:id/decide",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/bot-bridge/test",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/aiHubRouter.ts",
+      "category": "modules",
+      "lines": 182,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js",
+        "../../src/server/core/secretVault.js",
+        "./aiHubSchema.js",
+        "./aiProviderGateway.js",
+        "./aiAgentSubRouter.js"
+      ],
+      "exports": [
+        "createAiHubAgentRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/ai-hub/config",
+          "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/slots/save",
+          "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/image-studio",
+          "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/aiHubSchema.ts",
+      "category": "modules",
+      "lines": 253,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "../../src/server/core/permissionsEngine.js"
+      ],
+      "exports": [
+        "AiSlotKey",
+        "AiProviderKind",
+        "AiSlotRow",
+        "AiHubRuntimeSettings",
+        "DEFAULT_AI_HUB_SETTINGS",
+        "ensureAiHubSchema",
+        "getAiHubSettings",
+        "saveAiHubSettings",
+        "isAiHubModuleEnabled",
+        "requireStrictSuperAdmin"
+      ],
+      "apiEndpoints": [],
+      "dbTables": [
+        "mod_ai_provider_configs",
+        "mod_ai_agent_skills",
+        "mod_ai_agent_tasks",
+        "mod_ai_agent_conversations",
+        "mod_ai_approval_queue"
+      ]
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/aiProviderGateway.ts",
+      "category": "modules",
+      "lines": 280,
+      "imports": [
+        "fs",
+        "path",
+        "@google/genai",
+        "../../src/server/database/connection.js",
+        "../../src/server/core/secretVault.js",
+        "../../src/server/core/envConfig.js",
+        "./aiHubSchema.js"
+      ],
+      "exports": [
+        "SlotGenerationResult",
+        "getSlotConfig",
+        "generateTextViaSlot",
+        "ImageStudioResult",
+        "generateImagePromptAndAsset"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_analytics_gsc/NativeAnalyticsGscPanel.tsx",
+      "category": "modules",
+      "lines": 264,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "./WebVitalsGa4Card"
+      ],
+      "exports": [
+        "NativeAnalyticsGscPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_analytics_gsc/WebVitalsGa4Card.tsx",
+      "category": "modules",
+      "lines": 90,
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "exports": [
+        "WebVitalsSummaryData",
+        "WebVitalsGa4Card"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_analytics_gsc/analyticsGscRouter.ts",
+      "category": "modules",
+      "lines": 232,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js"
+      ],
+      "exports": [
+        "createModAnalyticsGscRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/analytics/track",
+          "file": "modules/mod_analytics_gsc/analyticsGscRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/analytics/overview",
+          "file": "modules/mod_analytics_gsc/analyticsGscRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/analytics/vitals",
+          "file": "modules/mod_analytics_gsc/analyticsGscRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/analytics/gsc-sync",
+          "file": "modules/mod_analytics_gsc/analyticsGscRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_web_vitals",
+        "mod_web_vitals"
+      ]
+    },
+    {
+      "path": "modules/mod_announcements_popups/AnnouncementsPopupsPanel.tsx",
+      "category": "modules",
+      "lines": 205,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AnnouncementsPopupsPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_announcements_popups/StorefrontPopupsRenderer.tsx",
+      "category": "modules",
+      "lines": 131,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "StorefrontPopupsRenderer"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_announcements_popups/announcementsPopupsRouter.ts",
+      "category": "modules",
+      "lines": 141,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js"
+      ],
+      "exports": [
+        "createAnnouncementsPopupsRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/announcements/active",
+          "file": "modules/mod_announcements_popups/announcementsPopupsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/announcements",
+          "file": "modules/mod_announcements_popups/announcementsPopupsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/announcements",
+          "file": "modules/mod_announcements_popups/announcementsPopupsRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/announcements/:id",
+          "file": "modules/mod_announcements_popups/announcementsPopupsRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_announcements_popups"
+      ]
+    },
+    {
+      "path": "modules/mod_auto_backup/autoBackupRouter.ts",
+      "category": "modules",
+      "lines": 156,
+      "imports": [
+        "crypto",
+        "express",
+        "fs",
+        "path",
+        "zlib",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js"
+      ],
+      "exports": [
+        "createModAutoBackupRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/auto-backup/archives",
+          "file": "modules/mod_auto_backup/autoBackupRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/auto-backup/run-encrypted",
+          "file": "modules/mod_auto_backup/autoBackupRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_b2b_compare/B2bComparePanel.tsx",
+      "category": "modules",
+      "lines": 162,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "B2bComparePanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_b2b_compare/b2bCompareRouter.ts",
+      "category": "modules",
+      "lines": 162,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js"
+      ],
+      "exports": [
+        "createB2bCompareRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/b2b-compare/compare",
+          "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/b2b-compare/quote",
+          "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/b2b-compare/admin/overview",
+          "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/b2b-compare/admin/tiers",
+          "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/b2b-compare/admin/tiers/:id",
+          "file": "modules/mod_b2b_compare/b2bCompareRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_b2b_tiers",
+        "mod_b2b_quotes"
+      ]
+    },
+    {
+      "path": "modules/mod_booking/SolarBookingAutoBackupPanel.tsx",
+      "category": "modules",
+      "lines": 303,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "SolarBookingAutoBackupPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_booking/solarBookingRouter.ts",
+      "category": "modules",
+      "lines": 162,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js"
+      ],
+      "exports": [
+        "createModBookingRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/booking/slots",
+          "file": "modules/mod_booking/solarBookingRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/booking/slots",
+          "file": "modules/mod_booking/solarBookingRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/booking/appointments",
+          "file": "modules/mod_booking/solarBookingRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_bots_webhooks/BotsWebhooksPanel.tsx",
+      "category": "modules",
+      "lines": 249,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "BotsWebhooksPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_bots_webhooks/botsWebhooksRouter.ts",
+      "category": "modules",
+      "lines": 311,
+      "imports": [
+        "crypto",
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js",
+        "../../src/server/core/secretVault.js",
+        "../mod_delivery_logs/deliveryLogsRouter.js"
+      ],
+      "exports": [
+        "createBotsWebhooksRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/bots-webhooks/overview",
+          "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/bots-webhooks/bot",
+          "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/bots-webhooks/bot/:id/test",
+          "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/bots-webhooks/webhook",
+          "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/bots-webhooks/webhook/:id/test",
+          "file": "modules/mod_bots_webhooks/botsWebhooksRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_bot_channels",
+        "mod_outbound_webhooks"
+      ]
+    },
+    {
+      "path": "modules/mod_delivery_logs/DeliveryLogsPanel.tsx",
+      "category": "modules",
+      "lines": 228,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "DeliveryLogsPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_delivery_logs/deliveryLogsRouter.ts",
+      "category": "modules",
+      "lines": 144,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js"
+      ],
+      "exports": [
+        "DeliveryChannelType",
+        "DeliveryLogInput",
+        "ensureDeliveryLogsSchema",
+        "logDeliveryEvent",
+        "createDeliveryLogsRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/delivery-logs",
+          "file": "modules/mod_delivery_logs/deliveryLogsRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/delivery-logs/clear",
+          "file": "modules/mod_delivery_logs/deliveryLogsRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_delivery_logs"
+      ]
+    },
+    {
+      "path": "modules/mod_ecommerce_suite/ShippingSettingsPanel.tsx",
+      "category": "modules",
+      "lines": 450,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "ShippingSettingsPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts",
+      "category": "modules",
+      "lines": 316,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js"
+      ],
+      "exports": [
+        "createModEcommerceSuiteRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/feeds/torob",
+          "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/feeds/emalls",
+          "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/ecommerce/shipments",
+          "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ecommerce/shipments",
+          "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ecommerce/stock-alerts",
+          "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/ecommerce/official-invoice/:orderId",
+          "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/ecommerce/shipping-config",
+          "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v1/modules/ecommerce/shipping-config",
+          "file": "modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_forms/FormsManagerPanel.tsx",
+      "category": "modules",
+      "lines": 1003,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "FormsManagerPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_forms/GravityFormsEcommerceSuitePanel.tsx",
+      "category": "modules",
+      "lines": 373,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "../../src/core/jalali",
+        "../../src/core/iran-geo"
+      ],
+      "exports": [
+        "GravityFormsEcommerceSuitePanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_forms/formsEngineRouter.ts",
+      "category": "modules",
+      "lines": 245,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js"
+      ],
+      "exports": [
+        "createModFormsRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/forms",
+          "file": "modules/mod_forms/formsEngineRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/forms",
+          "file": "modules/mod_forms/formsEngineRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/forms/:id/submit",
+          "file": "modules/mod_forms/formsEngineRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/forms/:id/export.csv",
+          "file": "modules/mod_forms/formsEngineRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/forms/:id/submissions",
+          "file": "modules/mod_forms/formsEngineRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/forms/:id",
+          "file": "modules/mod_forms/formsEngineRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/forms/submissions/:subId",
+          "file": "modules/mod_forms/formsEngineRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_i18n/I18nPanel.tsx",
+      "category": "modules",
+      "lines": 131,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "I18nPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_i18n/i18nRouter.ts",
+      "category": "modules",
+      "lines": 129,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js"
+      ],
+      "exports": [
+        "createI18nRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/i18n/dictionary",
+          "file": "modules/mod_i18n/i18nRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/i18n/admin/list",
+          "file": "modules/mod_i18n/i18nRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/i18n/admin/save",
+          "file": "modules/mod_i18n/i18nRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_i18n_translations"
+      ]
+    },
+    {
+      "path": "modules/mod_inventory_accounting/InventoryAccountingPanel.tsx",
+      "category": "modules",
+      "lines": 299,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "../../src/core/jalali"
+      ],
+      "exports": [
+        "InventoryAccountingPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts",
+      "category": "modules",
+      "lines": 273,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js"
+      ],
+      "exports": [
+        "createModInventoryAccountingRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/inventory/stock",
+          "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/inventory/stock",
+          "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/inventory/reserve",
+          "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/accounting/ledger",
+          "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/accounting/ledger",
+          "file": "modules/mod_inventory_accounting/inventoryAccountingRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_live_chat/AdminGlobalChatAlarm.tsx",
+      "category": "modules",
+      "lines": 206,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AdminGlobalChatAlarm"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_live_chat/ChatInlineOtpCard.tsx",
+      "category": "modules",
+      "lines": 204,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "../../src/core/types"
+      ],
+      "exports": [
+        "ChatInlineOtpCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_live_chat/GoftinoLiveChatWidget.tsx",
+      "category": "modules",
+      "lines": 379,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "../../src/core/types",
+        "./ChatInlineOtpCard"
+      ],
+      "exports": [
+        "GoftinoLiveChatWidget"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_live_chat/GoftinoOperatorInboxPanel.tsx",
+      "category": "modules",
+      "lines": 665,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "GoftinoOperatorInboxPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_live_chat/liveChatRouter.ts",
+      "category": "modules",
+      "lines": 544,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js",
+        "../mod_ai_hub_agent/agentToolsEngine.js"
+      ],
+      "exports": [
+        "createModLiveChatRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/live-chat/status",
+          "file": "modules/mod_live_chat/liveChatRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/live-chat/admin/unread-summary",
+          "file": "modules/mod_live_chat/liveChatRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/live-chat/link-session",
+          "file": "modules/mod_live_chat/liveChatRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/live-chat/visitor-message",
+          "file": "modules/mod_live_chat/liveChatRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/live-chat/admin/inbox",
+          "file": "modules/mod_live_chat/liveChatRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/live-chat/admin/priority",
+          "file": "modules/mod_live_chat/liveChatRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/live-chat/admin/reply",
+          "file": "modules/mod_live_chat/liveChatRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/live-chat/admin/create-thread",
+          "file": "modules/mod_live_chat/liveChatRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/live-chat/admin/session/:id",
+          "file": "modules/mod_live_chat/liveChatRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_maintenance_audit/MaintenanceAuditPanel.tsx",
+      "category": "modules",
+      "lines": 154,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "MaintenanceAuditPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_maintenance_audit/maintenanceAuditRouter.ts",
+      "category": "modules",
+      "lines": 135,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "../../src/server/middleware/authMiddleware.js"
+      ],
+      "exports": [
+        "MaintenanceModeConfig",
+        "recordAuditTrailEvent",
+        "createMaintenanceAuditRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/maintenance/status",
+          "file": "modules/mod_maintenance_audit/maintenanceAuditRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/maintenance/admin/overview",
+          "file": "modules/mod_maintenance_audit/maintenanceAuditRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/maintenance/admin/config",
+          "file": "modules/mod_maintenance_audit/maintenanceAuditRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_audit_trail"
+      ]
+    },
+    {
+      "path": "modules/mod_notifications_pwa/NotificationsPwaPanel.tsx",
+      "category": "modules",
+      "lines": 231,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "NotificationsPwaPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_notifications_pwa/PWAInstallBanner.tsx",
+      "category": "modules",
+      "lines": 164,
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "exports": [
+        "PWAInstallBanner"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_notifications_pwa/notificationsPwaRouter.ts",
+      "category": "modules",
+      "lines": 231,
+      "imports": [
+        "crypto",
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "../../src/server/middleware/authMiddleware.js",
+        "../../src/server/core/secretVault.js",
+        "../mod_delivery_logs/deliveryLogsRouter.js"
+      ],
+      "exports": [
+        "createNotificationsPwaRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/pwa/public-key",
+          "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/pwa/subscribe",
+          "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/pwa/admin/overview",
+          "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/pwa/admin/rotate-vapid",
+          "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/pwa/admin/broadcast",
+          "file": "modules/mod_notifications_pwa/notificationsPwaRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_pwa_subscriptions",
+        "mod_pwa_notifications"
+      ]
+    },
+    {
+      "path": "modules/mod_payment_hub/PayzitoPaymentHubPanel.tsx",
+      "category": "modules",
+      "lines": 333,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "../../src/core/jalali"
+      ],
+      "exports": [
+        "PayzitoPaymentHubPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_payment_hub/paymentHubRouter.ts",
+      "category": "modules",
+      "lines": 160,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js",
+        "../../src/server/database/phase5ModulesSchema.js"
+      ],
+      "exports": [
+        "createModPaymentHubRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/payment-hub/drivers",
+          "file": "modules/mod_payment_hub/paymentHubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/payment-hub/drivers",
+          "file": "modules/mod_payment_hub/paymentHubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/payment-hub/calculate",
+          "file": "modules/mod_payment_hub/paymentHubRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_reviews_qa/ProductReviewsQaWidget.tsx",
+      "category": "modules",
+      "lines": 237,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "../../src/components/OfflineCaptchaWidget"
+      ],
+      "exports": [
+        "ProductReviewsQaWidget"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_reviews_qa/ReviewsQaPanel.tsx",
+      "category": "modules",
+      "lines": 163,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "ReviewsQaPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_reviews_qa/reviewsQaRouter.ts",
+      "category": "modules",
+      "lines": 215,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js",
+        "../../src/server/core/captchaService.js"
+      ],
+      "exports": [
+        "createReviewsQaRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/reviews-qa/product/:productId",
+          "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/reviews-qa/review",
+          "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/reviews-qa/question",
+          "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/reviews-qa/admin/list",
+          "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/reviews-qa/admin/moderate",
+          "file": "modules/mod_reviews_qa/reviewsQaRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_product_reviews",
+        "mod_product_qa"
+      ]
+    },
+    {
+      "path": "modules/mod_seo_redirects/seoRedirectsRouter.ts",
+      "category": "modules",
+      "lines": 333,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js",
+        "../../src/core/types.js",
+        "../../src/data/defaults.js"
+      ],
+      "exports": [
+        "createModSeoRedirectsRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/seo/visibility",
+          "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+        },
+        {
+          "method": "PUT",
+          "path": "/api/v1/modules/seo-redirects/visibility",
+          "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/sitemap.xml",
+          "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/robots.txt",
+          "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/llms.txt",
+          "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/llm.txt",
+          "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/seo-redirects/rules",
+          "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/seo-redirects/rules",
+          "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/seo-redirects/rules/:id",
+          "file": "modules/mod_seo_redirects/seoRedirectsRouter.ts"
+        }
+      ],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_smart_crm/SmartCrmAdminPanel.tsx",
+      "category": "modules",
+      "lines": 303,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/types",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "SmartCrmAdminPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_smart_crm/smartCrmRouter.ts",
+      "category": "modules",
+      "lines": 383,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js"
+      ],
+      "exports": [
+        "ensureSmartCrmSchema",
+        "runAutoCrmMatchingEngine",
+        "createModSmartCrmRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/smart-crm/admin/overview",
+          "file": "modules/mod_smart_crm/smartCrmRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/smart-crm/admin/rules",
+          "file": "modules/mod_smart_crm/smartCrmRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/smart-crm/admin/run-auto-match",
+          "file": "modules/mod_smart_crm/smartCrmRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/smart-crm/my-recommendations",
+          "file": "modules/mod_smart_crm/smartCrmRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_crm_rules",
+        "mod_crm_recommendations"
+      ]
+    },
+    {
+      "path": "modules/mod_subscriptions/SubscriptionsAdminPanel.tsx",
+      "category": "modules",
+      "lines": 359,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/types",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "SubscriptionsAdminPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_subscriptions/subscriptionsRouter.ts",
+      "category": "modules",
+      "lines": 433,
+      "imports": [
+        "express",
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/database/index.js",
+        "../../src/core/jalali.js"
+      ],
+      "exports": [
+        "ensureSubscriptionsSchema",
+        "createModSubscriptionsRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/subscriptions/plans",
+          "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/subscriptions/admin/overview",
+          "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/subscriptions/admin/plans",
+          "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/subscriptions/my-status",
+          "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/subscriptions/subscribe",
+          "file": "modules/mod_subscriptions/subscriptionsRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_subscription_plans",
+        "mod_user_subscriptions"
+      ]
+    },
+    {
+      "path": "modules/mod_wallet_rma/WalletRmaPanel.tsx",
+      "category": "modules",
+      "lines": 201,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "WalletRmaPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_wallet_rma/walletRmaRouter.ts",
+      "category": "modules",
+      "lines": 178,
+      "imports": [
+        "express",
+        "../../src/server/database/connection.js",
+        "../../src/server/middleware/authMiddleware.js"
+      ],
+      "exports": [
+        "createWalletRmaRouter"
+      ],
+      "apiEndpoints": [
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/wallet-rma/overview",
+          "file": "modules/mod_wallet_rma/walletRmaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/wallet-rma/transaction",
+          "file": "modules/mod_wallet_rma/walletRmaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/wallet-rma/rma",
+          "file": "modules/mod_wallet_rma/walletRmaRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/wallet-rma/rma/:id/resolve",
+          "file": "modules/mod_wallet_rma/walletRmaRouter.ts"
+        }
+      ],
+      "dbTables": [
+        "mod_wallet_transactions",
+        "mod_rma_requests"
+      ]
+    },
+    {
+      "path": "modules/registry.json",
+      "category": "modules",
+      "lines": 202,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/default/theme.json",
+      "category": "theme",
+      "lines": 21,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/components/CartDrawer.tsx",
+      "category": "theme",
+      "lines": 242,
+      "imports": [
+        "react",
+        "motion/react",
+        "../context/FatehanThemeContext",
+        "../utils/formatters",
+        "../ui/BiDiText",
+        "lucide-react"
+      ],
+      "exports": [
+        "CartDrawer"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/components/FatehanStorefrontHome.tsx",
+      "category": "theme",
+      "lines": 2670,
+      "imports": [
+        "react",
+        "motion/react",
+        "../context/FatehanThemeContext",
+        "../ui/FatehanLogo",
+        "../utils/formatters",
+        "../utils/defaultFallbacks",
+        "../types",
+        "lucide-react"
+      ],
+      "exports": [
+        "FatehanStorefrontHome"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/components/StoreOtpLoginModal.tsx",
+      "category": "theme",
+      "lines": 213,
+      "imports": [
+        "react",
+        "motion/react",
+        "../context/FatehanThemeContext",
+        "../utils/formatters",
+        "../ui/FatehanLogo",
+        "lucide-react"
+      ],
+      "exports": [
+        "StoreOtpLoginModal"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/components/StorefrontFooter.tsx",
+      "category": "theme",
+      "lines": 263,
+      "imports": [
+        "react",
+        "../context/FatehanThemeContext",
+        "../ui/FatehanLogo",
+        "../utils/defaultFallbacks",
+        "lucide-react"
+      ],
+      "exports": [
+        "StorefrontFooter"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/components/StorefrontHeader.tsx",
+      "category": "theme",
+      "lines": 475,
+      "imports": [
+        "react",
+        "motion/react",
+        "../context/FatehanThemeContext",
+        "../utils/formatters",
+        "../ui/FatehanLogo",
+        "../types",
+        "lucide-react"
+      ],
+      "exports": [
+        "StorefrontHeader"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/components/VideoLabModal.tsx",
+      "category": "theme",
+      "lines": 325,
+      "imports": [
+        "react",
+        "motion/react",
+        "../context/FatehanThemeContext",
+        "../ui/FatehanLogo",
+        "../ui/BiDiText",
+        "lucide-react"
+      ],
+      "exports": [
+        "VideoLabModal"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/context/FatehanThemeContext.tsx",
+      "category": "theme",
+      "lines": 463,
+      "imports": [
+        "react",
+        "../types",
+        "./cmsApiAdapter",
+        "../utils/defaultFallbacks"
+      ],
+      "exports": [
+        "FatehanThemeContextValue",
+        "FatehanThemeProviderProps",
+        "FatehanThemeProvider",
+        "useFatehanTheme"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/context/cmsApiAdapter.ts",
+      "category": "theme",
+      "lines": 419,
+      "imports": [
+        "../types"
+      ],
+      "exports": [
+        "CmsApiAdapterOptions",
+        "createCmsV2ApiAdapter"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/index.ts",
+      "category": "theme",
+      "lines": 76,
+      "imports": [
+        "react",
+        "./styles/fatehan-theme.css",
+        "./context/FatehanThemeContext",
+        "./layouts/FatehanThemeShell"
+      ],
+      "exports": [
+        "FatehanThemeRootProps",
+        "FatehanThemeRoot"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/layouts/DesktopLayout.tsx",
+      "category": "theme",
+      "lines": 30,
+      "imports": [
+        "react",
+        "../context/FatehanThemeContext",
+        "../ui/ScrollReveal",
+        "../components/StorefrontHeader",
+        "../components/StorefrontFooter",
+        "../pages/StorefrontRouter"
+      ],
+      "exports": [
+        "DesktopLayout"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/layouts/FatehanThemeShell.tsx",
+      "category": "theme",
+      "lines": 56,
+      "imports": [
+        "react",
+        "motion/react",
+        "lucide-react",
+        "../context/FatehanThemeContext",
+        "./DesktopLayout",
+        "./TabletLayout",
+        "./MobileLayout",
+        "../components/CartDrawer",
+        "../components/VideoLabModal",
+        "../components/StoreOtpLoginModal"
+      ],
+      "exports": [
+        "FatehanThemeShell"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/layouts/MobileLayout.tsx",
+      "category": "theme",
+      "lines": 117,
+      "imports": [
+        "react",
+        "../context/FatehanThemeContext",
+        "../utils/formatters",
+        "../ui/ScrollReveal",
+        "../components/StorefrontHeader",
+        "../components/StorefrontFooter",
+        "../pages/StorefrontRouter",
+        "../types",
+        "lucide-react"
+      ],
+      "exports": [
+        "MobileLayout"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/layouts/TabletLayout.tsx",
+      "category": "theme",
+      "lines": 32,
+      "imports": [
+        "react",
+        "../context/FatehanThemeContext",
+        "../ui/ScrollReveal",
+        "../components/StorefrontHeader",
+        "../components/StorefrontFooter",
+        "../pages/StorefrontRouter"
+      ],
+      "exports": [
+        "TabletLayout"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/pages/BlogAndAccountRoutes.tsx",
+      "category": "theme",
+      "lines": 2103,
+      "imports": [
+        "react",
+        "motion/react",
+        "../context/FatehanThemeContext",
+        "../utils/formatters",
+        "../ui/BiDiText",
+        "../types",
+        "../utils/RichFormattedContent",
+        "lucide-react"
+      ],
+      "exports": [
+        "BlogRoutesPage",
+        "CustomerAccountDashboardPage"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/pages/FatehanMultiPages.tsx",
+      "category": "theme",
+      "lines": 2124,
+      "imports": [
+        "react",
+        "motion/react",
+        "../context/FatehanThemeContext",
+        "../ui/FatehanLogo",
+        "../utils/formatters",
+        "../utils/defaultFallbacks",
+        "../types",
+        "lucide-react"
+      ],
+      "exports": [
+        "FatehanCoursesPage",
+        "FatehanTuitionCalculatorPage",
+        "FatehanSimulatorPage",
+        "FatehanContactPage",
+        "FatehanFreeCoursesPage",
+        "FatehanAboutPage"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/pages/PageRenderer.tsx",
+      "category": "theme",
+      "lines": 1199,
+      "imports": [
+        "react",
+        "motion/react",
+        "../context/FatehanThemeContext",
+        "../utils/formatters",
+        "../ui/BiDiText",
+        "../ui/FatehanLogo",
+        "../types",
+        "lucide-react"
+      ],
+      "exports": [
+        "PageRendererProps",
+        "PageRenderer"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/pages/StorefrontRouter.tsx",
+      "category": "theme",
+      "lines": 2377,
+      "imports": [
+        "react",
+        "motion/react",
+        "../context/FatehanThemeContext",
+        "../utils/formatters",
+        "../ui/BiDiText",
+        "../ui/FatehanLogo",
+        "../utils/RichFormattedContent",
+        "../types",
+        "./PageRenderer",
+        "../components/FatehanStorefrontHome",
+        "./BlogAndAccountRoutes",
+        "./FatehanMultiPages",
+        "lucide-react"
+      ],
+      "exports": [
+        "StoreShimmerSkeleton",
+        "StorefrontRouter"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/styles/fatehan-theme.css",
+      "category": "theme",
+      "lines": 370,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/theme.manifest.json",
+      "category": "theme",
+      "lines": 94,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/types/index.ts",
+      "category": "theme",
+      "lines": 684,
+      "imports": [],
+      "exports": [
+        "ViewportMode",
+        "PersianFontFamily",
+        "PrintPaperSize",
+        "DeviceFontSize",
+        "DeviceSpacingPreset",
+        "BuilderWidgetType",
+        "BuilderBlockItem",
+        "BuilderBlock",
+        "CmsMenuItem",
+        "CmsSiteSettings",
+        "TypographyConfig",
+        "CmsDepartmentItem",
+        "FatehanCourse",
+        "AcademyCourseItem",
+        "AcademyFreeCourseItem",
+        "FreeCoursesPageConfig",
+        "AboutPageConfig",
+        "ProductKind",
+        "ProductAttributeDef",
+        "ProductVariationItem",
+        "ProductVirtualSession",
+        "ProductDownloadableFile",
+        "ProductTechSpecRow",
+        "ProductItem",
+        "StoreCartItem",
+        "OrderLineItem",
+        "OrderLifecycleStatus",
+        "PaymentGatewayId",
+        "OrderRecord",
+        "CustomerSavedAddress",
+        "CouponDiscountType",
+        "CouponItem",
+        "CashbackRewardConfig",
+        "PaymentGatewayConfig",
+        "CmsPost",
+        "CommentCategoryType",
+        "CommentModerationStatus",
+        "CmsCommentItem",
+        "StudentIdeaItem",
+        "AcademyAnnouncementItem",
+        "UserWalletTransaction",
+        "UserAccount",
+        "LoggedInCustomer",
+        "VideoModalPayload",
+        "CmsStorefrontData",
+        "CmsApiAdapter"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/ui/BiDiText.tsx",
+      "category": "theme",
+      "lines": 46,
+      "imports": [
+        "react"
+      ],
+      "exports": [
+        "BiDiTextProps",
+        "BiDiText"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/ui/FatehanLogo.tsx",
+      "category": "theme",
+      "lines": 130,
+      "imports": [
+        "react",
+        "../context/FatehanThemeContext"
+      ],
+      "exports": [
+        "FatehanLogoProps",
+        "FatehanLogo"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/ui/ScrollReveal.tsx",
+      "category": "theme",
+      "lines": 148,
+      "imports": [
+        "react",
+        "motion/react"
+      ],
+      "exports": [
+        "ScrollRevealProps",
+        "ScrollReveal",
+        "SmoothScrollProgressBar",
+        "useAutoScrollReveal"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/utils/RichFormattedContent.tsx",
+      "category": "theme",
+      "lines": 89,
+      "imports": [
+        "react"
+      ],
+      "exports": [
+        "RichFormattedContent"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/utils/defaultFallbacks.ts",
+      "category": "theme",
+      "lines": 328,
+      "imports": [
+        "../types"
+      ],
+      "exports": [
+        "DEFAULT_TYPOGRAPHY_CONFIG",
+        "DEFAULT_SITE_SETTINGS",
+        "DEFAULT_HEADER_MENU",
+        "DEFAULT_FOOTER_MENU",
+        "DEFAULT_MOBILE_BOTTOM_MENU",
+        "DEFAULT_DEPARTMENTS",
+        "DEFAULT_FALLBACK_ANNOUNCEMENTS",
+        "DEFAULT_FALLBACK_FREE_COURSES",
+        "DEFAULT_FALLBACK_COURSES"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/fatehan/utils/formatters.ts",
+      "category": "theme",
+      "lines": 50,
+      "imports": [],
+      "exports": [
+        "formatToman",
+        "formatPersianNumber",
+        "themeClientCache"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "themes/registry.ts",
+      "category": "theme",
+      "lines": 91,
+      "imports": [
+        "react",
+        "./default/theme.json",
+        "./fatehan/theme.manifest.json",
+        "./fatehan/index",
+        "./fatehan/context/cmsApiAdapter"
+      ],
+      "exports": [
+        "RegisteredThemeId",
+        "RegisteredThemeDefinition",
+        "THEME_REGISTRY",
+        "REGISTERED_THEMES_LIST",
+        "resolveRegisteredTheme"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "public/assets/vendor/barba.umd.js",
+      "category": "public_assets",
+      "lines": 3,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "public/assets/vendor/gsap.min.js",
+      "category": "public_assets",
+      "lines": 12,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "public/assets/vendor/lenis.min.js",
+      "category": "public_assets",
+      "lines": 2,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "public/assets/vendor/muuri.min.js",
+      "category": "public_assets",
+      "lines": 21,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "public/assets/vendor/vendor-manifest.json",
+      "category": "public_assets",
+      "lines": 53,
+      "imports": [],
+      "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    }
+  ]
+}

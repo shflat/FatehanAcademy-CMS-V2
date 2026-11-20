@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>آکادمی رباتیک، برنامه‌نویسی و هوش مصنوعی فاتحان | کارآموزان امروز، فاتحان فردا</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Vazirmatn, Lalezar & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Lalezar&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Vazirmatn', 'system-ui', 'sans-serif'],
+            display: ['Lalezar', 'Vazirmatn', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            fatehan: {
+              navy: '#0B1938',
+              darker: '#071026',
+              blue: '#1B4DDB',
+              cyan: '#00E5FF',
+              yellow: '#FFD000',
+              slate: '#F4F7FE',
+            },
+            dept: {
+              robotics: '#4338CA',
+              coding: '#1D4ED8',
+              printing: '#C2410C',
+              electronics: '#15803D',
+              mechanics: '#BE123C',
+            }
+          },
+          boxShadow: {
+            'cyan-glow': '0 0 25px rgba(0, 229, 255, 0.45)',
+            'yellow-glow': '0 10px 25px -3px rgba(255, 208, 0, 0.45)',
+            'card-soft': '0 14px 34px -6px rgba(11, 25, 56, 0.07)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --hero-size-desktop: 37px;
+      --hero-line-height: 1.82;
+      --section-title-size: 29px;
+      --section-line-height: 1.78;
+      --body-line-height: 1.95;
+    }
+
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      background-color: #F4F7FE;
+      color: #111827;
+      overflow-x: hidden;
+      line-height: var(--body-line-height);
+    }
+
+    /* Refined Persian Typography Classes with Generous Line-Height */
+    .hero-title-typo {
+      font-size: clamp(1.55rem, 2.6vw, var(--hero-size-desktop));
+      line-height: var(--hero-line-height) !important;
+      letter-spacing: -0.01em;
+    }
+
+    .section-title-typo {
+      font-size: clamp(1.35rem, 2.1vw, var(--section-title-size));
+      line-height: var(--section-line-height) !important;
+    }
+
+    .sub-title-typo {
+      line-height: 1.85 !important;
+    }
+
+    .body-relaxed-typo {
+      line-height: var(--body-line-height) !important;
+    }
+
+    /* STRICT SINGLE-LINE ENFORCEMENT FOR ALL MENU BOXES & TABS */
+    .single-line-box,
+    .single-line-box * {
+      white-space: nowrap !important;
+      flex-wrap: nowrap !important;
+    }
+    .nav-pill-item {
+      white-space: nowrap !important;
+      line-height: 1 !important;
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    /* Circuit Pattern Background */
+    .bg-circuit {
+      background-color: #0B1938;
+      background-image: 
+        radial-gradient(circle at 18% 25%, rgba(0, 229, 255, 0.14) 0%, transparent 38%),
+        radial-gradient(circle at 85% 75%, rgba(27, 77, 219, 0.28) 0%, transparent 45%),
+        linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+    }
+
+    /* Animated Gear Rotation */
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes spinReverseSlow {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+    @keyframes floatY {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    @keyframes pulseCyan {
+      0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.8)); }
+      50% { opacity: 0.65; filter: drop-shadow(0 0 2px rgba(0, 229, 255, 0.3)); }
+    }
+
+    .gear-spin {
+      animation: spinSlow 24s linear infinite;
+      transform-origin: center;
+    }
+    .gear-spin-reverse {
+      animation: spinReverseSlow 18s linear infinite;
+      transform-origin: center;
+    }
+    .float-anim {
+      animation: floatY 4.5s ease-in-out infinite;
+    }
+    .cyan-pulse {
+      animation: pulseCyan 2.8s ease-in-out infinite;
+    }
+
+    /* Department Card Gear Hover */
+    .dept-card:hover .dept-gear-ring {
+      transform: rotate(45deg) scale(1.06);
+    }
+    .dept-gear-ring {
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Brush Stroke Banner Style */
+    .brush-banner {
+      background: linear-gradient(135deg, #0B1938 0%, #1B4DDB 55%, #0B1938 100%);
+      position: relative;
+    }
+
+    /* Figma Grid Overlay */
+    .figma-grid-overlay {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: none;
+    }
+    .figma-grid-overlay.active {
+      display: block;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-fatehan-cyan selection:text-fatehan-navy pb-20 lg:pb-0">
+
+  <!-- ========================================================= -->
+  <!-- TOP ANNOUNCEMENT & FIGMA DESIGN MODE BAR (SINGLE-LINE)    -->
+  <!-- ========================================================= -->
+  <div class="bg-fatehan-darker text-white text-xs py-2 px-4 border-b border-fatehan-cyan/20 single-line-box overflow-hidden">
+    <div class="max-w-[1240px] mx-auto flex items-center justify-between gap-4 flex-nowrap">
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <span class="inline-block w-2 h-2 rounded-full bg-fatehan-cyan animate-ping flex-shrink-0"></span>
+        <span class="font-medium text-slate-200 nav-pill-item">ثبت‌نام ترم جدید <strong class="text-fatehan-yellow mx-1">رباتیک، کدنویسی و هوش مصنوعی</strong> در اندیشه</span>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <!-- Live Typography Quick Tuner -->
+        <div class="hidden xl:flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-md text-[11px] text-slate-300 flex-shrink-0">
+          <span class="nav-pill-item">فاصله خطوط:</span>
+          <button onclick="adjustLineHeight(1.7)" class="px-1.5 py-0.5 rounded hover:bg-white/15 font-mono nav-pill-item">1.7x</button>
+          <button onclick="adjustLineHeight(1.85)" class="px-1.5 py-0.5 rounded bg-fatehan-cyan/20 text-fatehan-cyan font-mono font-bold nav-pill-item">1.85x</button>
+          <button onclick="adjustLineHeight(2.0)" class="px-1.5 py-0.5 rounded hover:bg-white/15 font-mono nav-pill-item">2.0x</button>
+        </div>
+        <button onclick="toggleFigmaGrid()" id="gridToggleBtn" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-fatehan-cyan transition text-[11px] font-mono nav-pill-item">
+          <span>Grid: OFF</span>
+        </button>
+        <button onclick="openDesignSystemModal()" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-fatehan-cyan/20 hover:bg-fatehan-cyan/30 text-fatehan-cyan border border-fatehan-cyan/40 transition text-[11px] font-medium nav-pill-item">
+          <span>🎨 توکن‌های فیگما</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- SECTION 1: SLEEK SINGLE-LINE STICKY HEADER (REDESIGNED)   -->
+  <!-- ========================================================= -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm single-line-box">
+    <div class="max-w-[1240px] mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4 flex-nowrap overflow-x-auto no-scrollbar">
+      
+      <!-- Brand Logo: Strictly 1-Line Horizontal (Icon + Single-Line Title + Badge) -->
+      <a href="#" class="flex items-center gap-2.5 group focus:outline-none flex-shrink-0">
+        <div class="relative w-10 h-10 flex-shrink-0 rounded-xl bg-fatehan-navy p-1 shadow-sm border border-fatehan-cyan/40 group-hover:shadow-cyan-glow transition">
+          <svg viewBox="0 0 100 100" class="w-full h-full">
+            <defs>
+              <linearGradient id="cyanGlow" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#00E5FF"/>
+                <stop offset="100%" stop-color="#1B4DDB"/>
+              </linearGradient>
+              <linearGradient id="metalGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#F8FAFC"/>
+                <stop offset="50%" stop-color="#94A3B8"/>
+                <stop offset="100%" stop-color="#475569"/>
+              </linearGradient>
+            </defs>
+            <path d="M 15 72 A 42 42 0 1 1 86 68" fill="none" stroke="url(#metalGrad)" stroke-width="5" stroke-linecap="round"/>
+            <polygon points="18,80 54,36 86,80" fill="#1E293B" stroke="url(#metalGrad)" stroke-width="2.5"/>
+            <line x1="58" y1="40" x2="58" y2="10" stroke="#E2E8F0" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M 58 11 C 68 8, 74 17, 85 13 C 82 22, 72 28, 58 24 Z" fill="url(#cyanGlow)"/>
+            <rect x="44" y="23" width="12" height="9" rx="4" fill="#E2E8F0" stroke="#0B1938" stroke-width="1.5"/>
+            <rect x="12" y="76" width="76" height="16" rx="4" fill="#0B1938" stroke="#00E5FF" stroke-width="1.5"/>
+            <text x="50" y="88" text-anchor="middle" fill="#FFFFFF" font-family="Vazirmatn" font-weight="900" font-size="12">فاتحان</text>
+          </svg>
+        </div>
+        <div class="flex items-center gap-1.5 flex-nowrap">
+          <span class="text-base sm:text-lg font-black tracking-tight text-fatehan-navy nav-pill-item">فاتحان رباتیک</span>
+          <span class="hidden xl:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-fatehan-blue/10 text-fatehan-blue border border-fatehan-blue/20 nav-pill-item">اندیشه</span>
+        </div>
+      </a>
+
+      <!-- Center Navigation Pill Box: Strictly 1-Line Concise Items -->
+      <nav class="hidden md:flex items-center gap-1 lg:gap-1.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/80 flex-shrink-0 flex-nowrap">
+        <a href="#" class="nav-pill-item px-2.5 lg:px-3 py-2 rounded-lg text-xs lg:text-[13px] font-bold bg-white text-fatehan-navy shadow-sm transition">صفحه اصلی</a>
+        <a href="#departments" class="nav-pill-item px-2.5 lg:px-3 py-2 rounded-lg text-xs lg:text-[13px] font-bold text-slate-700 hover:bg-white hover:text-fatehan-blue transition">دپارتمان‌ها</a>
+        <a href="#roadmap" class="nav-pill-item px-2.5 lg:px-3 py-2 rounded-lg text-xs lg:text-[13px] font-bold text-slate-700 hover:bg-white hover:text-fatehan-blue transition">مسیر سنی</a>
+        <a href="#course-finder" class="nav-pill-item px-2.5 lg:px-3 py-2 rounded-lg text-xs lg:text-[13px] font-bold text-slate-700 hover:bg-white hover:text-fatehan-blue transition gap-1">
+          <span>انتخاب دوره</span>
+          <span class="px-1.5 py-0.5 bg-fatehan-yellow text-fatehan-navy rounded text-[9px] font-black nav-pill-item">هوشمند</span>
+        </a>
+        <a href="#simulator" class="nav-pill-item px-2.5 lg:px-3 py-2 rounded-lg text-xs lg:text-[13px] font-bold text-slate-700 hover:bg-white hover:text-fatehan-blue transition">آزمایشگاه ربات</a>
+        <a href="#why-fatehan" class="nav-pill-item px-2.5 lg:px-3 py-2 rounded-lg text-xs lg:text-[13px] font-bold text-slate-700 hover:bg-white hover:text-fatehan-blue transition">چرا فاتحان؟</a>
+        <a href="#contact" class="nav-pill-item px-2.5 lg:px-3 py-2 rounded-lg text-xs lg:text-[13px] font-bold text-slate-700 hover:bg-white hover:text-fatehan-blue transition">تماس و آدرس</a>
+      </nav>
+
+      <!-- Left Action Buttons: Strictly 1-Line Compact -->
+      <div class="flex items-center gap-2 flex-shrink-0 flex-nowrap">
+        <a href="tel:09103116753" class="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 hover:border-fatehan-blue text-slate-700 hover:text-fatehan-blue text-xs font-bold transition bg-slate-50/80 nav-pill-item">
+          <svg class="w-3.5 h-3.5 text-fatehan-blue flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          <span dir="ltr" class="font-mono text-xs nav-pill-item">0910 311 6753</span>
+        </a>
+        <a href="#contact" class="nav-pill-item gap-1.5 px-3.5 sm:px-4 py-2.5 rounded-xl bg-fatehan-yellow hover:bg-amber-400 text-fatehan-navy font-black text-xs shadow-yellow-glow transition">
+          <span class="nav-pill-item">ثبت‌نام رایگان</span>
+          <svg class="w-3.5 h-3.5 rtl:rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================= -->
+  <!-- SECTION 2: HERO SECTION ("کارآموزان امروز، فاتحان فردا")   -->
+  <!-- ========================================================= -->
+  <section class="bg-circuit relative overflow-hidden text-white pt-10 pb-20 lg:py-20 border-b-4 border-fatehan-yellow">
+    <!-- Decorative Glowing Orbs -->
+    <div class="pointer-events-none absolute -top-24 -right-24 w-96 h-96 rounded-full bg-fatehan-cyan/15 blur-3xl"></div>
+    <div class="pointer-events-none absolute bottom-0 left-10 w-80 h-80 rounded-full bg-fatehan-blue/30 blur-3xl"></div>
+
+    <div class="max-w-[1240px] mx-auto px-4 sm:px-6 relative z-10">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <!-- Right Column: Hero Copy & Actions (7 Cols) -->
+        <div class="lg:col-span-7 space-y-7 text-right">
+          
+          <!-- Location & Authority Pill Badge (From Top of Banner) -->
+          <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-fatehan-cyan/15 border border-fatehan-cyan/40 text-fatehan-cyan text-xs sm:text-sm font-bold shadow-sm leading-relaxed">
+            <span class="w-2 h-2 rounded-full bg-fatehan-cyan animate-ping"></span>
+            <span>مجهزترین آموزشگاه رباتیک، برنامه‌نویسی و هوش مصنوعی در اندیشه</span>
+          </div>
+
+          <!-- Main Headline (Refined Smaller Font Size & Generous Line-Height) -->
+          <h1 class="hero-title-typo font-black text-white py-1">
+            کودکان و نوجوانان رویاهایشان را با
+            <span class="relative inline-block text-fatehan-yellow px-1.5 mx-0.5">
+              علم و تکنولوژی
+              <svg class="absolute -bottom-1.5 right-0 w-full h-2.5 text-fatehan-cyan" viewBox="0 0 200 12" fill="none"><path d="M2 9.5C52 2.5 148 2.5 198 9.5" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+            </span>
+            واقعی می‌کنند...
+          </h1>
+
+          <!-- Banner Core Slogan Box -->
+          <div class="inline-flex flex-wrap items-center gap-3 bg-white/10 backdrop-blur-md border-r-4 border-fatehan-yellow px-5 py-3.5 rounded-2xl leading-[1.85]">
+            <span class="text-base sm:text-lg font-extrabold text-white">فاتحان رباتیک:</span>
+            <span class="text-base sm:text-lg font-black text-fatehan-cyan">«کارآموزان امروز ، فاتحان فردا»</span>
+          </div>
+
+          <p class="text-slate-300 text-sm sm:text-base body-relaxed-typo max-w-2xl font-normal">
+            در آکادمی تخصصی <strong class="text-white">فاتحان</strong>، دانش‌آموزان صرفاً مصرف‌کننده تکنولوژی نیستند؛ بلکه با یادگیری عملی <span class="text-fatehan-cyan font-semibold">رباتیک، کدنویسی، هوش مصنوعی، الکترونیک، مکانیک و چاپ سه‌بعدی</span>، ایده‌های خود را می‌سازند و مهارت‌های واقعی زندگی را تجربه می‌کنند.
+          </p>
+
+          <!-- CTA Buttons Row -->
+          <div class="flex flex-wrap items-center gap-4 pt-2">
+            <a href="#contact" class="inline-flex items-center justify-center gap-3 px-7 py-4 rounded-2xl bg-fatehan-yellow hover:bg-amber-400 text-fatehan-navy font-black text-base shadow-yellow-glow transition transform hover:-translate-y-1">
+              <span>ثبت‌نام جلسه معارفه و تعیین سطح رایگان</span>
+              <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </a>
+            <a href="#departments" class="inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-white/10 hover:bg-white/15 text-white border border-fatehan-cyan/40 font-bold text-base transition">
+              <span>مشاهده ۵ دپارتمان آموزشی</span>
+              <svg class="w-5 h-5 text-fatehan-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </a>
+          </div>
+
+          <!-- Quick Trust Metrics -->
+          <div class="pt-6 border-t border-white/10 grid grid-cols-3 gap-4 max-w-xl">
+            <div class="bg-white/5 rounded-xl p-3.5 border border-white/10">
+              <div class="text-lg sm:text-2xl font-black text-fatehan-cyan leading-relaxed">۵ دپارتمان</div>
+              <div class="text-xs text-slate-300 mt-1 leading-relaxed">مبتدی تا پیشرفته</div>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3.5 border border-white/10">
+              <div class="text-lg sm:text-2xl font-black text-fatehan-yellow leading-relaxed">۱۰۰٪ عملی</div>
+              <div class="text-xs text-slate-300 mt-1 leading-relaxed">کارگاهی و پروژه‌محور</div>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3.5 border border-white/10">
+              <div class="text-lg sm:text-2xl font-black text-emerald-400 leading-relaxed">۷ تا ۱۸ سال</div>
+              <div class="text-xs text-slate-300 mt-1 leading-relaxed">کودکان و نوجوانان</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Left Column: Interactive Banner & Logo Scene Illustration (5 Cols) -->
+        <div class="lg:col-span-5 relative">
+          
+          <!-- Floating Sticky Note ("فکر کن، بساز، کشف کن!") directly from the banner -->
+          <div class="absolute -top-6 -left-2 sm:left-2 z-20 bg-fatehan-yellow text-fatehan-navy p-4 rounded-2xl shadow-xl rotate-[-6deg] border-2 border-white max-w-[180px] float-anim">
+            <div class="flex items-center justify-between text-xs font-mono font-extrabold text-fatehan-blue mb-1.5">
+              <span>DREAM • BUILD • CREATE</span>
+              <span>💡</span>
+            </div>
+            <p class="font-black text-sm sm:text-base leading-[1.85]">
+              فکر کن<br/>بساز<br/>کشف کن ؟!
+            </p>
+          </div>
+
+          <!-- Floating Stack of 3 Books (ROBOTICS / CODING / INNOVATION) from Banner -->
+          <div class="absolute -bottom-6 -right-2 sm:right-2 z-20 bg-slate-900/95 backdrop-blur-md p-3.5 rounded-2xl border border-fatehan-cyan/40 shadow-2xl space-y-1.5 w-48">
+            <div class="text-[11px] text-slate-300 font-semibold mb-1">پایه‌های علمی فاتحان:</div>
+            <div class="px-3 py-1 rounded-md bg-blue-600 text-white font-mono text-xs font-bold tracking-wider flex justify-between items-center">
+              <span>ROBOTICS</span><span>🤖</span>
+            </div>
+            <div class="px-3 py-1 rounded-md bg-emerald-600 text-white font-mono text-xs font-bold tracking-wider flex justify-between items-center">
+              <span>CODING</span><span>💻</span>
+            </div>
+            <div class="px-3 py-1 rounded-md bg-rose-600 text-white font-mono text-xs font-bold tracking-wider flex justify-between items-center">
+              <span>INNOVATION</span><span>🚀</span>
+            </div>
+          </div>
+
+          <!-- Main Visual Card: Friendly Fatehan Robot + Laptop + Wheeled Bot + Summit Emblem -->
+          <div class="relative rounded-[32px] bg-gradient-to-b from-slate-800/90 to-fatehan-darker p-6 sm:p-8 border-2 border-fatehan-cyan/40 shadow-cyan-glow overflow-hidden">
+            
+            <!-- Background Rotating Gears -->
+            <svg class="w-44 h-44 absolute -top-12 -right-12 text-fatehan-cyan/10 gear-spin" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M94.5,43.5l-8.6-1.4c-0.7-2.6-1.7-5-3-7.3l5.1-7.1c0.9-1.3,0.8-3.1-0.4-4.2l-7.1-7.1c-1.1-1.1-2.9-1.3-4.2-0.4l-7.1,5.1c-2.3-1.3-4.7-2.3-7.3-3l-1.4-8.6C60.2,7.9,58.8,6.8,57.2,6.8h-10c-1.6,0-3,1.1-3.3,2.7l-1.4,8.6c-2.6,0.7-5,1.7-7.3,3l-7.1-5.1c-1.3-0.9-3.1-0.8-4.2,0.4l-7.1,7.1c-1.1,1.1-1.3,2.9-0.4,4.2l5.1,7.1c-1.3,2.3-2.3,4.7-3,7.3l-8.6,1.4c-1.6,0.3-2.7,1.7-2.7,3.3v10c0,1.6,1.1,3,2.7,3.3l8.6,1.4c0.7,2.6,1.7,5,3,7.3l-5.1,7.1c-0.9,1.3-0.8,3.1,0.4,4.2l7.1,7.1c1.1,1.1,2.9,1.3,4.2,0.4l7.1-5.1c2.3,1.3,4.7,2.3,7.3,3l1.4,8.6c0.3,1.6,1.7,2.7,3.3,2.7h10c1.6,0,3-1.1,3.3-2.7l1.4-8.6c2.6-0.7,5-1.7,7.3-3l7.1,5.1c1.3,0.9,3.1,0.8,4.2-0.4l7.1-7.1c1.1-1.1,1.3-2.9,0.4-4.2l-5.1-7.1c1.3-2.3,2.3-4.7,3-7.3l8.6-1.4c1.6-0.3,2.7-1.7,2.7-3.3v-10C97.2,45.2,96.1,43.8,94.5,43.5z M52.2,68.5c-9.3,0-16.8-7.5-16.8-16.8s7.5-16.8,16.8-16.8S69,42.4,69,51.7S61.5,68.5,52.2,68.5z"/>
+            </svg>
+
+            <!-- Custom Detailed SVG Illustration of the Banner Robot with Laptop & Rover -->
+            <svg viewBox="0 0 420 380" class="w-full h-auto drop-shadow-2xl">
+              <defs>
+                <linearGradient id="robotBody" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#FFFFFF"/>
+                  <stop offset="100%" stop-color="#CBD5E1"/>
+                </linearGradient>
+                <linearGradient id="screenGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#0F172A"/>
+                  <stop offset="100%" stop-color="#1E3A8A"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Desk Surface -->
+              <rect x="20" y="310" width="380" height="16" rx="8" fill="#1E293B" stroke="#00E5FF" stroke-width="1.5"/>
+
+              <!-- Cute Friendly White/Blue Robot (Matching Banner Centerpiece) -->
+              <g class="float-anim">
+                <!-- Robot Head Helmet -->
+                <rect x="135" y="45" width="150" height="115" rx="55" fill="url(#robotBody)" stroke="#1B4DDB" stroke-width="4"/>
+                <!-- Robot Ears / Headphones -->
+                <circle cx="132" cy="102" r="18" fill="#1B4DDB" stroke="#FFFFFF" stroke-width="3"/>
+                <circle cx="288" cy="102" r="18" fill="#1B4DDB" stroke="#FFFFFF" stroke-width="3"/>
+                <circle cx="132" cy="102" r="7" fill="#00E5FF"/>
+                <circle cx="288" cy="102" r="7" fill="#00E5FF"/>
+                <!-- Face Visor Screen -->
+                <rect x="155" y="65" width="110" height="75" rx="35" fill="url(#screenGlow)" stroke="#00E5FF" stroke-width="2.5"/>
+                <!-- Happy Glowing Cyan Eyes & Smile (Like Banner Robot) -->
+                <path d="M 176 98 Q 186 84 196 98" fill="none" stroke="#00E5FF" stroke-width="5" stroke-linecap="round" class="cyan-pulse"/>
+                <path d="M 224 98 Q 234 84 244 98" fill="none" stroke="#00E5FF" stroke-width="5" stroke-linecap="round" class="cyan-pulse"/>
+                <path d="M 197 116 Q 210 128 223 116" fill="none" stroke="#00E5FF" stroke-width="4" stroke-linecap="round"/>
+
+                <!-- Robot Torso with Gear Emblem -->
+                <rect x="155" y="168" width="110" height="95" rx="28" fill="url(#robotBody)" stroke="#1B4DDB" stroke-width="4"/>
+                <circle cx="210" cy="212" r="22" fill="#0B1938" stroke="#00E5FF" stroke-width="2"/>
+                <circle cx="210" cy="212" r="9" fill="#FFD000"/>
+
+                <!-- Left Arm (Thumbs Up Gesture like Banner) -->
+                <path d="M 155 195 Q 115 195 112 165" fill="none" stroke="#1B4DDB" stroke-width="16" stroke-linecap="round"/>
+                <circle cx="112" cy="155" r="14" fill="#FFFFFF" stroke="#1B4DDB" stroke-width="3"/>
+                <rect x="108" y="134" width="9" height="14" rx="4.5" fill="#FFD000" stroke="#0B1938" stroke-width="1.5"/>
+
+                <!-- Right Arm (Typing on Laptop) -->
+                <path d="M 265 195 Q 300 210 285 245" fill="none" stroke="#1B4DDB" stroke-width="16" stroke-linecap="round"/>
+              </g>
+
+              <!-- Student Wheeled Arduino/Sensor Robot (Left of Desk) -->
+              <g transform="translate(85, 250)">
+                <rect x="10" y="15" width="85" height="35" rx="8" fill="#1E293B" stroke="#FFD000" stroke-width="2.5"/>
+                <!-- Ultrasonic Eyes on Rover -->
+                <circle cx="35" cy="32" r="9" fill="#0B1938" stroke="#00E5FF" stroke-width="2"/>
+                <circle cx="62" cy="32" r="9" fill="#0B1938" stroke="#00E5FF" stroke-width="2"/>
+                <!-- Red/Blue Wires on Top -->
+                <path d="M 25 15 Q 40 -5 55 15" fill="none" stroke="#EF4444" stroke-width="3"/>
+                <path d="M 45 15 Q 60 -8 75 15" fill="none" stroke="#00E5FF" stroke-width="3"/>
+                <!-- Yellow Robot Wheels -->
+                <circle cx="22" cy="50" r="14" fill="#FFD000" stroke="#0B1938" stroke-width="3"/>
+                <circle cx="22" cy="50" r="5" fill="#0B1938"/>
+                <circle cx="78" cy="50" r="14" fill="#FFD000" stroke="#0B1938" stroke-width="3"/>
+                <circle cx="78" cy="50" r="5" fill="#0B1938"/>
+              </g>
+
+              <!-- Laptop with Gear Logo (Right of Desk) -->
+              <g transform="translate(230, 225)">
+                <polygon points="15,0 125,0 112,78 2,78" fill="#1D4ED8" stroke="#93C5FD" stroke-width="3" rx="6"/>
+                <circle cx="64" cy="39" r="14" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-dasharray="5 3"/>
+                <circle cx="64" cy="39" r="5" fill="#00E5FF"/>
+                <rect x="-15" y="78" width="135" height="8" rx="4" fill="#CBD5E1"/>
+              </g>
+            </svg>
+
+            <!-- Bottom Caption Inside Hero Visual -->
+            <div class="mt-2 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>کارگاه‌های مجهز رباتیک، هوش مصنوعی و پرینت سه‌بعدی</span>
+              </span>
+              <span class="font-mono text-fatehan-cyan">@fatehan.robot</span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- SECTION 3: 5 CORE DEPARTMENTS (EXACT BANNER PILLARS)      -->
+  <!-- ========================================================= -->
+  <section id="departments" class="py-20 max-w-[1240px] mx-auto px-4 sm:px-6">
+    
+    <!-- Section Header -->
+    <div class="text-center max-w-3xl mx-auto mb-14 space-y-4">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-fatehan-blue/10 text-fatehan-blue text-xs font-extrabold leading-relaxed">
+        <span>⚙️ پنج دپارتمان تخصصی آموزشگاه فاتحان</span>
+      </div>
+      <h2 class="section-title-typo font-black text-fatehan-navy">
+        از ساخت سازه و مدار تا هوش مصنوعی و چاپ سه‌بعدی
+      </h2>
+      <p class="text-slate-600 text-sm sm:text-base body-relaxed-typo">
+        روی هر یک از ۵ رشته زیر کلیک کنید تا سرفصل‌ها، ابزارهای کارگاهی و نمونه‌پروژه‌های دانش‌آموزان در آن بخش را مشاهده نمایید.
+      </p>
+    </div>
+
+    <!-- 5 Pillars Cards Grid (Ordered RTL matching Banner: Robotics, Electronics, 3D Printing, Programming/AI, Mechanics) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+      
+      <!-- 1. رباتیک (Robotics) -->
+      <div onclick="selectDepartment('robotics')" id="dept-card-robotics" class="dept-card cursor-pointer group bg-white rounded-3xl p-6 border-2 border-indigo-600 shadow-card-soft hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden">
+        <div class="absolute top-0 inset-x-0 h-2 bg-indigo-700"></div>
+        <!-- Gear Icon Badge -->
+        <div class="relative w-24 h-24 mb-4 flex items-center justify-center">
+          <svg class="w-full h-full text-indigo-700 dept-gear-ring" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="50" cy="50" r="38" fill="#E0E7FF"/>
+            <circle cx="50" cy="50" r="32" fill="#312E81" stroke="currentColor" stroke-width="4" stroke-dasharray="8 4"/>
+          </svg>
+          <!-- Robotic Arm Icon -->
+          <svg class="w-10 h-10 text-white absolute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-black text-slate-900 mb-1.5 leading-[1.75]">رباتیک</h3>
+        <span class="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 font-bold text-xs mb-3 leading-relaxed">(مبتدی تا پیشرفته)</span>
+        <p class="text-xs text-slate-600 leading-[1.95] mb-4">
+          مونتاژ، کنترل و هدایت انواع ربات‌های جنگجو، مسیریاب، فوتبالیست و هوشمند.
+        </p>
+        <span class="mt-auto text-xs font-extrabold text-indigo-700 group-hover:translate-x-[-4px] transition inline-flex items-center gap-1">
+          <span>مشاهده سرفصل‌ها</span>
+          <span>←</span>
+        </span>
+      </div>
+
+      <!-- 2. الکترونیک (Electronics) -->
+      <div onclick="selectDepartment('electronics')" id="dept-card-electronics" class="dept-card cursor-pointer group bg-white rounded-3xl p-6 border-2 border-slate-200/80 hover:border-emerald-600 shadow-card-soft hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden">
+        <div class="absolute top-0 inset-x-0 h-2 bg-emerald-700"></div>
+        <!-- Gear Icon Badge -->
+        <div class="relative w-24 h-24 mb-4 flex items-center justify-center">
+          <svg class="w-full h-full text-emerald-700 dept-gear-ring" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="50" cy="50" r="38" fill="#DCFCE7"/>
+            <circle cx="50" cy="50" r="32" fill="#15803D" stroke="currentColor" stroke-width="4" stroke-dasharray="8 4"/>
+          </svg>
+          <!-- Microchip Icon -->
+          <svg class="w-10 h-10 text-white absolute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <rect x="6" y="6" width="12" height="12" rx="2" stroke-width="2"/>
+            <rect x="9" y="9" width="6" height="6" stroke-width="2"/>
+            <path stroke-linecap="round" stroke-width="2" d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-black text-slate-900 mb-1.5 leading-[1.75]">الکترونیک</h3>
+        <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs mb-3 leading-relaxed">(مبتدی تا پیشرفته)</span>
+        <p class="text-xs text-slate-600 leading-[1.95] mb-4">
+          طراحی مدار، شناخت سنسورها، لحیم‌کاری ایمن و بردهای هوشمند آردوینو (Arduino).
+        </p>
+        <span class="mt-auto text-xs font-extrabold text-emerald-700 group-hover:translate-x-[-4px] transition inline-flex items-center gap-1">
+          <span>مشاهده سرفصل‌ها</span>
+          <span>←</span>
+        </span>
+      </div>
+
+      <!-- 3. چاپ سه‌بعدی (3D Printing) -->
+      <div onclick="selectDepartment('printing')" id="dept-card-printing" class="dept-card cursor-pointer group bg-white rounded-3xl p-6 border-2 border-slate-200/80 hover:border-orange-600 shadow-card-soft hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden">
+        <div class="absolute top-0 inset-x-0 h-2 bg-orange-700"></div>
+        <!-- Gear Icon Badge -->
+        <div class="relative w-24 h-24 mb-4 flex items-center justify-center">
+          <svg class="w-full h-full text-orange-700 dept-gear-ring" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="50" cy="50" r="38" fill="#FFEDD5"/>
+            <circle cx="50" cy="50" r="32" fill="#C2410C" stroke="currentColor" stroke-width="4" stroke-dasharray="8 4"/>
+          </svg>
+          <!-- 3D Printer Icon -->
+          <svg class="w-10 h-10 text-white absolute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-black text-slate-900 mb-1.5 leading-[1.75]">چاپ سه‌بعدی</h3>
+        <span class="px-3 py-1 rounded-full bg-orange-50 text-orange-700 font-bold text-xs mb-3 leading-relaxed">(مدل‌سازی و طراحی)</span>
+        <p class="text-xs text-slate-600 leading-[1.95] mb-4">
+          مدل‌سازی قطعات مهندسی در کامپیوتر و پرینت سه‌بعدی بدنه ربات توسط خود دانش‌آموز.
+        </p>
+        <span class="mt-auto text-xs font-extrabold text-orange-700 group-hover:translate-x-[-4px] transition inline-flex items-center gap-1">
+          <span>مشاهده سرفصل‌ها</span>
+          <span>←</span>
+        </span>
+      </div>
+
+      <!-- 4. برنامه‌نویسی و هوش مصنوعی (Coding & AI) -->
+      <div onclick="selectDepartment('coding')" id="dept-card-coding" class="dept-card cursor-pointer group bg-white rounded-3xl p-6 border-2 border-slate-200/80 hover:border-blue-600 shadow-card-soft hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden">
+        <div class="absolute top-0 inset-x-0 h-2 bg-blue-700"></div>
+        <!-- Gear Icon Badge -->
+        <div class="relative w-24 h-24 mb-4 flex items-center justify-center">
+          <svg class="w-full h-full text-blue-700 dept-gear-ring" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="50" cy="50" r="38" fill="#DBEAFE"/>
+            <circle cx="50" cy="50" r="32" fill="#1D4ED8" stroke="currentColor" stroke-width="4" stroke-dasharray="8 4"/>
+          </svg>
+          <!-- Monitor & Code Icon -->
+          <svg class="w-10 h-10 text-white absolute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-black text-slate-900 mb-1.5 leading-[1.75]">برنامه‌نویسی</h3>
+        <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-bold text-xs mb-3 leading-relaxed">(کدنویسی و هوش مصنوعی)</span>
+        <p class="text-xs text-slate-600 leading-[1.95] mb-4">
+          آموزش بازی‌سازی با اسکرچ، زبان پایتون، بینایی ماشین و ساخت پروژه‌های هوش مصنوعی.
+        </p>
+        <span class="mt-auto text-xs font-extrabold text-blue-700 group-hover:translate-x-[-4px] transition inline-flex items-center gap-1">
+          <span>مشاهده سرفصل‌ها</span>
+          <span>←</span>
+        </span>
+      </div>
+
+      <!-- 5. مکانیک (Mechanics) -->
+      <div onclick="selectDepartment('mechanics')" id="dept-card-mechanics" class="dept-card cursor-pointer group bg-white rounded-3xl p-6 border-2 border-slate-200/80 hover:border-rose-600 shadow-card-soft hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden">
+        <div class="absolute top-0 inset-x-0 h-2 bg-rose-700"></div>
+        <!-- Gear Icon Badge -->
+        <div class="relative w-24 h-24 mb-4 flex items-center justify-center">
+          <svg class="w-full h-full text-rose-700 dept-gear-ring" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 4"/>
+            <circle cx="50" cy="50" r="38" fill="#FFE4E6"/>
+            <circle cx="50" cy="50" r="32" fill="#BE123C" stroke="currentColor" stroke-width="4" stroke-dasharray="8 4"/>
+          </svg>
+          <!-- Mechanical Gear Icon -->
+          <svg class="w-10 h-10 text-white absolute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <circle cx="12" cy="12" r="3" stroke-width="2"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-black text-slate-900 mb-1.5 leading-[1.75]">مکانیک</h3>
+        <span class="px-3 py-1 rounded-full bg-rose-50 text-rose-700 font-bold text-xs mb-3 leading-relaxed">(ساخت و سازه)</span>
+        <p class="text-xs text-slate-600 leading-[1.95] mb-4">
+          آشنایی عملی با قوانین فیزیک حرکت، گیربکس‌ها، چرخ‌دنده‌ها و ساخت سازه‌های مهندسی.
+        </p>
+        <span class="mt-auto text-xs font-extrabold text-rose-700 group-hover:translate-x-[-4px] transition inline-flex items-center gap-1">
+          <span>مشاهده سرفصل‌ها</span>
+          <span>←</span>
+        </span>
+      </div>
+
+    </div>
+
+    <!-- Dynamic Department Details Drawer (Updates on Card Click) -->
+    <div id="departmentDetailBox" class="mt-8 bg-white rounded-3xl p-6 sm:p-8 border-2 border-indigo-200 shadow-card-soft transition-all">
+      <!-- Populated dynamically via JS -->
+    </div>
+
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- SECTION 4: INTERACTIVE AGE ROADMAP & COURSE FINDER        -->
+  <!-- ========================================================= -->
+  <section id="roadmap" class="py-16 bg-white border-y border-slate-200">
+    <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+      
+      <div class="text-center max-w-3xl mx-auto mb-10 space-y-4">
+        <span class="inline-block px-3.5 py-1 rounded-full bg-fatehan-yellow/30 text-fatehan-navy text-xs font-extrabold leading-relaxed">
+          🎯 نقشه راه استاندارد سنین ۷ تا ۱۸ سال
+        </span>
+        <h2 class="section-title-typo font-black text-fatehan-navy">
+          مسیر یادگیری فرزند شما در کدام رده سنی قرار دارد؟
+        </h2>
+        <p class="text-slate-600 text-sm sm:text-base body-relaxed-typo">
+          آموزش‌های فاتحان دقیقاً متناسب با درک علمی و مهارت‌های حرکتی هر مقطع تحصیلی طراحی شده است:
+        </p>
+      </div>
+
+      <!-- Segmented Age Tabs (Strictly Single-Line Pills) -->
+      <div class="flex flex-wrap justify-center gap-2.5 mb-10 single-line-box">
+        <button onclick="switchAgeTab('kids')" id="age-tab-kids" class="nav-pill-item px-5 py-3 rounded-2xl font-extrabold text-xs sm:text-sm transition bg-fatehan-navy text-white shadow-lg gap-2">
+          <span>🌱 کاشفان کوچک (۷ تا ۱۰ سال)</span>
+        </button>
+        <button onclick="switchAgeTab('teens')" id="age-tab-teens" class="nav-pill-item px-5 py-3 rounded-2xl font-extrabold text-xs sm:text-sm transition bg-slate-100 hover:bg-slate-200 text-slate-700 gap-2">
+          <span>⚡ مهندسان نوجوان (۱۱ تا ۱۴ سال)</span>
+        </button>
+        <button onclick="switchAgeTab('youth')" id="age-tab-youth" class="nav-pill-item px-5 py-3 rounded-2xl font-extrabold text-xs sm:text-sm transition bg-slate-100 hover:bg-slate-200 text-slate-700 gap-2">
+          <span>🏆 فاتحان آینده (۱۵ تا ۱۸ سال)</span>
+        </button>
+      </div>
+
+      <!-- Dynamic Age Roadmap Content -->
+      <div id="ageRoadmapContent" class="bg-fatehan-slate rounded-3xl p-6 sm:p-10 border border-slate-200/90">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- SMART COURSE FINDER WIDGET (هوشمندساز انتخاب دوره) -->
+      <div id="course-finder" class="mt-14 rounded-3xl bg-gradient-to-r from-fatehan-navy via-slate-900 to-fatehan-blue p-6 sm:p-10 text-white shadow-2xl border border-fatehan-cyan/30">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div class="lg:col-span-5 space-y-4">
+            <span class="inline-block px-3 py-1 rounded-full bg-fatehan-cyan/20 text-fatehan-cyan text-xs font-bold leading-relaxed">
+              🤖 دستیار هوشمند انتخاب دوره فاتحان
+            </span>
+            <h3 class="text-xl sm:text-2xl font-black leading-[1.8]">
+              نمی‌دانید کدام رشته برای شروع فرزندتان بهتر است؟
+            </h3>
+            <p class="text-slate-300 text-sm body-relaxed-typo">
+              سن دانش‌آموز و بیشترین علاقه او را انتخاب کنید تا سیستم هوشمند فاتحان بهترین دوره شروع را پیشنهاد دهد:
+            </p>
+          </div>
+
+          <div class="lg:col-span-7 bg-white/10 backdrop-blur-md rounded-2xl p-5 sm:p-6 border border-white/15 space-y-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-fatehan-cyan mb-2">۱. رده سنی دانش‌آموز:</label>
+                <select id="quizAge" onchange="updateQuizRecommendation()" class="w-full rounded-xl bg-slate-900/90 border border-slate-600 text-white px-4 py-3 text-sm font-bold focus:outline-none focus:border-fatehan-cyan">
+                  <option value="7-10">۷ تا ۱۰ سال (دبستان)</option>
+                  <option value="11-14" selected>۱۱ تا ۱۴ سال (متوسطه اول)</option>
+                  <option value="15-18">۱۵ تا ۱۸ سال (متوسطه دوم)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-fatehan-cyan mb-2">۲. بیشترین علاقه و کنجکاوی:</label>
+                <select id="quizInterest" onchange="updateQuizRecommendation()" class="w-full rounded-xl bg-slate-900/90 border border-slate-600 text-white px-4 py-3 text-sm font-bold focus:outline-none focus:border-fatehan-cyan">
+                  <option value="build">ساختن ربات، لگو و مکانیزم‌های حرکتی</option>
+                  <option value="code">کامپیوتر، بازی‌سازی و هوش مصنوعی</option>
+                  <option value="circuit">چراغ‌ها، سنسورها، سیم‌کشی و بردهای الکترونیکی</option>
+                  <option value="3d">طراحی، نقاشی سه‌بعدی و ساخت قطعات با پرینتر</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Recommendation Result Box -->
+            <div id="quizResultBox" class="bg-slate-950/80 rounded-xl p-4 border-r-4 border-fatehan-yellow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div class="text-xs text-fatehan-yellow font-bold mb-1.5 leading-relaxed">پیشنهاد اختصاصی آکادمی فاتحان:</div>
+                <div id="quizResultTitle" class="text-sm sm:text-base font-black text-white leading-[1.8]">دوره جامع رباتیک و الکترونیک هوشمند (سطح نوجوان)</div>
+                <div id="quizResultDesc" class="text-xs text-slate-300 mt-1.5 leading-[1.9]">شروع با ساخت ربات مسیریاب، کار با سنسورهای مادون قرمز و برنامه‌نویسی برد آردوینو.</div>
+              </div>
+              <a href="#contact" onclick="prefillCourseFromQuiz()" class="flex-shrink-0 px-4 py-2.5 rounded-xl bg-fatehan-yellow hover:bg-amber-400 text-fatehan-navy font-extrabold text-xs transition">
+                رزرو مشاوره این دوره ←
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- SECTION 5: INTERACTIVE ROBOT SIMULATOR LAB                -->
+  <!-- ========================================================= -->
+  <section id="simulator" class="py-20 max-w-[1240px] mx-auto px-4 sm:px-6">
+    <div class="bg-fatehan-navy rounded-[32px] p-6 sm:p-10 text-white border-2 border-fatehan-cyan/40 shadow-2xl relative overflow-hidden">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        
+        <!-- Right Info & Command Blocks (6 Cols) -->
+        <div class="lg:col-span-6 space-y-5">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-fatehan-cyan/20 text-fatehan-cyan text-xs font-bold leading-relaxed">
+            <span>🎮 آزمایشگاه تعاملی کدنویسی و رباتیک فاتحان</span>
+          </div>
+          <h2 class="section-title-typo font-black text-white">
+            ربات فاتحان را تا <span class="text-fatehan-yellow">قله افتخار</span> برنامه‌نویسی کن!
+          </h2>
+          <p class="text-slate-300 text-sm body-relaxed-typo">
+            همین حالا طعم آموزش عملی را بچشید! با کلیک روی دستورات زیر، به ربات کوچک فاتحان فرمان بدهید تا از موانع عبور کند و پرچم پیروزی را روی قله روشن کند:
+          </p>
+
+          <!-- Command Buttons -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+            <button onclick="moveSimRobot(0, -1, 'حرکت به بالا ⬆️')" class="px-3 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow transition active:scale-95">
+              <span>⬆️</span><span>قدم به بالا</span>
+            </button>
+            <button onclick="moveSimRobot(0, 1, 'حرکت به پایین ⬇️')" class="px-3 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow transition active:scale-95">
+              <span>⬇️</span><span>قدم به پایین</span>
+            </button>
+            <button onclick="moveSimRobot(-1, 0, 'حرکت به چپ ⬅️')" class="px-3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow transition active:scale-95">
+              <span>⬅️</span><span>قدم به چپ</span>
+            </button>
+            <button onclick="moveSimRobot(1, 0, 'حرکت به راست ➡️')" class="px-3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow transition active:scale-95">
+              <span>➡️</span><span>قدم به راست</span>
+            </button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 pt-1">
+            <button onclick="autoSolveSim()" class="px-4 py-2.5 rounded-xl bg-fatehan-yellow text-fatehan-navy font-extrabold text-xs hover:bg-amber-400 transition">
+              ⚡ اجرای الگوریتم هوشمند خودکار (AI Path)
+            </button>
+            <button onclick="resetSimRobot()" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 font-bold text-xs transition">
+              🔄 شروع مجدد
+            </button>
+          </div>
+
+          <!-- Console Output Log -->
+          <div class="bg-slate-950/90 rounded-2xl p-4 border border-slate-800 font-mono text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-fatehan-cyan"></span>
+              <span id="simStatusText" class="text-fatehan-cyan font-sans font-bold">ربات آماده دریافت فرمان شماست...</span>
+            </div>
+            <span id="simStepsCount" class="text-slate-400">Steps: 0</span>
+          </div>
+        </div>
+
+        <!-- Left 5x4 Grid Board (6 Cols) -->
+        <div class="lg:col-span-6 flex flex-col items-center">
+          <div id="simBoard" class="grid grid-cols-5 gap-2 sm:gap-3 bg-slate-950/90 p-4 sm:p-5 rounded-3xl border-2 border-slate-700 w-full max-w-md aspect-[5/4]">
+            <!-- Populated via JS -->
+          </div>
+          <div class="mt-3 flex items-center gap-5 text-xs text-slate-300">
+            <span class="flex items-center gap-1.5">🤖 <span>ربات کارآموز</span></span>
+            <span class="flex items-center gap-1.5">⚙️ <span>چرخ‌دنده امتیاز</span></span>
+            <span class="flex items-center gap-1.5">⚡ <span>مانع ولتاژ</span></span>
+            <span class="flex items-center gap-1.5">🚩 <span>قله فاتحان</span></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- SECTION 6: WHY FATEHAN + ICONIC BRUSH-STROKE BANNER       -->
+  <!-- ========================================================= -->
+  <section id="why-fatehan" class="py-16 max-w-[1240px] mx-auto px-4 sm:px-6">
+    
+    <!-- 4 Value Propositions directly from the Banner -->
+    <div class="text-center max-w-2xl mx-auto mb-12 space-y-3">
+      <span class="inline-block text-xs font-extrabold text-fatehan-blue bg-fatehan-blue/10 px-3.5 py-1 rounded-full leading-relaxed">🌟 مزایای رقابتی آموزشگاه فاتحان</span>
+      <h2 class="section-title-typo font-black text-fatehan-navy">چرا خانواده‌ها «فاتحان» را انتخاب می‌کنند؟</h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-14">
+      
+      <!-- Feature 1 -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-card-soft hover:-translate-y-1 transition flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-blue-50 text-fatehan-blue flex items-center justify-center mb-4 border border-blue-200">
+            <!-- Growth & Creativity Chart Icon from Banner -->
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+          </div>
+          <h3 class="text-base sm:text-[17px] font-black text-fatehan-navy mb-2.5 leading-[1.8]">تقویت خلاقیت و مهارت حل مسئله</h3>
+          <p class="text-xs sm:text-sm text-slate-600 leading-[1.95]">
+            دانش‌آموزان یاد می‌گیرند در مواجهه با چالش‌های فنی، خودشان راه‌حل‌های خلاقانه طراحی و آزمایش کنند.
+          </p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] font-bold text-fatehan-blue">پرورش تفکر مهندسی و الگوریتمی</div>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-card-soft hover:-translate-y-1 transition flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4 border border-emerald-200">
+            <!-- Shield Check Icon from Banner -->
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <h3 class="text-base sm:text-[17px] font-black text-fatehan-navy mb-2.5 leading-[1.8]">کارگاه‌های مجهز و مدرن</h3>
+          <p class="text-xs sm:text-sm text-slate-600 leading-[1.95]">
+            دسترسی کامل کارآموزان به کیت‌های استاندارد رباتیک، ابزارهای الکترونیک و پرینترهای سه‌بعدی در محیطی ایمن.
+          </p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] font-bold text-emerald-700">مجهزترین مرکز در فاز ۱ اندیشه</div>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-card-soft hover:-translate-y-1 transition flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-purple-50 text-indigo-700 flex items-center justify-center mb-4 border border-purple-200">
+            <!-- Expert Teachers Icon from Banner -->
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-base sm:text-[17px] font-black text-fatehan-navy mb-2.5 leading-[1.8]">اساتید مجرب و متخصص</h3>
+          <p class="text-xs sm:text-sm text-slate-600 leading-[1.95]">
+            تدریس توسط مربیان باسابقه مهندسی و مسلط به روانشناسی آموزش کودک و نوجوان با پشتیبانی مستمر.
+          </p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] font-bold text-indigo-700">همراهی گام‌به‌گام تا مسابقات</div>
+      </div>
+
+      <!-- Feature 4 -->
+      <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-card-soft hover:-translate-y-1 transition flex flex-col justify-between">
+        <div>
+          <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mb-4 border border-amber-200">
+            <!-- Lightbulb Idea Icon from Banner -->
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+          </div>
+          <h3 class="text-base sm:text-[17px] font-black text-fatehan-navy mb-2.5 leading-[1.8]">آموزش کاربردی و پروژه‌محور</h3>
+          <p class="text-xs sm:text-sm text-slate-600 leading-[1.95]">
+            در پایان هر ترم، کارآموز یک پروژه واقعی و قابل لمس (ربات، مدار هوشمند یا نرم‌افزار) را با دستان خود می‌سازد.
+          </p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] font-bold text-amber-700">فکر کن • بساز • کشف کن</div>
+      </div>
+
+    </div>
+
+    <!-- Iconic Navy Brush-Stroke Quote Banner (Exact Replica of Lower Banner Strip) -->
+    <div class="brush-banner rounded-[32px] p-8 sm:p-12 text-white shadow-2xl border-2 border-fatehan-cyan/30 overflow-hidden">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+        <div class="flex items-center gap-5">
+          <!-- Golden Paper Plane Icon with Dashed Trail -->
+          <div class="w-16 h-16 rounded-2xl bg-fatehan-yellow/20 border border-fatehan-yellow flex items-center justify-center flex-shrink-0">
+            <svg class="w-9 h-9 text-fatehan-yellow -rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+          </div>
+          <div class="space-y-1.5">
+            <p class="text-sm sm:text-lg font-bold text-slate-200 leading-[1.85]">
+              رباتیک فقط یک رشته نیست ....
+            </p>
+            <h3 class="text-xl sm:text-3xl font-black text-fatehan-yellow leading-[1.8]">
+              یک مهارت زندگی است .
+            </h3>
+          </div>
+        </div>
+        <a href="#contact" class="px-7 py-4 rounded-2xl bg-fatehan-yellow hover:bg-amber-400 text-fatehan-navy font-black text-sm sm:text-base shadow-yellow-glow transition flex-shrink-0">
+          شروع مسیر موفقیت فرزندتان ←
+        </a>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- SECTION 7: CONSULTATION FORM & CONTACT/LOCATION IN ANDISHEH-->
+  <!-- ========================================================= -->
+  <section id="contact" class="py-20 bg-white border-t border-slate-200">
+    <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
+        
+        <!-- Right Column: Lead Generation / Free Assessment Form (7 Cols) -->
+        <div class="lg:col-span-7 bg-fatehan-slate rounded-[32px] p-6 sm:p-10 border border-slate-200/90 shadow-card-soft flex flex-col justify-between">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-fatehan-yellow/40 text-fatehan-navy text-xs font-black mb-4 leading-relaxed">
+              <span>📞 با ما در ارتباط باشید</span>
+            </div>
+            <h2 class="section-title-typo font-black text-fatehan-navy mb-3">
+              رزرو مشاوره رایگان و جلسه آشنایی با کارگاه
+            </h2>
+            <p class="text-slate-600 text-sm body-relaxed-typo mb-6">
+              مشخصات دانش‌آموز را وارد کنید تا کارشناسان آموزشگاه فاتحان در کمتر از ۲ ساعت با شما تماس بگیرند و بهترین مسیر آموزشی را معرفی کنند.
+            </p>
+
+            <form id="consultationForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1.5">نام و نام خانوادگی دانش‌آموز *</label>
+                  <input type="text" id="studentName" required placeholder="مثلاً: آریا محمدی" class="w-full rounded-xl bg-white border border-slate-300 px-4 py-3 text-sm focus:outline-none focus:border-fatehan-blue focus:ring-2 focus:ring-fatehan-blue/20"/>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1.5">شماره تماس والدین *</label>
+                  <input type="tel" id="parentPhone" required dir="ltr" placeholder="0912..." class="w-full rounded-xl bg-white border border-slate-300 px-4 py-3 text-sm font-mono text-right focus:outline-none focus:border-fatehan-blue focus:ring-2 focus:ring-fatehan-blue/20"/>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1.5">رده سنی دانش‌آموز</label>
+                  <select id="studentAgeGroup" class="w-full rounded-xl bg-white border border-slate-300 px-4 py-3 text-sm font-medium focus:outline-none focus:border-fatehan-blue">
+                    <option value="۷ تا ۱۰ سال (دبستان)">۷ تا ۱۰ سال (دبستان)</option>
+                    <option value="۱۱ تا ۱۴ سال (متوسطه اول)" selected>۱۱ تا ۱۴ سال (متوسطه اول)</option>
+                    <option value="۱۵ تا ۱۸ سال (متوسطه دوم)">۱۵ تا ۱۸ سال (متوسطه دوم)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1.5">دپارتمان مورد علاقه</label>
+                  <select id="selectedDepartmentInput" class="w-full rounded-xl bg-white border border-slate-300 px-4 py-3 text-sm font-medium focus:outline-none focus:border-fatehan-blue">
+                    <option value="رباتیک (مبتدی تا پیشرفته)">رباتیک (مبتدی تا پیشرفته)</option>
+                    <option value="برنامه‌نویسی (کدنویسی و هوش مصنوعی)">برنامه‌نویسی (کدنویسی و هوش مصنوعی)</option>
+                    <option value="الکترونیک (مبتدی تا پیشرفته)">الکترونیک (مبتدی تا پیشرفته)</option>
+                    <option value="چاپ سه‌بعدی (مدل‌سازی و طراحی)">چاپ سه‌بعدی (مدل‌سازی و طراحی)</option>
+                    <option value="مکانیک (ساخت و سازه)">مکانیک (ساخت و سازه)</option>
+                    <option value="نیاز به مشاوره و تعیین سطح دارم">نیاز به مشاوره و تعیین سطح دارم</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">توضیحات تکمیلی (اختیاری)</label>
+                <textarea id="studentNotes" rows="2" placeholder="اگر فرزندتان قبلاً تجربه شرکت در کلاس‌های رباتیک یا کدنویسی را داشته بنویسید..." class="w-full rounded-xl bg-white border border-slate-300 px-4 py-3 text-sm focus:outline-none focus:border-fatehan-blue"></textarea>
+              </div>
+
+              <button type="submit" class="w-full py-4 rounded-2xl bg-fatehan-blue hover:bg-blue-800 text-white font-black text-base shadow-lg transition flex items-center justify-center gap-2">
+                <span>ثبت درخواست مشاوره و تعیین سطح رایگان</span>
+                <svg class="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+              </button>
+            </form>
+
+            <!-- Confirmation Box (Hidden initially) -->
+            <div id="formSuccessAlert" class="hidden mt-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-sm font-bold flex items-center justify-between">
+              <span id="formSuccessText">درخواست شما با موفقیت ثبت شد!</span>
+              <button onclick="document.getElementById('formSuccessAlert').classList.add('hidden')" class="text-xs underline">بستن</button>
+            </div>
+          </div>
+
+          <div class="mt-6 pt-4 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+            <span>✅ جلسه معارفه و استعدادیابی کاملاً رایگان است.</span>
+            <span>📍 حضور در کارگاه با هماهنگی قبلی</span>
+          </div>
+        </div>
+
+        <!-- Left Column: Exact Banner Contact Information & Andisheh Map Card (5 Cols) -->
+        <div class="lg:col-span-5 bg-fatehan-navy text-white rounded-[32px] p-6 sm:p-10 border-2 border-fatehan-cyan/40 shadow-2xl flex flex-col justify-between relative overflow-hidden">
+          
+          <div class="space-y-6 relative z-10">
+            <div class="flex items-center justify-between">
+              <span class="px-3.5 py-1.5 rounded-full bg-fatehan-yellow text-fatehan-navy font-black text-xs leading-relaxed">
+                اطلاعات تماس و آدرس دقیق
+              </span>
+              <span class="font-mono text-xs text-fatehan-cyan">FATEHAN ACADEMY</span>
+            </div>
+
+            <h3 class="text-xl sm:text-2xl font-black text-white leading-[1.85]">
+              منتظر دیدار شما در کارگاه رباتیک فاتحان هستیم!
+            </h3>
+
+            <!-- Phone Numbers Box (Exact Numbers from Banner) -->
+            <div class="space-y-3">
+              <div class="text-xs font-bold text-fatehan-cyan">شماره‌های تماس مستقیم و واتساپ:</div>
+              
+              <div class="flex items-center justify-between bg-white/10 hover:bg-white/15 p-3.5 rounded-2xl border border-white/15 transition">
+                <a href="tel:09103116753" class="flex items-center gap-3">
+                  <span class="w-10 h-10 rounded-xl bg-fatehan-yellow text-fatehan-navy flex items-center justify-center font-black">📞</span>
+                  <div>
+                    <div dir="ltr" class="text-lg font-mono font-black text-white tracking-wider">0910 311 67 53</div>
+                    <div class="text-[11px] text-slate-300">خط ۱ مشاوره و ثبت‌نام (۰۹۱۰۳۱۱۶۷۵۳)</div>
+                  </div>
+                </a>
+                <button onclick="copyText('09103116753', 'شماره ۰۹۱۰۳۱۱۶۷۵۳ کپی شد')" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-fatehan-cyan hover:text-fatehan-navy text-xs font-bold transition">
+                  کپی
+                </button>
+              </div>
+
+              <div class="flex items-center justify-between bg-white/10 hover:bg-white/15 p-3.5 rounded-2xl border border-white/15 transition">
+                <a href="tel:09372335026" class="flex items-center gap-3">
+                  <span class="w-10 h-10 rounded-xl bg-fatehan-cyan text-fatehan-navy flex items-center justify-center font-black">📱</span>
+                  <div>
+                    <div dir="ltr" class="text-lg font-mono font-black text-white tracking-wider">0937 233 50 26</div>
+                    <div class="text-[11px] text-slate-300">خط ۲ پشتیبانی کارگاه (۰۹۳۷۲۳۳۵۰۲۶)</div>
+                  </div>
+                </a>
+                <button onclick="copyText('09372335026', 'شماره ۰۹۳۷۲۳۳۵۰۲۶ کپی شد')" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-fatehan-cyan hover:text-fatehan-navy text-xs font-bold transition">
+                  کپی
+                </button>
+              </div>
+            </div>
+
+            <!-- Instagram Handle from Banner -->
+            <div class="bg-gradient-to-l from-pink-600/30 via-purple-600/30 to-indigo-600/30 p-4 rounded-2xl border border-pink-400/40 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                  <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                </div>
+                <div>
+                  <div dir="ltr" class="font-mono font-bold text-sm text-white">@fatehan.robot</div>
+                  <div class="text-[11px] text-slate-300">ویدیوهای کارگاه و ساخت ربات‌ها در اینستاگرام</div>
+                </div>
+              </div>
+              <button onclick="copyText('fatehan.robot', 'آیدی اینستاگرام @fatehan.robot کپی شد')" class="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-xs font-bold">
+                کپی آیدی
+              </button>
+            </div>
+
+            <!-- Physical Address in Andisheh Phase 1 (Exact Banner Text) -->
+            <div class="bg-slate-900/90 p-4 rounded-2xl border border-slate-700 space-y-3">
+              <div class="flex items-start gap-3">
+                <span class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0 mt-0.5">📍</span>
+                <div>
+                  <div class="text-xs font-bold text-fatehan-yellow mb-1">آدرس آموزشگاه رباتیک فاتحان:</div>
+                  <p class="text-sm font-semibold text-white leading-relaxed">
+                    اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                <span class="text-slate-400">ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)</span>
+                <button onclick="copyText('اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲', 'آدرس آموزشگاه کپی شد')" class="text-fatehan-cyan hover:underline font-bold">
+                  کپی آدرس
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- SECTION 8: FOOTER                                         -->
+  <!-- ========================================================= -->
+  <footer class="bg-fatehan-darker text-slate-300 pt-14 pb-12 border-t-2 border-fatehan-cyan">
+    <div class="max-w-[1240px] mx-auto px-4 sm:px-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-10 border-b border-slate-800">
+        
+        <!-- Col 1: Brand Info (5 Cols) -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-fatehan-blue flex items-center justify-center text-fatehan-cyan font-black border border-fatehan-cyan/50">
+              ف
+            </div>
+            <div>
+              <h4 class="text-xl font-black text-white">آموزشگاه رباتیک و هوش مصنوعی فاتحان</h4>
+              <p class="text-xs text-fatehan-cyan">کارآموزان امروز ، فاتحان فردا</p>
+            </div>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-md">
+            مجهزترین مرکز تخصصی آموزش رباتیک، برنامه‌نویسی، هوش مصنوعی، الکترونیک، چاپ سه‌بعدی و مکانیک در اندیشه؛ با هدف پرورش نسل خلاق و کارآفرین فردا.
+          </p>
+          <div class="inline-flex items-center gap-2 text-xs font-mono text-fatehan-yellow bg-white/5 px-3 py-1.5 rounded-lg">
+            <span>DREAM • BUILD • CREATE</span>
+            <span>|</span>
+            <span>فکر کن، بساز، کشف کن</span>
+          </div>
+        </div>
+
+        <!-- Col 2: 5 Departments (3 Cols) -->
+        <div class="lg:col-span-3 space-y-3">
+          <h5 class="text-sm font-black text-white">دپارتمان‌های تخصصی</h5>
+          <ul class="space-y-2 text-xs sm:text-sm">
+            <li><a href="#departments" onclick="selectDepartment('robotics')" class="hover:text-fatehan-cyan transition">• دپارتمان رباتیک (مبتدی تا پیشرفته)</a></li>
+            <li><a href="#departments" onclick="selectDepartment('coding')" class="hover:text-fatehan-cyan transition">• دپارتمان برنامه‌نویسی و هوش مصنوعی</a></li>
+            <li><a href="#departments" onclick="selectDepartment('electronics')" class="hover:text-fatehan-cyan transition">• دپارتمان الکترونیک (مبتدی تا پیشرفته)</a></li>
+            <li><a href="#departments" onclick="selectDepartment('printing')" class="hover:text-fatehan-cyan transition">• دپارتمان چاپ سه‌بعدی (مدل‌سازی و طراحی)</a></li>
+            <li><a href="#departments" onclick="selectDepartment('mechanics')" class="hover:text-fatehan-cyan transition">• دپارتمان مکانیک (ساخت و سازه)</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Quick Contact (4 Cols) -->
+        <div class="lg:col-span-4 space-y-3">
+          <h5 class="text-sm font-black text-white">ارتباط مستقیم با آموزشگاه</h5>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            📍 اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲
+          </p>
+          <div class="space-y-1.5 text-sm font-mono text-white">
+            <div>📞 <a href="tel:09103116753" class="hover:text-fatehan-yellow">0910 311 67 53</a></div>
+            <div>📱 <a href="tel:09372335026" class="hover:text-fatehan-yellow">0937 233 50 26</a></div>
+            <div>📸 <span class="text-fatehan-cyan">@fatehan.robot</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <div>© تمامی حقوق برای «آموزشگاه رباتیک، برنامه‌نویسی و هوش مصنوعی فاتحان» محفوظ است.</div>
+        <button onclick="openDesignSystemModal()" class="text-fatehan-cyan hover:underline">
+          مشاهده مشخصات طراحی فیگما (Figma Design System Blueprint)
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================= -->
+  <!-- MOBILE STICKY BOTTOM ACTION BAR                           -->
+  <!-- ========================================================= -->
+  <div class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 flex items-center gap-3 shadow-2xl">
+    <a href="tel:09103116753" class="flex-1 py-3 rounded-xl bg-fatehan-navy text-white font-bold text-xs flex items-center justify-center gap-2">
+      <span>📞 تماس مستقیم</span>
+      <span dir="ltr" class="font-mono">09103116753</span>
+    </a>
+    <a href="#contact" class="flex-1 py-3 rounded-xl bg-fatehan-yellow text-fatehan-navy font-black text-xs flex items-center justify-center gap-1 shadow-md">
+      <span>🚀 رزرو مشاوره رایگان</span>
+    </a>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- FLOATING DESIGN SYSTEM INSPECTOR MODAL (FIGMA SPECS)      -->
+  <!-- ========================================================= -->
+  <div id="designSystemModal" class="fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-4">
+        <div>
+          <span class="text-xs font-mono font-bold text-fatehan-blue">FIGMA UI/UX DESIGN TOKENS</span>
+          <h3 class="text-xl sm:text-2xl font-black text-fatehan-navy">سند سیستم طراحی فیگما — آکادمی فاتحان</h3>
+        </div>
+        <button onclick="closeDesignSystemModal()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 font-bold">✕</button>
+      </div>
+
+      <!-- Color Tokens -->
+      <div>
+        <h4 class="text-sm font-black text-slate-800 mb-3">۱. پالت رنگی استخراج‌شده از لوگو و بنر (Color Variables)</h4>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+          <div class="p-3 rounded-2xl bg-[#0B1938] text-white">
+            <div class="font-bold">Deep Navy</div>
+            <div class="font-mono text-[11px] opacity-80">#0B1938</div>
+          </div>
+          <div class="p-3 rounded-2xl bg-[#1B4DDB] text-white">
+            <div class="font-bold">Tech Blue</div>
+            <div class="font-mono text-[11px] opacity-80">#1B4DDB</div>
+          </div>
+          <div class="p-3 rounded-2xl bg-[#00E5FF] text-slate-900">
+            <div class="font-bold">Cyber Cyan</div>
+            <div class="font-mono text-[11px] opacity-80">#00E5FF</div>
+          </div>
+          <div class="p-3 rounded-2xl bg-[#FFD000] text-slate-900">
+            <div class="font-bold">Energy Yellow</div>
+            <div class="font-mono text-[11px] opacity-80">#FFD000</div>
+          </div>
+          <div class="p-3 rounded-2xl bg-[#F4F7FE] text-slate-900 border border-slate-300">
+            <div class="font-bold">Soft Slate</div>
+            <div class="font-mono text-[11px] opacity-80">#F4F7FE</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 Department Accent Tokens -->
+      <div>
+        <h4 class="text-sm font-black text-slate-800 mb-3">۲. رنگ‌های اختصاصی ۵ دپارتمان (Department Pillars)</h4>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+          <div class="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold">رباتیک: #4338CA</div>
+          <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 font-bold">الکترونیک: #15803D</div>
+          <div class="p-2.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-900 font-bold">چاپ سه‌بعدی: #C2410C</div>
+          <div class="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 font-bold">برنامه‌نویسی: #1D4ED8</div>
+          <div class="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 font-bold">مکانیک: #BE123C</div>
+        </div>
+      </div>
+
+      <!-- Grid & Auto-Layout Specs -->
+      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs space-y-2 text-slate-700 leading-relaxed">
+        <div class="font-black text-slate-900 text-sm mb-1">۳. مشخصات گرید و تایپوگرافی بهینه‌شده در فیگما (Refined Typography & Grid)</div>
+        <p>• <strong>Hero Display Title (H1):</strong> Size: <code>37px</code> (Desktop) / <code>25px</code> (Mobile) | Line-Height: <code>1.82</code> (فاصله خطوط باز برای خوانایی کامل نقطه‌ها و سرکش‌های فارسی)</p>
+        <p>• <strong>Section Heading (H2):</strong> Size: <code>29px</code> (Desktop) / <code>22px</code> (Mobile) | Line-Height: <code>1.78</code></p>
+        <p>• <strong>Card Heading (H3) & Body:</strong> Card Title: <code>17px–18px</code> (Line-Height: <code>1.75</code>) | Body Copy: <code>14px–16px</code> (Line-Height: <code>1.95</code>)</p>
+        <p>• <strong>Desktop Frame:</strong> 1440px | Container: 1240px | 12 Columns | Gutter: 24px</p>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="toggleFigmaGrid(); closeDesignSystemModal();" class="px-4 py-2.5 rounded-xl bg-fatehan-blue text-white text-xs font-bold">
+          فعال/غیرفعال کردن خطوط گرید ۱۲ ستونه روی صفحه
+        </button>
+        <button onclick="closeDesignSystemModal()" class="px-4 py-2.5 rounded-xl bg-slate-200 text-slate-800 text-xs font-bold">
+          بستن
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- TOAST NOTIFICATION                                        -->
+  <!-- ========================================================= -->
+  <div id="toastNotification" class="fixed bottom-20 lg:bottom-6 left-6 z-50 hidden bg-fatehan-navy text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-fatehan-cyan flex items-center gap-3 text-xs sm:text-sm font-bold">
+    <span class="w-2.5 h-2.5 rounded-full bg-fatehan-cyan"></span>
+    <span id="toastMessage">انجام شد!</span>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- INTERACTIVE JAVASCRIPT LOGIC                              -->
+  <!-- ========================================================= -->
+  <script>
+    // ---------------------------------------------------------
+    // 1. DEPARTMENT DATA & INTERACTIVE DRAWER
+    // ---------------------------------------------------------
+    const departmentsData = {
+      robotics: {
+        title: 'دپارتمان رباتیک (مبتدی تا پیشرفته)',
+        subtitle: 'ساخت، مونتاژ و هدایت ربات‌های مسابقه‌ای و هوشمند',
+        badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+        borderColor: 'border-indigo-500',
+        buttonColor: 'bg-indigo-700 hover:bg-indigo-800',
+        description: 'در دپارتمان رباتیک فاتحان، کارآموزان از ساخت ربات‌های مکانیکی ساده شروع کرده و گام‌به‌گام به طراحی ربات‌های هوشمند مسیریاب، فوتبالیست، جنگجو و حل‌کننده ماز برای شرکت در المپیادهای کشوری می‌رسند.',
+        levels: ['ترم ۱ و ۲: رباتیک پایه و مکانیزم‌های حرکتی', 'ترم ۳ و ۴: ربات‌های سنسوردار (مسیریاب و تعقیب نور)', 'ترم ۵ به بالا: رباتیک پیشرفته، بازوهای صنعتی و مسابقات'],
+        projects: ['ربات فوتبالیست کنترلی', 'ربات مسیریاب هوشمند نوری', 'ربات آتش‌نشان و تشخیص مانع اولتراسونیک'],
+        tools: 'کیت‌های استاندارد سازه، موتورهای گیربکس‌دار، سنسورهای مادون قرمز و اولتراسونیک'
+      },
+      electronics: {
+        title: 'دپارتمان الکترونیک (مبتدی تا پیشرفته)',
+        subtitle: 'شناخت قطعات، طراحی مدار، سنسورها و بردهای هوشمند آردوینو',
+        badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+        borderColor: 'border-emerald-500',
+        buttonColor: 'bg-emerald-700 hover:bg-emerald-800',
+        description: 'الکترونیک قلب تپنده هر ربات است. دانش‌آموزان در کارگاه مجهز فاتحان بدون خطر با بردبورد، مقاومت، ترانزیستور، انواع سنسورهای محیطی و میکروکنترلرهای Arduino کار می‌کنند و مدارهای هوشمند می‌سازند.',
+        levels: ['سطح مقدماتی: مبانی جریان، ولتاژ و بستن مدار روی بردبورد', 'سطح متوسطه: کار با سنسورهای دما، نور، صدا و نمایشگرها', 'سطح پیشرفته: اینترنت اشیاء (IoT)، خانه هوشمند و طراحی PCB'],
+        projects: ['سیستم دزدگیر لیزری و تشخیص حرکت', 'گلدان هوشمند با سنجش رطوبت خاک', 'کنترل روشنایی خانه با موبایل و ماژول وای‌فای'],
+        tools: 'بردبورد، مولتی‌متر، کیت کامل سنسورها، بردهای Arduino Uno و ESP32'
+      },
+      printing: {
+        title: 'دپارتمان چاپ سه‌بعدی (مدل‌سازی و طراحی)',
+        subtitle: 'تبدیل ایده‌های ذهنی به قطعات واقعی با پرینترهای سه‌بعدی کارگاه',
+        badgeColor: 'bg-orange-100 text-orange-800 border-orange-300',
+        borderColor: 'border-orange-500',
+        buttonColor: 'bg-orange-700 hover:bg-orange-800',
+        description: 'به جای استفاده از قطعات آماده، کارآموزان فاتحان یاد می‌گیرند قطعات اختصاصی ربات یا ایده‌های خود را در نرم‌افزارهای طراحی سه‌بعدی مدل‌سازی کنند و مستقیماً با پرینترهای سه‌بعدی آموزشگاه آن‌ها را چاپ و لمس کنند!',
+        levels: ['گام اول: تفکر فضایی و طراحی سه‌بعدی مقدماتی (Tinkercad)', 'گام دوم: طراحی مهندسی قطعات دقیق و چرخ‌دنده‌ها (Fusion / SolidWorks)', 'گام سوم: آماده‌سازی فایل (Slicing) و اپراتوری پرینتر سه‌بعدی'],
+        projects: ['طراحی و چاپ شاسی اختصاصی ربات', 'ساخت مکانیزم چرخ‌دنده سیاره‌ای', 'طراحی سرکلیدی، گجت‌های رومیزی و قطعات مفصلی'],
+        tools: 'نرم‌افزارهای CAD، اسلایسر Ultimaker Cura و پرینترهای سه‌بعدی FDM کارگاه'
+      },
+      coding: {
+        title: 'دپارتمان برنامه‌نویسی (کدنویسی و هوش مصنوعی)',
+        subtitle: 'از بازی‌سازی با اسکرچ تا پایتون و پروژه‌های هوش مصنوعی ویژه دانش‌آموزان',
+        badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
+        borderColor: 'border-blue-500',
+        buttonColor: 'bg-blue-700 hover:bg-blue-800',
+        description: 'مغز متفکر ربات‌ها با کدنویسی شکل می‌گیرد. ما آموزش را از برنامه‌نویسی بلوکی و ساخت بازی‌های دو بعدی آغاز می‌کنیم و دانش‌آموزان را به دنیای زبان قدرتمند پایتون (Python) و هوش مصنوعی (تشخیص تصویر و صدا) می‌بریم.',
+        levels: ['سطح کودک: تفکر الگوریتمی و بازی‌سازی با Scratch', 'سطح نوجوان: برنامه‌نویسی پایتون (Python) و ساخت اپلیکیشن', 'سطح پیشرفته: هوش مصنوعی، بینایی ماشین (OpenCV) و ربات‌های هوشمند'],
+        projects: ['طراحی بازی کامپیوتری دوبعدی', 'برنامه تشخیص چهره و حرکات دست با وب‌کم', 'چت‌بات هوشمند و دستیار صوتی به زبان پایتون'],
+        tools: 'Scratch 3.0, Python, Thonny IDE, کتابخانه‌های هوش مصنوعی و بینایی ماشین'
+      },
+      mechanics: {
+        title: 'دپارتمان مکانیک (ساخت و سازه)',
+        subtitle: 'درک عملی قوانین فیزیک، انتقال قدرت، اهرم‌ها و سازه‌های مهندسی',
+        badgeColor: 'bg-rose-100 text-rose-800 border-rose-300',
+        borderColor: 'border-rose-500',
+        buttonColor: 'bg-rose-700 hover:bg-rose-800',
+        description: 'بدون یک سازه مکانیکی اصولی، هیچ رباتی نمی‌تواند حرکت دقیقی داشته باشد. در این بخش، دانش‌آموزان با نسبت دور چرخ‌دنده‌ها، افزایش گشتاور یا سرعت، سیستم‌های تعلیق و ساخت بازوهای مکانیکی آشنا می‌شوند.',
+        levels: ['مقدماتی: ماشین‌های ساده، اهرم‌ها، قرقره‌ها و چرخ و محور', 'متوسطه: سیستم‌های چرخ‌دنده، گیربکس‌ها و تبدیل حرکت چرخشی به خطی', 'پیشرفته: طراحی شاسی ربات‌های سنگین، جرثقیل و بازوهای هیدرولیکی/موتوری'],
+        projects: ['ساخت منجنیق و جرثقیل مهندسی با گیربکس', 'طراحی ربات چهارپا (راه‌رونده مکانیکی)', 'ساخت گیربکس قدرتی برای ربات‌های کشنده'],
+        tools: 'پکیج‌های سازه مکانیکی، انواع چرخ‌دنده‌های ساده و حلزونی، شفت و کوپلینگ‌ها'
+      }
+    };
+
+    function selectDepartment(key) {
+      const data = departmentsData[key];
+      if (!data) return;
+
+      // Update active card border highlight
+      ['robotics', 'electronics', 'printing', 'coding', 'mechanics'].forEach(k => {
+        const card = document.getElementById('dept-card-' + k);
+        if (card) {
+          if (k === key) {
+            card.classList.add('ring-4', 'ring-fatehan-cyan/50', '-translate-y-1');
+          } else {
+            card.classList.remove('ring-4', 'ring-fatehan-cyan/50', '-translate-y-1');
+          }
+        }
+      });
+
+      const box = document.getElementById('departmentDetailBox');
+      box.innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div class="lg:col-span-7 space-y-4">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold border leading-relaxed ${data.badgeColor}">
+              <span>سرفصل و جزئیات دپارتمان انتخابی</span>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-black text-fatehan-navy leading-[1.8]">${data.title}</h3>
+            <p class="text-sm font-bold text-slate-500 leading-[1.85]">${data.subtitle}</p>
+            <p class="text-sm sm:text-base text-slate-700 leading-[1.95]">${data.description}</p>
+            
+            <div class="pt-2">
+              <div class="text-xs font-black text-fatehan-navy mb-2.5 leading-relaxed">مراحل پیشرفت کارآموز در این دپارتمان:</div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                ${data.levels.map((lvl, idx) => `
+                  <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 leading-[1.85]">
+                    <span class="inline-block w-5 h-5 rounded-full bg-fatehan-navy text-fatehan-yellow text-center leading-5 ml-1.5">${idx + 1}</span>
+                    ${lvl}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 bg-fatehan-slate rounded-2xl p-5 sm:p-6 border border-slate-200/90 space-y-4">
+            <div>
+              <div class="text-xs font-black text-fatehan-blue mb-2.5 leading-relaxed">🛠️ نمونه‌پروژه‌هایی که دانش‌آموز می‌سازد:</div>
+              <ul class="space-y-2.5 text-xs sm:text-sm font-bold text-slate-800 leading-[1.85]">
+                ${data.projects.map(p => `<li class="flex items-center gap-2"><span class="text-emerald-600">✔</span><span>${p}</span></li>`).join('')}
+              </ul>
+            </div>
+            <div class="pt-3 border-t border-slate-200 text-xs text-slate-600 leading-[1.9]">
+              <strong class="text-slate-900">ابزارهای کارگاهی:</strong> ${data.tools}
+            </div>
+            <a href="#contact" onclick="document.getElementById('selectedDepartmentInput').value='${data.title}'" class="block w-full text-center py-3.5 rounded-xl text-white font-extrabold text-xs sm:text-sm shadow transition ${data.buttonColor}">
+              ثبت‌نام و رزرو مشاوره رایگان برای ${data.title} ←
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    // ---------------------------------------------------------
+    // 2. AGE ROADMAP TABS
+    // ---------------------------------------------------------
+    const ageRoadmaps = {
+      kids: {
+        title: 'مسیر کاشفان کوچک (۷ تا ۱۰ سال — مقطع دبستان)',
+        goal: 'هدف: شکوفایی خلاقیت، تقویت مهارت دست‌ورزی، درک مفاهیم پایه مکانیک و ورود شیرین به دنیای الگوریتم.',
+        steps: [
+          { step: 'گام ۱', name: 'مکانیک و سازه خلاق', desc: 'آشنایی با چرخ‌دنده‌ها، اهرم‌ها و ساخت سازه‌های متحرک هیجان‌انگیز.' },
+          { step: 'گام ۲', name: 'الکترونیک مقدماتی و ایمن', desc: 'شناخت باتری، موتور، کلید و ساخت اولین ربات‌های نوری و حرکتی.' },
+          { step: 'گام ۳', name: 'کدنویسی تصویری (Scratch)', desc: 'ساخت انیمیشن و بازی‌های دوبعدی با بلوک‌های رنگی بدون نیاز به تایپ انگلیسی.' },
+          { step: 'گام ۴', name: 'پروژه ربات مسابقه‌ای مقدماتی', desc: 'ساخت ربات فوتبالیست و شرکت در چالش‌های گروهی کارگاه فاتحان.' }
+        ]
+      },
+      teens: {
+        title: 'مسیر مهندسان نوجوان (۱۱ تا ۱۴ سال — متوسطه اول)',
+        goal: 'هدف: تسلط بر طراحی مدار، برنامه‌نویسی بردهای هوشمند، مدل‌سازی سه‌بعدی و ساخت ربات‌های خودمختار.',
+        steps: [
+          { step: 'گام ۱', name: 'الکترونیک کاربردی و سنسورها', desc: 'بستن مدارهای واقعی روی بردبورد و کار با سنسورهای مسافت، نور و دما.' },
+          { step: 'گام ۲', name: 'طراحی و چاپ سه‌بعدی (3D Print)', desc: 'طراحی قطعات اختصاصی بدنه ربات در کامپیوتر و پرینت واقعی آن‌ها در کارگاه.' },
+          { step: 'گام ۳', name: 'بردهای هوشمند آردوینو (Arduino)', desc: 'کدنویسی به زبان C/C++ و پایتون برای کنترل هوشمند موتورها و سنسورها.' },
+          { step: 'گام ۴', name: 'ساخت ربات‌های هوشمند المپیادی', desc: 'طراحی ربات مسیریاب، حل ماز و آمادگی برای مسابقات ملی رباتیک.' }
+        ]
+      },
+      youth: {
+        title: 'مسیر فاتحان آینده (۱۵ تا ۱۸ سال — متوسطه دوم)',
+        goal: 'هدف: ورود حرفه‌ای به مهندسی رباتیک، برنامه‌نویسی پایتون، هوش مصنوعی (AI) و ساخت نمونه‌های اولیه صنعتی.',
+        steps: [
+          { step: 'گام ۱', name: 'برنامه‌نویسی پیشرفته پایتون', desc: 'تسلط کامل بر ساختار داده‌ها، الگوریتم‌ها و توسعه نرم‌افزار با Python.' },
+          { step: 'گام ۲', name: 'هوش مصنوعی و بینایی ماشین', desc: 'پردازش تصویر با OpenCV، تشخیص چهره، اشیاء و فرامین صوتی.' },
+          { step: 'گام ۳', name: 'اینترنت اشیاء (IoT) و مکاترونیک', desc: 'اتصال بردهای پیشرفته به اینترنت، طراحی PCB و ساخت بازوهای رباتیک.' },
+          { step: 'گام ۴', name: 'پروژه نهایی و رزومه علمی', desc: 'ساخت یک محصول هوشمند کامل برای جشنواره‌های خوارزمی و المپیادها.' }
+        ]
+      }
+    };
+
+    function switchAgeTab(tabKey) {
+      const data = ageRoadmaps[tabKey];
+      if (!data) return;
+
+      ['kids', 'teens', 'youth'].forEach(k => {
+        const btn = document.getElementById('age-tab-' + k);
+        if (k === tabKey) {
+          btn.className = 'nav-pill-item px-5 py-3 rounded-2xl font-extrabold text-xs sm:text-sm transition bg-fatehan-navy text-white shadow-lg gap-2';
+        } else {
+          btn.className = 'nav-pill-item px-5 py-3 rounded-2xl font-extrabold text-xs sm:text-sm transition bg-slate-100 hover:bg-slate-200 text-slate-700 gap-2';
+        }
+      });
+
+      const container = document.getElementById('ageRoadmapContent');
+      container.innerHTML = `
+        <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+          <div class="space-y-1.5">
+            <h3 class="text-lg sm:text-xl font-black text-fatehan-navy leading-[1.8]">${data.title}</h3>
+            <p class="text-xs sm:text-sm text-slate-600 leading-[1.9]">${data.goal}</p>
+          </div>
+          <a href="#contact" class="px-5 py-2.5 rounded-xl bg-fatehan-blue text-white font-bold text-xs sm:text-sm hover:bg-blue-800 transition self-start sm:self-auto">
+            تعیین سطح رایگان این رده سنی ←
+          </a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          ${data.steps.map((s, i) => `
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-sm relative">
+              <div class="flex items-center justify-between mb-3">
+                <span class="px-2.5 py-1 rounded-lg bg-fatehan-yellow/40 text-fatehan-navy font-black text-xs leading-relaxed">${s.step}</span>
+                <span class="text-xs font-mono text-slate-400">0${i + 1} / 04</span>
+              </div>
+              <h4 class="text-sm sm:text-base font-black text-fatehan-navy mb-2 leading-[1.8]">${s.name}</h4>
+              <p class="text-xs text-slate-600 leading-[1.95]">${s.desc}</p>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // ---------------------------------------------------------
+    // 3. SMART COURSE FINDER QUIZ LOGIC
+    // ---------------------------------------------------------
+    function updateQuizRecommendation() {
+      const age = document.getElementById('quizAge').value;
+      const interest = document.getElementById('quizInterest').value;
+      const titleEl = document.getElementById('quizResultTitle');
+      const descEl = document.getElementById('quizResultDesc');
+
+      let title = '';
+      let desc = '';
+
+      if (interest === 'build') {
+        title = age === '7-10' 
+          ? 'دوره رباتیک پایه و مکانیک خلاق (ساخت و سازه)' 
+          : 'دوره جامع مهندسی رباتیک و مکانیزم‌های مسابقه‌ای';
+        desc = 'تمرکز بر طراحی شاسی، سیستم‌های انتقال قدرت، چرخ‌دنده‌ها و ساخت ربات‌های متحرک.';
+      } else if (interest === 'code') {
+        title = age === '7-10'
+          ? 'دوره بازی‌سازی و تفکر الگوریتمی با اسکرچ (Scratch)'
+          : 'دوره برنامه‌نویسی پایتون (Python) و هوش مصنوعی';
+        desc = 'آموزش پروژه‌محور کدنویسی، ساخت بازی و پیاده‌سازی الگوریتم‌های هوش مصنوعی.';
+      } else if (interest === 'circuit') {
+        title = age === '7-10'
+          ? 'دوره الکترونیک مقدماتی و مدارهای سنسوردار'
+          : 'دوره تخصصی الکترونیک و بردهای هوشمند آردوینو (Arduino)';
+        desc = 'آشنایی عملی با قطعات الکترونیکی، سنسورهای نوری و اولتراسونیک و ساخت گجت‌های هوشمند.';
+      } else {
+        title = 'دوره طراحی مهندسی و چاپ سه‌بعدی (3D Printing)';
+        desc = 'مدل‌سازی قطعات در نرم‌افزار سه‌بعدی و پرینت واقعی آن‌ها با پرینترهای سه‌بعدی کارگاه فاتحان.';
+      }
+
+      titleEl.textContent = title;
+      descEl.textContent = desc;
+    }
+
+    function prefillCourseFromQuiz() {
+      const recTitle = document.getElementById('quizResultTitle').textContent;
+      const notes = document.getElementById('studentNotes');
+      notes.value = 'پیشنهاد هوشمند سیستم: ' + recTitle;
+      showToast('دوره پیشنهادی در فرم مشاوره درج شد!');
+    }
+
+    // ---------------------------------------------------------
+    // 4. INTERACTIVE ROBOT SIMULATOR LAB (5x4 Grid)
+    // ---------------------------------------------------------
+    let robotPos = { x: 0, y: 3 };
+    const flagPos = { x: 4, y: 0 };
+    const obstacles = [{ x: 1, y: 3 }, { x: 2, y: 1 }, { x: 3, y: 2 }];
+    const gears = [{ x: 1, y: 1, collected: false }, { x: 3, y: 0, collected: false }];
+    let simSteps = 0;
+
+    function renderSimBoard() {
+      const board = document.getElementById('simBoard');
+      board.innerHTML = '';
+
+      for (let y = 0; y < 4; y++) {
+        for (let x = 0; x < 5; x++) {
+          const isRobot = robotPos.x === x && robotPos.y === y;
+          const isFlag = flagPos.x === x && flagPos.y === y;
+          const isObs = obstacles.some(o => o.x === x && o.y === y);
+          const gearObj = gears.find(g => g.x === x && g.y === y && !g.collected);
+
+          let cellClasses = 'rounded-2xl flex items-center justify-center text-2xl sm:text-3xl border transition-all duration-300 select-none ';
+          let content = '';
+
+          if (isRobot) {
+            cellClasses += 'bg-fatehan-cyan/25 border-fatehan-cyan shadow-cyan-glow scale-105';
+            content = '🤖';
+          } else if (isFlag) {
+            cellClasses += 'bg-fatehan-yellow/20 border-fatehan-yellow animate-pulse';
+            content = '🚩';
+          } else if (isObs) {
+            cellClasses += 'bg-rose-950/70 border-rose-500/40';
+            content = '⚡';
+          } else if (gearObj) {
+            cellClasses += 'bg-indigo-950/60 border-indigo-400/30';
+            content = '⚙️';
+          } else {
+            cellClasses += 'bg-slate-900/80 border-slate-800';
+            content = '<span class="w-1.5 h-1.5 rounded-full bg-slate-700"></span>';
+          }
+
+          board.innerHTML += `<div class="${cellClasses}">${content}</div>`;
+        }
+      }
+    }
+
+    function moveSimRobot(dx, dy, actionName) {
+      const nx = robotPos.x + dx;
+      const ny = robotPos.y + dy;
+      const statusEl = document.getElementById('simStatusText');
+
+      if (nx < 0 || nx > 4 || ny < 0 || ny > 3) {
+        statusEl.textContent = '⚠️ خارج از محدوده کارگاه! مسیر دیگری انتخاب کنید.';
+        statusEl.className = 'text-amber-400 font-sans font-bold';
+        return;
+      }
+
+      if (obstacles.some(o => o.x === nx && o.y === ny)) {
+        statusEl.textContent = '⚡ مانع ولتاژ! ربات از برخورد جلوگیری کرد.';
+        statusEl.className = 'text-rose-400 font-sans font-bold';
+        return;
+      }
+
+      robotPos = { x: nx, y: ny };
+      simSteps++;
+      document.getElementById('simStepsCount').textContent = 'Steps: ' + simSteps;
+
+      const foundGear = gears.find(g => g.x === nx && g.y === ny && !g.collected);
+      if (foundGear) {
+        foundGear.collected = true;
+        statusEl.textContent = '⚙️ عالی! یک چرخ‌دنده مهارت دریافت شد!';
+        statusEl.className = 'text-fatehan-yellow font-sans font-bold';
+      } else if (nx === flagPos.x && ny === flagPos.y) {
+        statusEl.textContent = '🏆 آفرین! ربات فاتحان به قله افتخار رسید!';
+        statusEl.className = 'text-emerald-400 font-sans font-bold';
+        showToast('تبریک! ماموریت ربات فاتحان با موفقیت انجام شد 🚩');
+      } else {
+        statusEl.textContent = 'فرمان اجرا شد: ' + actionName;
+        statusEl.className = 'text-fatehan-cyan font-sans font-bold';
+      }
+
+      renderSimBoard();
+    }
+
+    function resetSimRobot() {
+      robotPos = { x: 0, y: 3 };
+      simSteps = 0;
+      gears.forEach(g => g.collected = false);
+      document.getElementById('simStepsCount').textContent = 'Steps: 0';
+      const statusEl = document.getElementById('simStatusText');
+      statusEl.textContent = 'ربات در نقطه شروع قرار گرفت.';
+      statusEl.className = 'text-fatehan-cyan font-sans font-bold';
+      renderSimBoard();
+    }
+
+    function autoSolveSim() {
+      resetSimRobot();
+      const path = [
+        [0, -1, 'حرکت خودکار به بالا'],
+        [0, -1, 'حرکت خودکار به بالا'],
+        [1, 0, 'عبور هوشمند و دریافت چرخ‌دنده'],
+        [0, -1, 'حرکت به ردیف قله'],
+        [1, 0, 'حرکت به سمت راست'],
+        [1, 0, 'دریافت چرخ‌دنده دوم'],
+        [1, 0, 'فتح قله فاتحان!']
+      ];
+      path.forEach((step, idx) => {
+        setTimeout(() => {
+          moveSimRobot(step[0], step[1], step[2]);
+        }, (idx + 1) * 360);
+      });
+    }
+
+    // ---------------------------------------------------------
+    // 5. FORM HANDLING, CLIPBOARD & FIGMA GRID OVERLAY
+    // ---------------------------------------------------------
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('studentName').value;
+      const dept = document.getElementById('selectedDepartmentInput').value;
+      const alertBox = document.getElementById('formSuccessAlert');
+      const alertText = document.getElementById('formSuccessText');
+
+      alertText.textContent = `اطلاعات «${name}» برای بخش «${dept}» ثبت شد. مشاوران فاتحان به زودی با شما تماس می‌گیرند.`;
+      alertBox.classList.remove('hidden');
+      showToast('درخواست مشاوره رایگان با موفقیت ثبت شد!');
+      e.target.reset();
+    }
+
+    function copyText(text, msg) {
+      const tempInput = document.createElement('textarea');
+      tempInput.value = text;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      showToast(msg || 'در حافظه کپی شد!');
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toastNotification');
+      const msgEl = document.getElementById('toastMessage');
+      msgEl.textContent = message;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3200);
+    }
+
+    function toggleFigmaGrid() {
+      const overlay = document.getElementById('figmaGridOverlay');
+      const btn = document.getElementById('gridToggleBtn');
+      overlay.classList.toggle('active');
+      const isActive = overlay.classList.contains('active');
+      btn.innerHTML = isActive 
+        ? '<span>Figma 12-Col Grid: ON</span>' 
+        : '<span>Figma 12-Col Grid: OFF</span>';
+    }
+
+    function openDesignSystemModal() {
+      document.getElementById('designSystemModal').classList.remove('hidden');
+    }
+
+    function closeDesignSystemModal() {
+      document.getElementById('designSystemModal').classList.add('hidden');
+    }
+
+    function adjustLineHeight(val) {
+      document.documentElement.style.setProperty('--hero-line-height', val);
+      document.documentElement.style.setProperty('--section-line-height', (val - 0.05).toFixed(2));
+      showToast(`فاصله خطوط تیترها (Line-Height) روی ${val} تنظیم شد`);
+    }
+
+    // Initialize Default Views on Load
+    window.onload = function() {
+      selectDepartment('robotics');
+      switchAgeTab('kids');
+      updateQuizRecommendation();
+      renderSimBoard();
+    };
+  </script>
+</body>
+</html>

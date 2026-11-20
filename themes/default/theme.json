@@ -1,0 +1,20 @@
+{
+  "id": "default",
+  "nameFa": "پوسته استودیویی پیش‌فرض اسکیل ۹۸",
+  "nameEn": "Skill 98 Default Studio Theme",
+  "version": "v2.7.0",
+  "direction": "rtl",
+  "locale": "fa-IR",
+  "fontFamily": "Vazirmatn",
+  "supportedAccents": ["cobalt", "amber", "emerald", "rose", "violet"],
+  "entryPoints": {
+    "header": "src/theme/components/SiteHeader.tsx",
+    "footer": "src/theme/components/SiteFooter.tsx",
+    "mobileNav": "src/theme/components/MobileBottomNav.tsx",
+    "storefront": "src/theme/components/StorefrontView.tsx",
+    "singleProduct": "src/theme/components/SingleProductView.tsx",
+    "magazine": "src/theme/components/ArticlesView.tsx",
+    "dynamicPage": "src/theme/components/DynamicPageView.tsx",
+    "productCard": "src/theme/components/SkillPosterCard.tsx"
+  }
+}

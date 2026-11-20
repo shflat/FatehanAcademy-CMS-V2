@@ -1,0 +1,201 @@
+{
+  "cmsVersion": "v2.7.0",
+  "modules": [
+    {
+      "id": "mod_auth_rbac",
+      "titleFa": "احراز هویت OTP، نشست‌ها و ماتریس دسترسی RBAC (HMAC-SHA256)",
+      "enabled": true,
+      "phase": 1,
+      "dependencies": []
+    },
+    {
+      "id": "mod_catalog_orders",
+      "titleFa": "فروشگاه، محصولات دانلودی (Zero-Leak) / فیزیکی و مدیریت سفارش‌ها",
+      "enabled": true,
+      "phase": 1,
+      "dependencies": ["mod_auth_rbac"]
+    },
+    {
+      "id": "mod_payment_hub",
+      "titleFa": "هاب ۱۶ درگاه پرداخت نقدی شاپرک و اقساطی BNPL",
+      "enabled": true,
+      "phase": 5,
+      "dependencies": ["mod_catalog_orders"]
+    },
+    {
+      "id": "mod_sms_hub",
+      "titleFa": "هاب پیامک ۱۲ اپراتور ایرانی و OTP",
+      "enabled": true,
+      "phase": 5,
+      "dependencies": ["mod_delivery_logs"]
+    },
+    {
+      "id": "mod_inventory_accounting",
+      "titleFa": "انبارداری لحظه‌ای، رزرو موجودی و دفتر کل حسابداری",
+      "enabled": true,
+      "phase": 5,
+      "dependencies": ["mod_catalog_orders"]
+    },
+    {
+      "id": "mod_forms",
+      "titleFa": "فرم‌ها و فرم‌ساز چندمرحله‌ای با صندوق ورودی مجزا",
+      "enabled": true,
+      "phase": 5,
+      "dependencies": []
+    },
+    {
+      "id": "mod_ecommerce_suite",
+      "titleFa": "حمل‌ونقل بومی، فاکتور رسمی A4، علاقه‌مندی و فید ترب/ایمالز",
+      "enabled": true,
+      "phase": 5,
+      "dependencies": ["mod_catalog_orders"]
+    },
+    {
+      "id": "mod_live_chat",
+      "titleFa": "پیام‌ها و تیکت‌های پشتیبانی + ویجت گفتگوی زنده بومی",
+      "enabled": true,
+      "phase": 6,
+      "dependencies": []
+    },
+    {
+      "id": "mod_analytics_gsc",
+      "titleFa": "آنالیتیکس بومی GA4 + Core Web Vitals و سرچ کنسول گوگل",
+      "enabled": true,
+      "phase": 6,
+      "dependencies": []
+    },
+    {
+      "id": "mod_ai_digikala",
+      "titleFa": "ایمپورت دیجی‌کالا و دستیار سئو (یکپارچه‌شده با AI Hub)",
+      "enabled": true,
+      "phase": 6,
+      "dependencies": ["mod_catalog_orders", "mod_ai_hub_agent"]
+    },
+    {
+      "id": "mod_seo_redirects",
+      "titleFa": "کنترل خزنده‌ها (robots.txt / llms.txt) و ریدایرکت ۳۰۱",
+      "enabled": true,
+      "phase": 6,
+      "dependencies": []
+    },
+    {
+      "id": "mod_booking",
+      "titleFa": "رزرو و نوبت‌دهی تقویم شمسی",
+      "enabled": true,
+      "phase": 6,
+      "dependencies": ["mod_sms_hub"]
+    },
+    {
+      "id": "mod_auto_backup",
+      "titleFa": "بکاپ‌گیری کامل Core + mod_* و پاک‌ساز دمو و رسانه بلااستفاده",
+      "enabled": true,
+      "phase": 6,
+      "dependencies": []
+    },
+    {
+      "id": "mod_smart_crm",
+      "titleFa": "CRM هوشمند و پیشنهاد خودکار محصولات به مشتریان",
+      "enabled": true,
+      "phase": 9,
+      "dependencies": ["mod_catalog_orders", "mod_sms_hub"]
+    },
+    {
+      "id": "mod_subscriptions",
+      "titleFa": "مدیریت اشتراک‌های VIP (۱، ۳، ۶ و ۱۲ ماهه)",
+      "enabled": true,
+      "phase": 9,
+      "dependencies": ["mod_catalog_orders", "mod_payment_hub"]
+    },
+    {
+      "id": "mod_academy_suite",
+      "titleFa": "مجموعه جامع آکادمی و آموزش (دپارتمان‌ها، دوره‌ها، شهریه و نقشه راه)",
+      "enabled": false,
+      "phase": 12,
+      "dependencies": []
+    },
+    {
+      "id": "mod_delivery_logs",
+      "titleFa": "لاگ یکپارچه ارسال‌ها (پیامک، وب‌پوش، ربات‌ها و وب‌هوک)",
+      "enabled": true,
+      "phase": 10,
+      "dependencies": []
+    },
+    {
+      "id": "mod_notifications_pwa",
+      "titleFa": "اپلیکیشن وب پیش‌رونده PWA و اعلان‌های وب‌پوش (VAPID)",
+      "enabled": true,
+      "phase": 10,
+      "dependencies": ["mod_delivery_logs"]
+    },
+    {
+      "id": "mod_abandoned_cart",
+      "titleFa": "بازیابی سبد خرید رهاشده با کوپن تخفیف و ارسال پیام",
+      "enabled": false,
+      "phase": 10,
+      "dependencies": ["mod_catalog_orders", "mod_sms_hub", "mod_delivery_logs"]
+    },
+    {
+      "id": "mod_announcements_popups",
+      "titleFa": "نوار اطلاعیه هدر و پاپ‌آپ‌های هوشمند زمان‌دار",
+      "enabled": true,
+      "phase": 10,
+      "dependencies": []
+    },
+    {
+      "id": "mod_reviews_qa",
+      "titleFa": "دیدگاه‌ها، امتیازدهی ستاره‌ای، خریدار تاییدشده و پرسش و پاسخ",
+      "enabled": true,
+      "phase": 10,
+      "dependencies": ["mod_catalog_orders"]
+    },
+    {
+      "id": "mod_wallet_rma",
+      "titleFa": "کیف پول مشتریان، کش‌بک و مدیریت مرجوعی (RMA)",
+      "enabled": false,
+      "phase": 10,
+      "dependencies": ["mod_catalog_orders", "mod_payment_hub"]
+    },
+    {
+      "id": "mod_affiliate",
+      "titleFa": "همکاری در فروش، لینک ارجاعی و مدیریت پورسانت",
+      "enabled": false,
+      "phase": 10,
+      "dependencies": ["mod_catalog_orders"]
+    },
+    {
+      "id": "mod_b2b_compare",
+      "titleFa": "فروش عمده سازمانی B2B، استعلام پیش‌فاکتور و مقایسه محصولات",
+      "enabled": false,
+      "phase": 10,
+      "dependencies": ["mod_catalog_orders"]
+    },
+    {
+      "id": "mod_bots_webhooks",
+      "titleFa": "ربات‌های بله، ایتا، تلگرام و وب‌هوک‌های خروجی امضاشده (HMAC)",
+      "enabled": false,
+      "phase": 10,
+      "dependencies": ["mod_delivery_logs"]
+    },
+    {
+      "id": "mod_maintenance_audit",
+      "titleFa": "حالت تعمیرات (Maintenance Mode) و گزارش ممیزی مدیران (Audit Trail)",
+      "enabled": false,
+      "phase": 10,
+      "dependencies": []
+    },
+    {
+      "id": "mod_i18n",
+      "titleFa": "موتور چندزبانه RTL/LTR (فارسی، انگلیسی، عربی)",
+      "enabled": false,
+      "phase": 10,
+      "dependencies": []
+    },
+    {
+      "id": "mod_ai_hub_agent",
+      "titleFa": "هاب یکپارچه هوش مصنوعی (۳ اسلات) و ایجنت خودکار ۲۴/۷ با حافظه SKILL.md",
+      "enabled": true,
+      "phase": 11,
+      "dependencies": ["mod_live_chat", "mod_delivery_logs"]
+    }
+  ]
+}

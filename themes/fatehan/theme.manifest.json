@@ -1,0 +1,93 @@
+{
+  "id": "fatehan",
+  "name": "Fatehan Robotics Academy Storefront Theme",
+  "nameFa": "پوسته رسمی آکادمی رباتیک، برنامه‌نویسی و هوش مصنوعی فاتحان",
+  "version": "2.0.0",
+  "cmsCoreCompatibility": "^2.0.0",
+  "domain": "fatehanacademy.ir",
+  "direction": "rtl",
+  "locale": "fa-IR",
+  "entry": "./index.ts",
+  "stylesheet": "./styles/fatehan-theme.css",
+  "designTokens": {
+    "background": "#F4F7FE",
+    "primary": "#1d4ed8",
+    "secondary": "#06b6d4",
+    "accent": "#f59e0b",
+    "darkCard": "#0c1427",
+    "headingFont": "YekanBakh",
+    "bodyFont": "IRANSansX",
+    "printFont": "Sahel"
+  },
+  "requiredDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "motion": "^12.23.24",
+    "lucide-react": "^0.546.0",
+    "tailwindcss": "^4.3.3"
+  },
+  "requiredStaticAssets": {
+    "fonts": [
+      "/fonts/IRANSansWeb.woff2",
+      "/fonts/IRANSansWeb_Medium.woff2",
+      "/fonts/IRANSansWeb_Bold.woff2",
+      "/fonts/Estedad-Medium.woff2",
+      "/fonts/Estedad-Bold.woff2",
+      "/fonts/Estedad-Black.woff2",
+      "/fonts/vazirmatn-regular.woff2",
+      "/fonts/vazirmatn-bold.woff2",
+      "/fonts/vazirmatn-extrabold.woff2",
+      "/fonts/vazirmatn-black.woff2",
+      "/fonts/Sahel-Regular.woff2",
+      "/fonts/Sahel-Bold.woff2",
+      "/fonts/Shabnam-Regular-FD.woff2",
+      "/fonts/Shabnam-Medium-FD.woff2",
+      "/fonts/Shabnam-Bold-FD.woff2"
+    ],
+    "images": [
+      "/assets/aistudio/fatehan_logo_transparent.png",
+      "/assets/kits/kit-01.jpg ... /assets/kits/kit-15.jpg",
+      "/assets/blog/blog-01.jpg ... /assets/blog/blog-08.jpg"
+    ]
+  },
+  "routes": [
+    "/",
+    "/courses",
+    "/course/:slug",
+    "/free-courses",
+    "/shop",
+    "/product/:id",
+    "/cart",
+    "/checkout",
+    "/payment-sandbox/:orderId",
+    "/order-received/:orderId",
+    "/calculator",
+    "/lab",
+    "/simulator",
+    "/blog",
+    "/blog/:slug",
+    "/about",
+    "/contact",
+    "/my-account"
+  ],
+  "cmsApiEndpoints": {
+    "bootstrap": "GET /api/v2/storefront/bootstrap",
+    "settings": "GET /api/v2/settings",
+    "menus": "GET /api/v2/menus",
+    "pages": "GET /api/v2/pages",
+    "products": "GET /api/v2/products",
+    "courses": "GET /api/v2/courses",
+    "freeCourses": "GET /api/v2/free-courses",
+    "departments": "GET /api/v2/departments",
+    "posts": "GET /api/v2/posts",
+    "comments": "GET|POST /api/v2/comments",
+    "announcements": "GET /api/v2/announcements",
+    "ideas": "GET|POST /api/v2/ideas",
+    "consultations": "POST /api/v2/consultations",
+    "authSendOtp": "POST /api/v2/auth/send-otp",
+    "authVerifyOtp": "POST /api/v2/auth/verify-otp",
+    "customerAddresses": "GET|POST|DELETE /api/v2/customer/addresses",
+    "paymentRequest": "POST /api/v2/checkout/request",
+    "paymentVerify": "POST /api/v2/checkout/verify"
+  }
+}

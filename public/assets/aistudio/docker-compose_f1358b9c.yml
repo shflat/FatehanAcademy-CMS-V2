@@ -1,0 +1,48 @@
+services:
+  gha24-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gha24-studio
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    
+    # اتصال به شبکه‌های ایزوله‌شده و عمومی فکتوری
+    networks:
+      - ai-public
+      - ai-internal
+
+    volumes:
+      # ذخیره دائمی فایل‌ها و تصاویر آپلود شده
+      - ./uploads:/app/uploads
+      # ذخیره دائمی پایگاه داده SQLite
+      - ./ghabeaks24.db:/app/ghabeaks24.db
+      - ./gha24-studio.db:/app/gha24-studio.db
+
+    labels:
+      - "traefik.enable=true"
+      
+      # مسیریابی بر اساس دامنه مشخص شده
+      - "traefik.http.routers.gha24-studio.rule=Host(`studio.ghabeaks24.ir`)"
+      - "traefik.http.routers.gha24-studio.entrypoints=websecure"
+      
+      # استفاده از resolver اصلی و فعال سرور برای دریافت SSL رایگان Let's Encrypt
+      - "traefik.http.routers.gha24-studio.tls.certresolver=myresolver"
+      
+      # هدایت ترافیک به پورت داخلی Node.js
+      - "traefik.http.services.gha24-studio.loadbalancer.server.port=3000"
+      
+      # مشخص کردن شبکه ارتباطی Traefik با این کانتینر
+      - "traefik.docker.network=ai-public"
+
+volumes:
+  app_uploads:
+    driver: local
+
+networks:
+  ai-public:
+    external: true
+  ai-internal:
+    external: true

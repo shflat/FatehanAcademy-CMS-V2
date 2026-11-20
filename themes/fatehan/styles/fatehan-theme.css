@@ -1,0 +1,369 @@
+/* ============================================================================
+   FATEHAN ROBOTICS ACADEMY — STANDALONE THEME STYLESHEET (CMS v2.5.0)
+   Preserves 100% of original typography, RTL BiDi rules, scroll animations,
+   notification bell shake, official Blue-Cyan theme toggle, and print styles.
+   Scoped under .fatehan-theme-shell so Default Theme & Admin CMS stay isolated.
+   ============================================================================ */
+
+.fatehan-theme-shell {
+  --font-heading: 'YekanBakh', 'IRANSansX', 'Vazirmatn', sans-serif;
+  --font-body: 'IRANSansX', 'Vazirmatn', sans-serif;
+  --font-print: 'Sahel', 'IRANSansX', 'Vazirmatn', sans-serif;
+  --font-sans: var(--font-body);
+}
+
+/* 1. IRANSansX (فونت اصلی بدنه - ایران‌سنس) */
+@font-face {
+  font-family: 'IRANSansX';
+  src: url('/fonts/IRANSansWeb.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IRANSansX';
+  src: url('/fonts/IRANSansWeb_Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IRANSansX';
+  src: url('/fonts/IRANSansWeb_Bold.woff2') format('woff2');
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 2. YekanBakh / Estedad Pro Display (فونت تیتر و هدینگ) */
+@font-face {
+  font-family: 'YekanBakh';
+  src: url('/fonts/Estedad-Medium.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YekanBakh';
+  src: url('/fonts/Estedad-Bold.woff2') format('woff2');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YekanBakh';
+  src: url('/fonts/Estedad-Black.woff2') format('woff2');
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 3. Vazirmatn (فونت وزیرمتن) */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/vazirmatn-regular.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/vazirmatn-bold.woff2') format('woff2');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/vazirmatn-extrabold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/vazirmatn-black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 4. Sahel (فونت ساحل - ویژه چاپ فاکتور رسمی) */
+@font-face {
+  font-family: 'Sahel';
+  src: url('/fonts/Sahel-Regular.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Sahel';
+  src: url('/fonts/Sahel-Bold.woff2') format('woff2');
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 5. Abar / Shabnam Farsi-Digits (فونت نمایشی شبنم/ابر) */
+@font-face {
+  font-family: 'Abar';
+  src: url('/fonts/Shabnam-Regular-FD.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Abar';
+  src: url('/fonts/Shabnam-Medium-FD.woff2') format('woff2');
+  font-weight: 500 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Abar';
+  src: url('/fonts/Shabnam-Bold-FD.woff2') format('woff2');
+  font-weight: 700 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================================================
+   PERSIAN WORD-WRAP, SMOOTH SCROLL & DYNAMIC TYPOGRAPHY ENFORCEMENT (SCOPED)
+   ============================================================================ */
+.fatehan-theme-shell {
+  font-family: var(--font-body);
+  font-feature-settings: "ss01", "tnum";
+  overflow-x: hidden;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.fatehan-theme-shell *,
+.fatehan-theme-shell *::before,
+.fatehan-theme-shell *::after {
+  word-break: keep-all;
+}
+
+.fatehan-theme-shell p,
+.fatehan-theme-shell span,
+.fatehan-theme-shell a,
+.fatehan-theme-shell button,
+.fatehan-theme-shell input,
+.fatehan-theme-shell select,
+.fatehan-theme-shell textarea,
+.fatehan-theme-shell li,
+.fatehan-theme-shell td,
+.fatehan-theme-shell th,
+.fatehan-theme-shell label {
+  font-family: var(--font-body);
+}
+
+.fatehan-theme-shell h1,
+.fatehan-theme-shell h2,
+.fatehan-theme-shell h3,
+.fatehan-theme-shell h4,
+.fatehan-theme-shell h5,
+.fatehan-theme-shell h6,
+.fatehan-theme-shell h1 *,
+.fatehan-theme-shell h2 *,
+.fatehan-theme-shell h3 *,
+.fatehan-theme-shell h4 *,
+.fatehan-theme-shell .font-heading-dynamic {
+  font-family: var(--font-heading) !important;
+  text-wrap: balance;
+  word-break: keep-all;
+  font-synthesis: none;
+}
+
+.print-template-font,
+.print-template-font * {
+  font-family: var(--font-print) !important;
+  word-break: keep-all;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================================
+   BI-DIRECTIONAL / RTL ISOLATION FOUNDATION
+   ============================================================================ */
+bdi,
+code,
+pre,
+.font-mono,
+.tabular-nums,
+[dir="ltr"],
+.bidi-safe {
+  unicode-bidi: isolate;
+}
+
+.bidi-safe {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+}
+
+.bidi-container {
+  unicode-bidi: plaintext;
+}
+
+/* Custom subtle scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.45);
+}
+
+/* ============================================================================
+   OFFICIAL PRINT ENGINE (@media print for A4 Invoice, A5 Label & 80mm Receipt)
+   ============================================================================ */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: var(--font-print) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-sheet-a4 {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 12mm !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    page-break-after: always;
+  }
+
+  .print-sheet-a5 {
+    width: 148mm !important;
+    min-height: 210mm !important;
+    padding: 8mm !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    page-break-after: always;
+  }
+
+  .print-sheet-80mm {
+    width: 80mm !important;
+    padding: 4mm !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    border: 1px dashed #000 !important;
+    font-size: 11px !important;
+  }
+}
+
+/* ============================================================================
+   SMOOTH SCROLL & INTERSECTION REVEAL ENGINE (Continuous Bidirectional)
+   ============================================================================ */
+.dpa-scroll-init {
+  will-change: opacity, transform, filter;
+  transition:
+    opacity 0.68s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.68s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease !important;
+}
+
+.dpa-scroll-init.dpa-scroll-from-up:not(.dpa-scroll-visible) {
+  opacity: 0 !important;
+  filter: blur(3px);
+  transform: translate3d(0, 44px, 0) scale(0.96) !important;
+}
+
+.dpa-scroll-init.dpa-scroll-from-right:not(.dpa-scroll-visible) {
+  opacity: 0 !important;
+  filter: blur(3px);
+  transform: translate3d(52px, 14px, 0) scale(0.96) !important;
+}
+
+.dpa-scroll-init.dpa-scroll-from-left:not(.dpa-scroll-visible) {
+  opacity: 0 !important;
+  filter: blur(3px);
+  transform: translate3d(-52px, 14px, 0) scale(0.96) !important;
+}
+
+.dpa-scroll-init.dpa-scroll-visible {
+  opacity: 1 !important;
+  filter: blur(0px) !important;
+  transform: translate3d(0, 0, 0) scale(1) !important;
+}
+
+/* ============================================================================
+   NOTIFICATION BELL SHAKE ANIMATION
+   ============================================================================ */
+@keyframes dpaBellShake {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(16deg); }
+  20% { transform: rotate(-14deg); }
+  30% { transform: rotate(12deg); }
+  40% { transform: rotate(-10deg); }
+  50% { transform: rotate(6deg); }
+  60% { transform: rotate(0deg); }
+}
+
+.dpa-bell-shake {
+  animation: dpaBellShake 2.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+  transform-origin: top center;
+}
+
+/* ============================================================================
+   OPTIONAL FATEHAN BLUE-CYAN OFFICIAL BANNER THEME (Toggled via CMS Settings)
+   ============================================================================ */
+html[data-fatehan-blue="true"] body {
+  background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 35%, #ecfeff 70%, #e0f2fe 100%) !important;
+}
+
+html[data-fatehan-blue="true"] .fatehan-theme-shell {
+  background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 45%, #ecfeff 100%) !important;
+}
+
+html[data-fatehan-blue="true"] .fatehan-hero-section {
+  background: radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.22) 0%, rgba(2, 132, 199, 0.16) 45%, rgba(224, 242, 254, 0.95) 100%) !important;
+  border-bottom: 2px solid #38bdf8 !important;
+}
+
+html[data-fatehan-blue="true"] .fatehan-surface-alt {
+  background: linear-gradient(135deg, #e0f7fa 0%, #e0f2fe 50%, #f0f9ff 100%) !important;
+  border-color: #7dd3fc !important;
+}
+
+html[data-fatehan-blue="true"] header.sticky {
+  background: rgba(240, 249, 255, 0.95) !important;
+  border-bottom-color: #7dd3fc !important;
+  box-shadow: 0 8px 25px -5px rgba(2, 132, 199, 0.12) !important;
+}

@@ -1,0 +1,52 @@
+{
+  "cmsVersion": "v1.1.0",
+  "intranetReady": true,
+  "externalCdnsAllowed": false,
+  "fonts": {
+    "Vazirmatn": "/assets/vendor/Vazirmatn-Variable.woff2",
+    "Sahel": "/fonts/Sahel-Bold.woff2",
+    "Rubik": "/fonts/Rubik-Variable.woff2"
+  },
+  "libraries": {
+    "muuri": {
+      "version": "0.9.5",
+      "localBundle": "/assets/vendor/muuri.min.js",
+      "conditionalScope": ["storefront_grid", "visual_composer"]
+    },
+    "gsap": {
+      "version": "3.14.2",
+      "localBundle": "/assets/vendor/gsap.min.js",
+      "conditionalScope": ["page_transition", "hero_entrance"]
+    },
+    "lenis": {
+      "version": "1.3.21",
+      "localBundle": "/assets/vendor/lenis.min.js",
+      "conditionalScope": ["smooth_scroll", "smart_focus"]
+    },
+    "barba": {
+      "version": "2.10.3",
+      "localBundle": "/assets/vendor/barba.umd.js",
+      "conditionalScope": ["view_transitions"]
+    },
+    "swiper": {
+      "status": "bundled_offline_module",
+      "conditionalScope": ["product_gallery", "hero_slider"]
+    },
+    "glightbox": {
+      "status": "bundled_offline_module",
+      "conditionalScope": ["product_lightbox"]
+    },
+    "sortablejs": {
+      "status": "bundled_offline_module",
+      "conditionalScope": ["menu_builder", "composer_rows"]
+    },
+    "chartjs": {
+      "status": "bundled_offline_module",
+      "conditionalScope": ["admin_analytics", "price_history_30d"]
+    },
+    "dompurify": {
+      "status": "bundled_offline_module",
+      "conditionalScope": ["html_sanitizer"]
+    }
+  }
+}
