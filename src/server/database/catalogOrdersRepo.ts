@@ -180,16 +180,24 @@ export async function getStorefrontBootstrapData(includeSensitiveAdminData = fal
     dbQuery<{ payload_json: string }>('SELECT payload_json FROM products ORDER BY featured DESC, id ASC'),
     dbQuery<{ payload_json: string }>('SELECT payload_json FROM articles ORDER BY featured DESC, id ASC'),
     dbQuery<{ code: string; discount_percent: number; description: string; active: number }>('SELECT * FROM coupons'),
-    dbQuery<{ payload_json: string }>('SELECT payload_json FROM media_items'),
+    includeSensitiveAdminData
+      ? dbQuery<{ payload_json: string }>('SELECT payload_json FROM media_items')
+      : Promise.resolve([]),
     includeSensitiveAdminData
       ? dbQuery<Record<string, unknown>>('SELECT * FROM orders ORDER BY created_at DESC LIMIT 150')
       : Promise.resolve([]),
     getAllPaymentGateways(),
     includeSensitiveAdminData ? getAllSmsTriggers() : Promise.resolve([]),
     getSetting<ThemeConfig>('theme_config', DEFAULT_THEME_CONFIG),
-    getSetting<AiEngineConfig>('ai_config', DEFAULT_AI_ENGINE_CONFIG),
-    getSetting<OtpSecurityConfig>('otp_config', DEFAULT_OTP_SECURITY_CONFIG),
-    getSetting<CmsRoleDefinition[]>('roles_config', INITIAL_CMS_ROLES),
+    includeSensitiveAdminData
+      ? getSetting<AiEngineConfig>('ai_config', DEFAULT_AI_ENGINE_CONFIG)
+      : Promise.resolve(DEFAULT_AI_ENGINE_CONFIG),
+    includeSensitiveAdminData
+      ? getSetting<OtpSecurityConfig>('otp_config', DEFAULT_OTP_SECURITY_CONFIG)
+      : Promise.resolve(DEFAULT_OTP_SECURITY_CONFIG),
+    includeSensitiveAdminData
+      ? getSetting<CmsRoleDefinition[]>('roles_config', INITIAL_CMS_ROLES)
+      : Promise.resolve([]),
     includeSensitiveAdminData ? listActiveAuthSessions() : Promise.resolve([]),
     getSetting<PaymentDisplayConfig>('payment_display_config', DEFAULT_PAYMENT_DISPLAY_CONFIG),
   ]);
@@ -265,29 +273,32 @@ export async function getStorefrontBootstrapData(includeSensitiveAdminData = fal
         sandboxMode: gw.sandboxMode,
       }));
 
-  const userRoleRows = await dbQuery<{ role: string; role_id: string | null }>(
-    'SELECT role, role_id FROM users'
-  );
-  const countByRoleId = new Map<string, number>();
-  for (const ur of userRoleRows) {
-    const rid =
-      ur.role_id ||
-      (ur.role === 'super_admin'
-        ? 'role_super_admin'
-        : ur.role === 'admin'
-        ? 'role_admin'
-        : 'role_customer');
-    countByRoleId.set(rid, (countByRoleId.get(rid) || 0) + 1);
-  }
+  let normalizedRoles: CmsRoleDefinition[] = [];
+  if (includeSensitiveAdminData) {
+    const userRoleRows = await dbQuery<{ role: string; role_id: string | null }>(
+      'SELECT role, role_id FROM users'
+    );
+    const countByRoleId = new Map<string, number>();
+    for (const ur of userRoleRows) {
+      const rid =
+        ur.role_id ||
+        (ur.role === 'super_admin'
+          ? 'role_super_admin'
+          : ur.role === 'admin'
+          ? 'role_admin'
+          : 'role_customer');
+      countByRoleId.set(rid, (countByRoleId.get(rid) || 0) + 1);
+    }
 
-  const normalizedRoles: CmsRoleDefinition[] = roles.map((r) => ({
-    ...r,
-    usersCount: countByRoleId.get(r.id) || 0,
-    permissions: {
-      ...EMPTY_ROLE_PERMISSIONS,
-      ...(r.permissions || {}),
-    },
-  }));
+    normalizedRoles = roles.map((r) => ({
+      ...r,
+      usersCount: countByRoleId.get(r.id) || 0,
+      permissions: {
+        ...EMPTY_ROLE_PERMISSIONS,
+        ...(r.permissions || {}),
+      },
+    }));
+  }
 
   // Zero-leak protection: strip raw download URLs/paths on public storefront bootstrap
   const sanitizedProducts: SkillProduct[] = includeSensitiveAdminData

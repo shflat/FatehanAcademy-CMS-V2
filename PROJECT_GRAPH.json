@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-11-20T14:49:58.970Z",
+  "generatedAt": "2026-11-21T13:58:23.742Z",
   "cmsVersion": "v2.7.0",
   "summary": {
-    "totalFiles": 203,
-    "totalLines": 78108,
-    "totalEndpoints": 212,
+    "totalFiles": 205,
+    "totalLines": 82248,
+    "totalEndpoints": 215,
     "totalDbTables": 69,
     "byCategory": {
-      "root": 14,
-      "core": 21,
+      "root": 15,
+      "core": 22,
       "modules": 113,
       "database": 11,
       "theme": 39,
@@ -87,6 +87,11 @@
     "mod_rma_requests"
   ],
   "apiEndpoints": [
+    {
+      "method": "GET",
+      "path": "/sw.js",
+      "file": "server.ts"
+    },
     {
       "method": "GET",
       "path": "*",
@@ -669,6 +674,11 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/modules/ai-hub/slots/test",
+      "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/modules/ai-hub/image-studio",
       "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
     },
@@ -720,6 +730,11 @@
     {
       "method": "POST",
       "path": "/api/v1/modules/auto-backup/run-encrypted",
+      "file": "modules/mod_auto_backup/autoBackupRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/auto-backup/download/:id",
       "file": "modules/mod_auto_backup/autoBackupRouter.ts"
     },
     {
@@ -1152,7 +1167,7 @@
     {
       "path": "server.ts",
       "category": "root",
-      "lines": 231,
+      "lines": 293,
       "imports": [
         "dotenv",
         "express",
@@ -1161,6 +1176,7 @@
         "url",
         "vite",
         "./src/server/core/cryptoSecurity.js",
+        "./src/server/core/envConfig.js",
         "./src/server/database/index.js",
         "./src/server/modules/admin/adminDbBackupRouter.js",
         "./src/server/modules/admin/adminGatewaysSmsRouter.js",
@@ -1207,6 +1223,11 @@
       "apiEndpoints": [
         {
           "method": "GET",
+          "path": "/sw.js",
+          "file": "server.ts"
+        },
+        {
+          "method": "GET",
           "path": "*",
           "file": "server.ts"
         }
@@ -1216,17 +1237,15 @@
     {
       "path": "src/App.tsx",
       "category": "root",
-      "lines": 2526,
+      "lines": 2361,
       "imports": [
         "react",
         "lucide-react",
-        "firebase/auth",
-        "firebase/firestore",
-        "./firebase",
         "./core/types",
         "./core/apiClient",
+        "./core/seoHeadManager",
+        "./components/GlobalActivityOverlay",
         "./core/motionAndDragEngine",
-        "./core/zipGenerator",
         "../themes/registry",
         "./data/skill98Data",
         "./data/mediaAssets",
@@ -1235,18 +1254,7 @@
         "./theme/components/SiteFooter",
         "./theme/components/MobileBottomNav",
         "./theme/components/StorefrontView",
-        "./theme/components/SingleProductView",
-        "./theme/components/ArticlesView",
-        "./theme/components/DynamicPageView",
-        "./modules/catalog/SkillDetailModal",
         "./modules/auth/AuthModal",
-        "./modules/cart/CartDrawerModal",
-        "./modules/dashboard/CustomerDashboardView",
-        "./modules/guide/TargetGuideAndZipView",
-        "./modules/admin/AdminCmsView",
-        "../modules/mod_live_chat/GoftinoLiveChatWidget",
-        "../modules/mod_notifications_pwa/PWAInstallBanner",
-        "../modules/mod_announcements_popups/StorefrontPopupsRenderer",
         "./core/webVitalsReporter"
       ],
       "exports": [],
@@ -1259,6 +1267,21 @@
       "lines": 29,
       "imports": [],
       "exports": [],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "src/components/GlobalActivityOverlay.tsx",
+      "category": "root",
+      "lines": 123,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../core/apiClient"
+      ],
+      "exports": [
+        "GlobalActivityOverlay"
+      ],
       "apiEndpoints": [],
       "dbTables": []
     },
@@ -1280,10 +1303,19 @@
     {
       "path": "src/core/apiClient.ts",
       "category": "core",
-      "lines": 81,
+      "lines": 291,
       "imports": [],
       "exports": [
         "StoredClientSession",
+        "GlobalActivitySnapshot",
+        "GlobalToastPayload",
+        "purgeLegacySensitiveStorage",
+        "getClientBuildId",
+        "syncClientBuildId",
+        "subscribeApiActivity",
+        "beginGlobalActivity",
+        "subscribeGlobalToasts",
+        "emitGlobalToast",
         "readStoredSession",
         "writeStoredSession",
         "getAuthHeaders",
@@ -1335,7 +1367,7 @@
     {
       "path": "src/core/motionAndDragEngine.ts",
       "category": "core",
-      "lines": 560,
+      "lines": 761,
       "imports": [
         "gsap",
         "lenis",
@@ -1348,6 +1380,7 @@
         "initSmoothScroll",
         "pauseSmoothScroll",
         "resumeSmoothScroll",
+        "installGlobalModalScrollLock",
         "triggerBarbaGsapTransition",
         "animatePageEntrance",
         "MuuriGridController"
@@ -1391,9 +1424,21 @@
       "dbTables": []
     },
     {
+      "path": "src/core/seoHeadManager.ts",
+      "category": "core",
+      "lines": 83,
+      "imports": [],
+      "exports": [
+        "PageSeoMetadata",
+        "syncPageSeoHead"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
       "path": "src/core/types.ts",
       "category": "core",
-      "lines": 688,
+      "lines": 705,
       "imports": [],
       "exports": [
         "AccentPresetId",
@@ -1430,6 +1475,7 @@
         "PaymentGatewayOption",
         "PaymentDisplayConfig",
         "SmsProviderId",
+        "BaleSendMode",
         "SmsProviderCredential",
         "SmsGatewaySettings",
         "SiteModuleRegistryItem",
@@ -1492,7 +1538,7 @@
     {
       "path": "src/data/defaults.ts",
       "category": "root",
-      "lines": 643,
+      "lines": 653,
       "imports": [
         "../core/types.js",
         "../core/permissions.js"
@@ -1555,19 +1601,20 @@
     {
       "path": "src/data/mediaAssets.ts",
       "category": "root",
-      "lines": 104,
+      "lines": 146,
       "imports": [
-        "../assets/images/skill98_ai_architecture_hero_1795088218603.jpg",
-        "../assets/images/skill98_mcp_agents_cover_1795088217282.jpg",
-        "../assets/images/skill98_motion_ui_cover_1795088220877.jpg",
-        "../assets/images/skill98_cloud_security_cover_1795088218781.jpg",
-        "../assets/images/skill98_mcp_agents_cover_1795088217282.jpg"
+        "../assets/images/skill98_ai_architecture_hero_1795088218603.webp",
+        "../assets/images/skill98_mcp_agents_cover_1795088217282.webp",
+        "../assets/images/skill98_motion_ui_cover_1795088220877.webp",
+        "../assets/images/skill98_cloud_security_cover_1795088218781.webp",
+        "../assets/images/pkg_ai_automation_1794606448806.webp"
       ],
       "exports": [
         "VITE_IMAGES",
         "resolveStaticImageUrl",
         "ResponsiveImageSlot",
         "resolveResponsiveMediaUrl",
+        "buildResponsiveSrcSet",
         "isVideoMediaUrl"
       ],
       "apiEndpoints": [],
@@ -1585,9 +1632,10 @@
     {
       "path": "src/data/verifiedSkillsCatalog.ts",
       "category": "root",
-      "lines": 1178,
+      "lines": 1179,
       "imports": [
-        "./skill98Data",
+        "../core/types.js",
+        "./defaults.js",
         "@modelcontextprotocol/sdk/server/mcp.js",
         "tailwindcss"
       ],
@@ -1609,7 +1657,7 @@
     {
       "path": "src/firebase.ts",
       "category": "root",
-      "lines": 102,
+      "lines": 88,
       "imports": [
         "firebase/app",
         "firebase/auth",
@@ -1656,55 +1704,17 @@
     {
       "path": "src/modules/admin/AdminCmsView.tsx",
       "category": "modules",
-      "lines": 1307,
+      "lines": 1449,
       "imports": [
         "react",
         "lucide-react",
         "../../core/types",
         "../../core/apiClient",
-        "../../core/motionAndDragEngine",
         "../../core/permissions",
         "../../data/skill98Data",
         "./panels/CatalogEditorPanel",
-        "./panels/PageBuilderPanel",
-        "./panels/MediaLibraryPanel",
-        "./panels/ArticlesSeoPanel",
-        "./panels/OrdersCouponsPanel",
-        "./panels/RbacPermissionsPanel",
-        "./panels/PaymentGatewaysPanel",
-        "./panels/SmsTriggersPanel",
-        "./panels/DbBackupPanel",
-        "./panels/LogsDiagnosticsPanel",
-        "./panels/UsersDirectoryPanel",
-        "./panels/AiSessionsThemePanel",
         "./panels/EnterpriseCoreHubPanel",
-        "./panels/TaxonomiesManagerPanel",
-        "./panels/PagesManagerPanel",
-        "./panels/MenuBuilderInvoicePanel",
-        "./panels/ModulesControlCenterPanel",
         "./panels/UnifiedSettingsHubPanel",
-        "../../../modules/mod_payment_hub/PayzitoPaymentHubPanel",
-        "../../../modules/mod_inventory_accounting/InventoryAccountingPanel",
-        "../../../modules/mod_forms/FormsManagerPanel",
-        "../../../modules/mod_live_chat/GoftinoOperatorInboxPanel",
-        "../../../modules/mod_analytics_gsc/NativeAnalyticsGscPanel",
-        "../../../modules/mod_ai_digikala/Phase6EnterpriseSuitePanel",
-        "../../../modules/mod_booking/SolarBookingAutoBackupPanel",
-        "../../../modules/mod_smart_crm/SmartCrmAdminPanel",
-        "../../../modules/mod_subscriptions/SubscriptionsAdminPanel",
-        "../../../modules/mod_academy_suite/AcademySuiteAdminPanel",
-        "../../../modules/mod_delivery_logs/DeliveryLogsPanel",
-        "../../../modules/mod_notifications_pwa/NotificationsPwaPanel",
-        "../../../modules/mod_abandoned_cart/AbandonedCartPanel",
-        "../../../modules/mod_announcements_popups/AnnouncementsPopupsPanel",
-        "../../../modules/mod_reviews_qa/ReviewsQaPanel",
-        "../../../modules/mod_wallet_rma/WalletRmaPanel",
-        "../../../modules/mod_affiliate/AffiliatePanel",
-        "../../../modules/mod_b2b_compare/B2bComparePanel",
-        "../../../modules/mod_bots_webhooks/BotsWebhooksPanel",
-        "../../../modules/mod_maintenance_audit/MaintenanceAuditPanel",
-        "../../../modules/mod_i18n/I18nPanel",
-        "../../../modules/mod_ai_hub_agent/AiHubAgentPanel",
         "../../../modules/mod_live_chat/AdminGlobalChatAlarm"
       ],
       "exports": [
@@ -1732,7 +1742,7 @@
     {
       "path": "src/modules/admin/components/MediaPickerModal.tsx",
       "category": "modules",
-      "lines": 553,
+      "lines": 563,
       "imports": [
         "react",
         "lucide-react",
@@ -1813,7 +1823,7 @@
     {
       "path": "src/modules/admin/components/VisualComposerCanvas.tsx",
       "category": "modules",
-      "lines": 896,
+      "lines": 904,
       "imports": [
         "react",
         "lucide-react",
@@ -1848,7 +1858,7 @@
     {
       "path": "src/modules/admin/panels/AiSessionsThemePanel.tsx",
       "category": "modules",
-      "lines": 816,
+      "lines": 1061,
       "imports": [
         "react",
         "lucide-react",
@@ -1915,7 +1925,7 @@
     {
       "path": "src/modules/admin/panels/DbBackupPanel.tsx",
       "category": "modules",
-      "lines": 1074,
+      "lines": 1155,
       "imports": [
         "react",
         "lucide-react",
@@ -1967,7 +1977,7 @@
     {
       "path": "src/modules/admin/panels/MediaLibraryPanel.tsx",
       "category": "modules",
-      "lines": 799,
+      "lines": 805,
       "imports": [
         "react",
         "lucide-react",
@@ -2002,7 +2012,7 @@
     {
       "path": "src/modules/admin/panels/ModulesControlCenterPanel.tsx",
       "category": "modules",
-      "lines": 327,
+      "lines": 334,
       "imports": [
         "react",
         "lucide-react",
@@ -2103,7 +2113,7 @@
     {
       "path": "src/modules/admin/panels/SmsTriggersPanel.tsx",
       "category": "modules",
-      "lines": 926,
+      "lines": 2075,
       "imports": [
         "react",
         "lucide-react",
@@ -2136,7 +2146,7 @@
     {
       "path": "src/modules/admin/panels/UnifiedSettingsHubPanel.tsx",
       "category": "modules",
-      "lines": 821,
+      "lines": 928,
       "imports": [
         "react",
         "lucide-react",
@@ -2183,7 +2193,7 @@
     {
       "path": "src/modules/auth/AuthModal.tsx",
       "category": "modules",
-      "lines": 256,
+      "lines": 262,
       "imports": [
         "react",
         "lucide-react",
@@ -2239,14 +2249,15 @@
     {
       "path": "src/modules/dashboard/CustomerDashboardView.tsx",
       "category": "modules",
-      "lines": 1477,
+      "lines": 1546,
       "imports": [
         "react",
         "lucide-react",
         "../../core/types",
         "../../core/apiClient",
         "../../core/zipGenerator",
-        "../../data/mediaAssets"
+        "../../data/mediaAssets",
+        "../../theme/components/ProgressiveImage"
       ],
       "exports": [
         "CustomerDashboardView"
@@ -2315,7 +2326,7 @@
     {
       "path": "src/server/core/cryptoSecurity.ts",
       "category": "core",
-      "lines": 168,
+      "lines": 184,
       "imports": [
         "crypto",
         "express",
@@ -2341,7 +2352,7 @@
     {
       "path": "src/server/core/envConfig.ts",
       "category": "core",
-      "lines": 124,
+      "lines": 156,
       "imports": [
         "crypto",
         "fs",
@@ -2350,6 +2361,7 @@
       "exports": [
         "normalizeIranPhone",
         "ServerEnvConfig",
+        "resolveBuildId",
         "getEnvConfig"
       ],
       "apiEndpoints": [],
@@ -2358,7 +2370,7 @@
     {
       "path": "src/server/core/permissionsEngine.ts",
       "category": "core",
-      "lines": 366,
+      "lines": 372,
       "imports": [
         "crypto",
         "fs",
@@ -2407,7 +2419,7 @@
     {
       "path": "src/server/database/backupService.ts",
       "category": "database",
-      "lines": 615,
+      "lines": 663,
       "imports": [
         "crypto",
         "fs",
@@ -2437,7 +2449,7 @@
     {
       "path": "src/server/database/catalogOrdersRepo.ts",
       "category": "database",
-      "lines": 427,
+      "lines": 445,
       "imports": [
         "../../core/types.js",
         "../../core/permissions.js",
@@ -2495,7 +2507,7 @@
     {
       "path": "src/server/database/index.ts",
       "category": "database",
-      "lines": 65,
+      "lines": 66,
       "imports": [],
       "exports": [],
       "apiEndpoints": [],
@@ -2570,7 +2582,7 @@
     {
       "path": "src/server/database/schema.ts",
       "category": "database",
-      "lines": 652,
+      "lines": 666,
       "imports": [
         "fs",
         "path",
@@ -2634,7 +2646,7 @@
     {
       "path": "src/server/database/smsService.ts",
       "category": "database",
-      "lines": 498,
+      "lines": 1078,
       "imports": [
         "../../core/types.js",
         "../../data/defaults.js",
@@ -2644,6 +2656,7 @@
       ],
       "exports": [
         "renderSmsTemplate",
+        "ensureCancel11Suffix",
         "dispatchEventSms"
       ],
       "apiEndpoints": [],
@@ -2652,11 +2665,12 @@
     {
       "path": "src/server/database/usersSessionsRepo.ts",
       "category": "database",
-      "lines": 347,
+      "lines": 364,
       "imports": [
         "crypto",
         "../../core/types.js",
         "../../data/defaults.js",
+        "../core/envConfig.js",
         "./connection.js",
         "./settingsLogsRepo.js"
       ],
@@ -2667,6 +2681,7 @@
         "findUserByEmail",
         "countSuperAdmins",
         "upsertUserByPhone",
+        "resolveSessionTtlHours",
         "createAuthSession",
         "findAuthSession",
         "deleteAuthSession",
@@ -2707,7 +2722,7 @@
     {
       "path": "src/server/modules/admin/adminDbBackupRouter.ts",
       "category": "modules",
-      "lines": 273,
+      "lines": 289,
       "imports": [
         "express",
         "../../../core/types.js",
@@ -2775,7 +2790,7 @@
     {
       "path": "src/server/modules/admin/adminGatewaysSmsRouter.ts",
       "category": "modules",
-      "lines": 261,
+      "lines": 301,
       "imports": [
         "express",
         "../../../core/types.js",
@@ -3020,7 +3035,7 @@
     {
       "path": "src/server/modules/auth/authRouter.ts",
       "category": "modules",
-      "lines": 675,
+      "lines": 693,
       "imports": [
         "crypto",
         "fs",
@@ -3200,7 +3215,7 @@
     {
       "path": "src/server/modules/downloads/downloadsRouter.ts",
       "category": "modules",
-      "lines": 419,
+      "lines": 424,
       "imports": [
         "crypto",
         "express",
@@ -3276,7 +3291,7 @@
     {
       "path": "src/server/modules/orders/ordersRouter.ts",
       "category": "modules",
-      "lines": 534,
+      "lines": 556,
       "imports": [
         "crypto",
         "express",
@@ -3316,13 +3331,14 @@
     {
       "path": "src/server/modules/storefront/storefrontRouter.ts",
       "category": "modules",
-      "lines": 191,
+      "lines": 201,
       "imports": [
         "express",
         "../../core/cacheEngine.js",
         "../../core/cryptoSecurity.js",
         "../../core/permissionsEngine.js",
-        "../../database/index.js"
+        "../../database/index.js",
+        "../../core/envConfig.js"
       ],
       "exports": [
         "createStorefrontRouter"
@@ -3424,9 +3440,10 @@
     {
       "path": "src/theme/components/ProgressiveImage.tsx",
       "category": "theme",
-      "lines": 72,
+      "lines": 103,
       "imports": [
-        "react"
+        "react",
+        "../../data/mediaAssets"
       ],
       "exports": [
         "ProgressiveImage"
@@ -3587,7 +3604,7 @@
     {
       "path": "core/agents/media-optimizer.js",
       "category": "core",
-      "lines": 100,
+      "lines": 117,
       "imports": [
         "fs",
         "path",
@@ -3945,7 +3962,7 @@
     {
       "path": "modules/mod_ai_hub_agent/AiCommandCenterCard.tsx",
       "category": "modules",
-      "lines": 327,
+      "lines": 415,
       "imports": [
         "react",
         "lucide-react",
@@ -4026,7 +4043,7 @@
     {
       "path": "modules/mod_ai_hub_agent/AiSlotsConfigCard.tsx",
       "category": "modules",
-      "lines": 245,
+      "lines": 362,
       "imports": [
         "react",
         "lucide-react",
@@ -4042,7 +4059,7 @@
     {
       "path": "modules/mod_ai_hub_agent/agentToolsEngine.ts",
       "category": "modules",
-      "lines": 307,
+      "lines": 426,
       "imports": [
         "../../src/server/database/connection.js",
         "../../src/server/database/usersSessionsRepo.js",
@@ -4125,7 +4142,7 @@
     {
       "path": "modules/mod_ai_hub_agent/aiHubRouter.ts",
       "category": "modules",
-      "lines": 182,
+      "lines": 227,
       "imports": [
         "express",
         "../../src/server/database/connection.js",
@@ -4151,6 +4168,11 @@
         },
         {
           "method": "POST",
+          "path": "/api/v1/modules/ai-hub/slots/test",
+          "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
+        },
+        {
+          "method": "POST",
           "path": "/api/v1/modules/ai-hub/image-studio",
           "file": "modules/mod_ai_hub_agent/aiHubRouter.ts"
         }
@@ -4160,7 +4182,7 @@
     {
       "path": "modules/mod_ai_hub_agent/aiHubSchema.ts",
       "category": "modules",
-      "lines": 253,
+      "lines": 261,
       "imports": [
         "express",
         "../../src/server/database/connection.js",
@@ -4191,7 +4213,7 @@
     {
       "path": "modules/mod_ai_hub_agent/aiProviderGateway.ts",
       "category": "modules",
-      "lines": 280,
+      "lines": 586,
       "imports": [
         "fs",
         "path",
@@ -4205,6 +4227,8 @@
         "SlotGenerationResult",
         "getSlotConfig",
         "generateTextViaSlot",
+        "AiConnectionTestResult",
+        "testAiSlotConnection",
         "ImageStudioResult",
         "generateImagePromptAndAsset"
       ],
@@ -4352,7 +4376,7 @@
     {
       "path": "modules/mod_auto_backup/autoBackupRouter.ts",
       "category": "modules",
-      "lines": 156,
+      "lines": 195,
       "imports": [
         "crypto",
         "express",
@@ -4374,6 +4398,11 @@
         {
           "method": "POST",
           "path": "/api/v1/modules/auto-backup/run-encrypted",
+          "file": "modules/mod_auto_backup/autoBackupRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/auto-backup/download/:id",
           "file": "modules/mod_auto_backup/autoBackupRouter.ts"
         }
       ],
@@ -4441,7 +4470,7 @@
     {
       "path": "modules/mod_booking/SolarBookingAutoBackupPanel.tsx",
       "category": "modules",
-      "lines": 303,
+      "lines": 345,
       "imports": [
         "react",
         "lucide-react",
@@ -4487,7 +4516,7 @@
     {
       "path": "modules/mod_bots_webhooks/BotsWebhooksPanel.tsx",
       "category": "modules",
-      "lines": 249,
+      "lines": 283,
       "imports": [
         "react",
         "lucide-react",
@@ -4502,7 +4531,7 @@
     {
       "path": "modules/mod_bots_webhooks/botsWebhooksRouter.ts",
       "category": "modules",
-      "lines": 311,
+      "lines": 342,
       "imports": [
         "crypto",
         "express",
@@ -4886,7 +4915,7 @@
     {
       "path": "modules/mod_live_chat/GoftinoLiveChatWidget.tsx",
       "category": "modules",
-      "lines": 379,
+      "lines": 403,
       "imports": [
         "react",
         "lucide-react",
@@ -5504,7 +5533,7 @@
     {
       "path": "themes/fatehan/components/FatehanStorefrontHome.tsx",
       "category": "theme",
-      "lines": 2670,
+      "lines": 2660,
       "imports": [
         "react",
         "motion/react",
@@ -5596,7 +5625,7 @@
     {
       "path": "themes/fatehan/context/FatehanThemeContext.tsx",
       "category": "theme",
-      "lines": 463,
+      "lines": 474,
       "imports": [
         "react",
         "../types",
@@ -5615,9 +5644,10 @@
     {
       "path": "themes/fatehan/context/cmsApiAdapter.ts",
       "category": "theme",
-      "lines": 419,
+      "lines": 414,
       "imports": [
-        "../types"
+        "../types",
+        "../../../src/core/apiClient"
       ],
       "exports": [
         "CmsApiAdapterOptions",

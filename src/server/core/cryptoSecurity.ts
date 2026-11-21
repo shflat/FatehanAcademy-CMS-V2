@@ -121,12 +121,15 @@ export function extractSessionToken(req: express.Request): string {
 export function setSessionCookie(
   req: express.Request,
   res: express.Response,
-  token: string
+  token: string,
+  ttlHours = 24
 ): void {
   const isHttps =
     req.secure ||
     String(req.headers['x-forwarded-proto'] || '').toLowerCase().includes('https');
-  const maxAgeSec = 7 * 24 * 60 * 60;
+  const clampedHours =
+    Number.isFinite(ttlHours) && ttlHours >= 1 && ttlHours <= 720 ? Math.round(ttlHours) : 24;
+  const maxAgeSec = clampedHours * 60 * 60;
   const parts = [
     `skill98_session=${encodeURIComponent(token)}`,
     'Path=/',
@@ -134,15 +137,28 @@ export function setSessionCookie(
     `Max-Age=${maxAgeSec}`,
     isHttps ? 'SameSite=None' : 'SameSite=Lax',
   ];
-  if (isHttps) parts.push('Secure');
+  if (isHttps) {
+    parts.push('Secure');
+    parts.push('Partitioned');
+  }
   res.setHeader('Set-Cookie', parts.join('; '));
 }
 
-export function clearSessionCookie(res: express.Response): void {
-  res.setHeader(
-    'Set-Cookie',
-    'skill98_session=; Path=/; HttpOnly; Max-Age=0; SameSite=Lax'
+export function clearSessionCookie(res: express.Response, req?: express.Request): void {
+  const isHttps = Boolean(
+    req &&
+      (req.secure ||
+        String(req.headers['x-forwarded-proto'] || '').toLowerCase().includes('https'))
   );
+  const cookiesToClear = [
+    'skill98_session=; Path=/; HttpOnly; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax',
+  ];
+  if (isHttps) {
+    cookiesToClear.push(
+      'skill98_session=; Path=/; HttpOnly; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None; Secure; Partitioned'
+    );
+  }
+  res.setHeader('Set-Cookie', cookiesToClear);
 }
 
 export function extractClientDeviceAndIp(req: express.Request): {

@@ -76,8 +76,8 @@ export function createModAutoBackupRouter(): express.Router {
           }
         }
 
-        // Scan physical /public/uploads directory
-        const uploadsRoot = path.resolve(process.cwd(), 'public', 'uploads');
+        // Scan physical uploads directory (aligned with Docker UPLOAD_DIR=/app/uploads)
+        const uploadsRoot = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
         const uploadedFiles: { path: string; bytes: number }[] = [];
         const walkUploads = (dir: string) => {
           if (!fs.existsSync(dir)) return;

@@ -32,6 +32,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - UPLOAD_DIR=/app/uploads
+      - SESSION_TTL_HOURS=${SESSION_TTL_HOURS:-24}
       - APP_DOMAIN=${APP_DOMAIN:-skill98.ir}
       - APP_URL=${APP_URL:-}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-skill98}:${POSTGRES_PASSWORD:-skill98_pg_secure_pass}@skill98-postgres:5432/${POSTGRES_DB:-skill98_db}

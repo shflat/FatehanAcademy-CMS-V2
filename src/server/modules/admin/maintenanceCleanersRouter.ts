@@ -5,7 +5,7 @@ import { dbExec, dbQuery } from '../../database/connection.js';
 import { writeSystemLog } from '../../database/settingsLogsRepo.js';
 import { requireSuperAdmin } from '../../middleware/authMiddleware.js';
 
-const UPLOADS_ROOT = path.resolve(process.cwd(), 'uploads');
+const UPLOADS_ROOT = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
 
 function walkUploadFiles(dirPath: string, relBase = ''): { relPath: string; absPath: string; sizeBytes: number }[] {
   if (!fs.existsSync(dirPath)) return [];

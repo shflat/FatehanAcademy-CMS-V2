@@ -1,4 +1,4 @@
-const SESSION_STORAGE_KEY = 'skill98_active_session_v1';
+declare const __APP_BUILD_ID__: string | undefined;
 
 export interface StoredClientSession {
   phone: string;
@@ -22,6 +22,81 @@ export interface GlobalToastPayload {
 
 type ActivityListener = (snapshot: GlobalActivitySnapshot) => void;
 type ToastListener = (toast: GlobalToastPayload) => void;
+
+// Sensitive auth state is kept strictly in memory (never written to localStorage/sessionStorage).
+// Persistent authentication is managed exclusively via server-issued HttpOnly cookies.
+let inMemorySession: StoredClientSession | null = null;
+
+const LEGACY_SENSITIVE_STORAGE_KEYS = [
+  'skill98_active_session_v1',
+  'skill98_profiles_by_phone_v1',
+  'skill98_gateways_v1',
+  'skill98_pending_payment_v1',
+  'skill98_auth_session_v1',
+  'dpa_customer_session_v2',
+  'fatehan_last_idea_phone',
+];
+
+export function purgeLegacySensitiveStorage(): void {
+  if (typeof window === 'undefined') return;
+  for (const key of LEGACY_SENSITIVE_STORAGE_KEYS) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // ignore storage restrictions
+    }
+    try {
+      window.sessionStorage.removeItem(key);
+    } catch {
+      // ignore storage restrictions
+    }
+  }
+}
+
+// Immediately purge any stale sensitive data left from older deployments
+purgeLegacySensitiveStorage();
+
+export function getClientBuildId(): string {
+  try {
+    return typeof __APP_BUILD_ID__ === 'string' ? __APP_BUILD_ID__ : '';
+  } catch {
+    return '';
+  }
+}
+
+let buildSyncReloadTriggered = false;
+
+export function syncClientBuildId(serverBuildId?: string): boolean {
+  if (typeof window === 'undefined' || !serverBuildId || buildSyncReloadTriggered) {
+    return false;
+  }
+  // Only enforce build mismatch auto-reload in production builds (not Vite dev server)
+  if (!import.meta.env.PROD) return false;
+  const localBuildId = getClientBuildId();
+  if (!localBuildId || localBuildId === serverBuildId) return false;
+
+  // Prevent infinite reload loop if reverse proxy serves stale HTML temporarily
+  const reloadMarkerKey = `skill98_build_sync_${serverBuildId}`;
+  try {
+    if (window.sessionStorage.getItem(reloadMarkerKey)) {
+      return false;
+    }
+    window.sessionStorage.setItem(reloadMarkerKey, '1');
+  } catch {
+    // ignore
+  }
+
+  buildSyncReloadTriggered = true;
+  if (typeof window.caches !== 'undefined') {
+    window.caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((k) => window.caches.delete(k))))
+      .finally(() => window.location.reload());
+  } else {
+    window.location.reload();
+  }
+  return true;
+}
 
 const activityListeners = new Set<ActivityListener>();
 const toastListeners = new Set<ToastListener>();
@@ -128,7 +203,6 @@ function shouldTrackMutation(input: string, method: string, headersObj: Record<s
     return false;
   }
   const lowerUrl = input.toLowerCase();
-  // Exclude noisy background telemetry/heartbeat/chat-ping endpoints
   if (
     lowerUrl.includes('/analytics/track') ||
     lowerUrl.includes('/heartbeat') ||
@@ -140,36 +214,19 @@ function shouldTrackMutation(input: string, method: string, headersObj: Record<s
 }
 
 export function readStoredSession(): StoredClientSession | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.phone && parsed.userRole && parsed.userRole !== 'guest') {
-      return parsed as StoredClientSession;
-    }
-  } catch {
-    // ignore storage parse errors
-  }
-  return null;
+  return inMemorySession;
 }
 
 export function writeStoredSession(session: StoredClientSession | null): void {
-  if (typeof window === 'undefined') return;
-  try {
-    if (!session) {
-      localStorage.removeItem(SESSION_STORAGE_KEY);
-    } else {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-    }
-  } catch {
-    // ignore storage write errors
-  }
+  inMemorySession = session ? { ...session } : null;
+  purgeLegacySensitiveStorage();
 }
 
 export function getAuthHeaders(extraHeaders?: HeadersInit): Record<string, string> {
-  const session = readStoredSession();
-  const base: Record<string, string> = {};
+  const session = inMemorySession;
+  const base: Record<string, string> = {
+    'Cache-Control': 'no-cache',
+  };
   if (session?.sessionToken) {
     base.Authorization = `Bearer ${session.sessionToken}`;
   }
@@ -194,6 +251,7 @@ export async function apiFetch(input: string, init: RequestInit = {}): Promise<R
   try {
     return await fetch(input, {
       ...init,
+      cache: 'no-store',
       credentials: 'include',
       headers: headersObj,
     });
@@ -220,6 +278,7 @@ export async function apiJson<T = unknown>(
   try {
     const res = await fetch(input, {
       ...init,
+      cache: 'no-store',
       credentials: 'include',
       headers: headersObj,
     });

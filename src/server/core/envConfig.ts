@@ -85,6 +85,33 @@ export interface ServerEnvConfig {
   databaseUrl: string;
   appUrl: string;
   appDomain: string;
+  sessionTtlHours: number;
+}
+
+let cachedBuildId: string | null = null;
+const SERVER_BOOT_BUILD_ID = `v2.7.0-${Date.now().toString(36)}`;
+
+export function resolveBuildId(): string {
+  if (cachedBuildId) return cachedBuildId;
+  const envBuild = (process.env.BUILD_ID || '').trim();
+  if (envBuild) {
+    cachedBuildId = envBuild;
+    return cachedBuildId;
+  }
+  try {
+    const buildIdFile = path.resolve(process.cwd(), 'dist', 'build-id.txt');
+    if (fs.existsSync(buildIdFile)) {
+      const fileVal = fs.readFileSync(buildIdFile, 'utf-8').trim();
+      if (fileVal) {
+        cachedBuildId = fileVal;
+        return cachedBuildId;
+      }
+    }
+  } catch {
+    // ignore read error
+  }
+  cachedBuildId = SERVER_BOOT_BUILD_ID;
+  return cachedBuildId;
 }
 
 function normalizeCodeString(raw: string): string {
@@ -108,6 +135,10 @@ export function getEnvConfig(): ServerEnvConfig {
       .digest('hex');
   }
 
+  const parsedTtl = Number(process.env.SESSION_TTL_HOURS || '24');
+  const sessionTtlHours =
+    Number.isFinite(parsedTtl) && parsedTtl >= 1 && parsedTtl <= 720 ? Math.round(parsedTtl) : 24;
+
   return {
     otpHmacSecret: secrets.otpHmacSecret,
     permissionHashSecret: secrets.permissionHashSecret,
@@ -119,5 +150,6 @@ export function getEnvConfig(): ServerEnvConfig {
     databaseUrl: (process.env.DATABASE_URL || '').trim(),
     appUrl: (process.env.APP_URL || '').trim(),
     appDomain: (process.env.APP_DOMAIN || '').trim(),
+    sessionTtlHours,
   };
 }

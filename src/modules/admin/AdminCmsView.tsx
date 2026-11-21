@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import {
   Activity,
   AlertCircle,
@@ -43,52 +43,183 @@ import {
   productToDraft,
   type ProductEditorDraft,
 } from './panels/CatalogEditorPanel';
-import { PageBuilderPanel } from './panels/PageBuilderPanel';
-import { MediaLibraryPanel } from './panels/MediaLibraryPanel';
-import { ArticlesSeoPanel } from './panels/ArticlesSeoPanel';
-import { OrdersCouponsPanel } from './panels/OrdersCouponsPanel';
-import { RbacPermissionsPanel } from './panels/RbacPermissionsPanel';
-import { PaymentGatewaysPanel } from './panels/PaymentGatewaysPanel';
-import { SmsTriggersPanel } from './panels/SmsTriggersPanel';
-import { DbBackupPanel } from './panels/DbBackupPanel';
-import { LogsDiagnosticsPanel } from './panels/LogsDiagnosticsPanel';
-import { UsersDirectoryPanel } from './panels/UsersDirectoryPanel';
-import { AiSessionsThemePanel } from './panels/AiSessionsThemePanel';
-import {
-  EnterpriseCoreHubPanel,
-  type EnterpriseHubMode,
-} from './panels/EnterpriseCoreHubPanel';
-import { TaxonomiesManagerPanel } from './panels/TaxonomiesManagerPanel';
-import { PagesManagerPanel } from './panels/PagesManagerPanel';
-import { MenuBuilderInvoicePanel } from './panels/MenuBuilderInvoicePanel';
-import { ModulesControlCenterPanel } from './panels/ModulesControlCenterPanel';
-import {
-  UnifiedSettingsHubPanel,
-  type UnifiedSettingsTabId,
-} from './panels/UnifiedSettingsHubPanel';
-import { PayzitoPaymentHubPanel } from '../../../modules/mod_payment_hub/PayzitoPaymentHubPanel';
-import { InventoryAccountingPanel } from '../../../modules/mod_inventory_accounting/InventoryAccountingPanel';
-import { FormsManagerPanel } from '../../../modules/mod_forms/FormsManagerPanel';
-import { GoftinoOperatorInboxPanel } from '../../../modules/mod_live_chat/GoftinoOperatorInboxPanel';
-import { NativeAnalyticsGscPanel } from '../../../modules/mod_analytics_gsc/NativeAnalyticsGscPanel';
-import { Phase6EnterpriseSuitePanel } from '../../../modules/mod_ai_digikala/Phase6EnterpriseSuitePanel';
-import { SolarBookingAutoBackupPanel } from '../../../modules/mod_booking/SolarBookingAutoBackupPanel';
-import { SmartCrmAdminPanel } from '../../../modules/mod_smart_crm/SmartCrmAdminPanel';
-import { SubscriptionsAdminPanel } from '../../../modules/mod_subscriptions/SubscriptionsAdminPanel';
-import { AcademySuiteAdminPanel } from '../../../modules/mod_academy_suite/AcademySuiteAdminPanel';
-import { DeliveryLogsPanel } from '../../../modules/mod_delivery_logs/DeliveryLogsPanel';
-import { NotificationsPwaPanel } from '../../../modules/mod_notifications_pwa/NotificationsPwaPanel';
-import { AbandonedCartPanel } from '../../../modules/mod_abandoned_cart/AbandonedCartPanel';
-import { AnnouncementsPopupsPanel } from '../../../modules/mod_announcements_popups/AnnouncementsPopupsPanel';
-import { ReviewsQaPanel } from '../../../modules/mod_reviews_qa/ReviewsQaPanel';
-import { WalletRmaPanel } from '../../../modules/mod_wallet_rma/WalletRmaPanel';
-import { AffiliatePanel } from '../../../modules/mod_affiliate/AffiliatePanel';
-import { B2bComparePanel } from '../../../modules/mod_b2b_compare/B2bComparePanel';
-import { BotsWebhooksPanel } from '../../../modules/mod_bots_webhooks/BotsWebhooksPanel';
-import { MaintenanceAuditPanel } from '../../../modules/mod_maintenance_audit/MaintenanceAuditPanel';
-import { I18nPanel } from '../../../modules/mod_i18n/I18nPanel';
-import { AiHubAgentPanel } from '../../../modules/mod_ai_hub_agent/AiHubAgentPanel';
+import type { EnterpriseHubMode } from './panels/EnterpriseCoreHubPanel';
+import type { UnifiedSettingsTabId } from './panels/UnifiedSettingsHubPanel';
 import { AdminGlobalChatAlarm } from '../../../modules/mod_live_chat/AdminGlobalChatAlarm';
+
+const PageBuilderPanel = lazy(() =>
+  import('./panels/PageBuilderPanel').then((m) => ({ default: m.PageBuilderPanel }))
+);
+const MediaLibraryPanel = lazy(() =>
+  import('./panels/MediaLibraryPanel').then((m) => ({ default: m.MediaLibraryPanel }))
+);
+const ArticlesSeoPanel = lazy(() =>
+  import('./panels/ArticlesSeoPanel').then((m) => ({ default: m.ArticlesSeoPanel }))
+);
+const OrdersCouponsPanel = lazy(() =>
+  import('./panels/OrdersCouponsPanel').then((m) => ({ default: m.OrdersCouponsPanel }))
+);
+const RbacPermissionsPanel = lazy(() =>
+  import('./panels/RbacPermissionsPanel').then((m) => ({ default: m.RbacPermissionsPanel }))
+);
+const PaymentGatewaysPanel = lazy(() =>
+  import('./panels/PaymentGatewaysPanel').then((m) => ({ default: m.PaymentGatewaysPanel }))
+);
+const SmsTriggersPanel = lazy(() =>
+  import('./panels/SmsTriggersPanel').then((m) => ({ default: m.SmsTriggersPanel }))
+);
+const DbBackupPanel = lazy(() =>
+  import('./panels/DbBackupPanel').then((m) => ({ default: m.DbBackupPanel }))
+);
+const LogsDiagnosticsPanel = lazy(() =>
+  import('./panels/LogsDiagnosticsPanel').then((m) => ({ default: m.LogsDiagnosticsPanel }))
+);
+const UsersDirectoryPanel = lazy(() =>
+  import('./panels/UsersDirectoryPanel').then((m) => ({ default: m.UsersDirectoryPanel }))
+);
+const AiSessionsThemePanel = lazy(() =>
+  import('./panels/AiSessionsThemePanel').then((m) => ({ default: m.AiSessionsThemePanel }))
+);
+const EnterpriseCoreHubPanel = lazy(() =>
+  import('./panels/EnterpriseCoreHubPanel').then((m) => ({ default: m.EnterpriseCoreHubPanel }))
+);
+const TaxonomiesManagerPanel = lazy(() =>
+  import('./panels/TaxonomiesManagerPanel').then((m) => ({ default: m.TaxonomiesManagerPanel }))
+);
+const PagesManagerPanel = lazy(() =>
+  import('./panels/PagesManagerPanel').then((m) => ({ default: m.PagesManagerPanel }))
+);
+const MenuBuilderInvoicePanel = lazy(() =>
+  import('./panels/MenuBuilderInvoicePanel').then((m) => ({ default: m.MenuBuilderInvoicePanel }))
+);
+const ModulesControlCenterPanel = lazy(() =>
+  import('./panels/ModulesControlCenterPanel').then((m) => ({ default: m.ModulesControlCenterPanel }))
+);
+const UnifiedSettingsHubPanel = lazy(() =>
+  import('./panels/UnifiedSettingsHubPanel').then((m) => ({ default: m.UnifiedSettingsHubPanel }))
+);
+const PayzitoPaymentHubPanel = lazy(() =>
+  import('../../../modules/mod_payment_hub/PayzitoPaymentHubPanel').then((m) => ({
+    default: m.PayzitoPaymentHubPanel,
+  }))
+);
+const InventoryAccountingPanel = lazy(() =>
+  import('../../../modules/mod_inventory_accounting/InventoryAccountingPanel').then((m) => ({
+    default: m.InventoryAccountingPanel,
+  }))
+);
+const FormsManagerPanel = lazy(() =>
+  import('../../../modules/mod_forms/FormsManagerPanel').then((m) => ({
+    default: m.FormsManagerPanel,
+  }))
+);
+const GoftinoOperatorInboxPanel = lazy(() =>
+  import('../../../modules/mod_live_chat/GoftinoOperatorInboxPanel').then((m) => ({
+    default: m.GoftinoOperatorInboxPanel,
+  }))
+);
+const NativeAnalyticsGscPanel = lazy(() =>
+  import('../../../modules/mod_analytics_gsc/NativeAnalyticsGscPanel').then((m) => ({
+    default: m.NativeAnalyticsGscPanel,
+  }))
+);
+const Phase6EnterpriseSuitePanel = lazy(() =>
+  import('../../../modules/mod_ai_digikala/Phase6EnterpriseSuitePanel').then((m) => ({
+    default: m.Phase6EnterpriseSuitePanel,
+  }))
+);
+const SolarBookingAutoBackupPanel = lazy(() =>
+  import('../../../modules/mod_booking/SolarBookingAutoBackupPanel').then((m) => ({
+    default: m.SolarBookingAutoBackupPanel,
+  }))
+);
+const SmartCrmAdminPanel = lazy(() =>
+  import('../../../modules/mod_smart_crm/SmartCrmAdminPanel').then((m) => ({
+    default: m.SmartCrmAdminPanel,
+  }))
+);
+const SubscriptionsAdminPanel = lazy(() =>
+  import('../../../modules/mod_subscriptions/SubscriptionsAdminPanel').then((m) => ({
+    default: m.SubscriptionsAdminPanel,
+  }))
+);
+const AcademySuiteAdminPanel = lazy(() =>
+  import('../../../modules/mod_academy_suite/AcademySuiteAdminPanel').then((m) => ({
+    default: m.AcademySuiteAdminPanel,
+  }))
+);
+const DeliveryLogsPanel = lazy(() =>
+  import('../../../modules/mod_delivery_logs/DeliveryLogsPanel').then((m) => ({
+    default: m.DeliveryLogsPanel,
+  }))
+);
+const NotificationsPwaPanel = lazy(() =>
+  import('../../../modules/mod_notifications_pwa/NotificationsPwaPanel').then((m) => ({
+    default: m.NotificationsPwaPanel,
+  }))
+);
+const AbandonedCartPanel = lazy(() =>
+  import('../../../modules/mod_abandoned_cart/AbandonedCartPanel').then((m) => ({
+    default: m.AbandonedCartPanel,
+  }))
+);
+const AnnouncementsPopupsPanel = lazy(() =>
+  import('../../../modules/mod_announcements_popups/AnnouncementsPopupsPanel').then((m) => ({
+    default: m.AnnouncementsPopupsPanel,
+  }))
+);
+const ReviewsQaPanel = lazy(() =>
+  import('../../../modules/mod_reviews_qa/ReviewsQaPanel').then((m) => ({
+    default: m.ReviewsQaPanel,
+  }))
+);
+const WalletRmaPanel = lazy(() =>
+  import('../../../modules/mod_wallet_rma/WalletRmaPanel').then((m) => ({
+    default: m.WalletRmaPanel,
+  }))
+);
+const AffiliatePanel = lazy(() =>
+  import('../../../modules/mod_affiliate/AffiliatePanel').then((m) => ({
+    default: m.AffiliatePanel,
+  }))
+);
+const B2bComparePanel = lazy(() =>
+  import('../../../modules/mod_b2b_compare/B2bComparePanel').then((m) => ({
+    default: m.B2bComparePanel,
+  }))
+);
+const BotsWebhooksPanel = lazy(() =>
+  import('../../../modules/mod_bots_webhooks/BotsWebhooksPanel').then((m) => ({
+    default: m.BotsWebhooksPanel,
+  }))
+);
+const MaintenanceAuditPanel = lazy(() =>
+  import('../../../modules/mod_maintenance_audit/MaintenanceAuditPanel').then((m) => ({
+    default: m.MaintenanceAuditPanel,
+  }))
+);
+const I18nPanel = lazy(() =>
+  import('../../../modules/mod_i18n/I18nPanel').then((m) => ({
+    default: m.I18nPanel,
+  }))
+);
+const AiHubAgentPanel = lazy(() =>
+  import('../../../modules/mod_ai_hub_agent/AiHubAgentPanel').then((m) => ({
+    default: m.AiHubAgentPanel,
+  }))
+);
+
+const AdminPanelSkeleton: React.FC = () => (
+  <div className="rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-6 sm:p-8 space-y-4 animate-pulse min-h-[360px]">
+    <div className="h-5 w-48 rounded-lg bg-stone-200 dark:bg-stone-800" />
+    <div className="h-3.5 w-80 max-w-full rounded-lg bg-stone-200/70 dark:bg-stone-800/70" />
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
+      <div className="h-24 rounded-xl bg-stone-100 dark:bg-stone-800/60" />
+      <div className="h-24 rounded-xl bg-stone-100 dark:bg-stone-800/60" />
+      <div className="h-24 rounded-xl bg-stone-100 dark:bg-stone-800/60" />
+    </div>
+  </div>
+);
 
 export type { OrderRecord };
 
@@ -266,8 +397,12 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
   const [siteModules, setSiteModules] = useState<SiteModuleRegistryItem[]>([]);
   const [selectedChatSessionId, setSelectedChatSessionId] = useState<string>('');
   const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastLiveRefreshRef = useRef<number>(0);
 
+  // Guaranteed Live DB Refresh on Admin Panel mount (no stale Docker/cache data)
   useEffect(() => {
+    lastLiveRefreshRef.current = Date.now();
+    onRefreshFromServer?.();
     void apiJson<{ ok?: boolean; modules?: SiteModuleRegistryItem[] }>('/api/v1/modules/registry')
       .then(({ ok, data }) => {
         if (ok && Array.isArray(data.modules)) {
@@ -310,21 +445,30 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
     [siteModules]
   );
 
-  const handleSelectSection = useCallback((nextSection: AdminSection | string) => {
-    if (typeof nextSection === 'string' && nextSection.startsWith('settings_hub:')) {
-      const tabPart = nextSection.split(':')[1] as UnifiedSettingsTabId;
-      setSettingsHubTab(tabPart || 'general');
-      setSection('settings_hub');
-    } else {
-      setSection(nextSection as AdminSection);
-    }
-    setIsMobileSidebarOpen(false);
-    // Auto-collapse right sidebar into sleek icon rail when entering any visual/content editor
-    setIsSidebarCollapsed(EDIT_FOCUS_SECTIONS.includes(nextSection as AdminSection));
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, []);
+  const handleSelectSection = useCallback(
+    (nextSection: AdminSection | string) => {
+      if (typeof nextSection === 'string' && nextSection.startsWith('settings_hub:')) {
+        const tabPart = nextSection.split(':')[1] as UnifiedSettingsTabId;
+        setSettingsHubTab(tabPart || 'general');
+        setSection('settings_hub');
+      } else {
+        setSection(nextSection as AdminSection);
+      }
+      setIsMobileSidebarOpen(false);
+      // Auto-collapse right sidebar into sleek icon rail when entering any visual/content editor
+      setIsSidebarCollapsed(EDIT_FOCUS_SECTIONS.includes(nextSection as AdminSection));
+      // Refresh live DB state on tab switch (throttled to max once every 3s)
+      const now = Date.now();
+      if (now - lastLiveRefreshRef.current > 3000) {
+        lastLiveRefreshRef.current = now;
+        onRefreshFromServer?.();
+      }
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    },
+    [onRefreshFromServer]
+  );
 
   const isSuperAdmin = activeUserRole === 'super_admin';
   const effectivePerms = resolveEffectivePermissions(
@@ -949,6 +1093,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
 
         {/* Active Panel Content (Expands smoothly to full available width when sidebar is collapsed) */}
         <div className="flex-1 w-full space-y-6 min-w-0">
+          <Suspense fallback={<AdminPanelSkeleton />}>
           {enterpriseHubModes.includes(section as EnterpriseHubMode) && (
             <EnterpriseCoreHubPanel
               mode={section as EnterpriseHubMode}
@@ -1295,6 +1440,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
               onNotice={showNotice}
             />
           )}
+          </Suspense>
         </div>
       </div>
     </div>

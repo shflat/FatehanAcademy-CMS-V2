@@ -129,31 +129,21 @@ export const FatehanStorefrontHome: React.FC = () => {
         ageGroup: ideaAgeGroup,
       });
       if (res.ok) {
-        try {
-          localStorage.setItem('fatehan_last_idea_phone', submitPhone);
-        } catch {
-          // ignore
-        }
-        // If user did not have an active account session, automatically create & log into their customer account
+        setLastIdeaPhone(submitPhone);
+        // Keep lightweight UI session state in memory only (server cookie remains source of truth)
         if (!loggedInCustomer && submitPhone) {
-          const newSession = {
+          setLoggedInCustomer({
             fullName: submitName,
             phone: submitPhone,
             verified: true,
             walletBalanceToman: 0,
             role: 'کارآموز / عضو باشگاه فاتحان',
-          };
-          setLoggedInCustomer(newSession);
-          try {
-            localStorage.setItem('dpa_customer_session_v2', JSON.stringify(newSession));
-          } catch {
-            // ignore
-          }
+          });
         }
         setIdeaTitle('');
         setIdeaNote('');
         await refreshState();
-        notify('💡 ایده شما ثبت شد و حساب کاربری شما با موفقیت فعال و همگام‌سازی گردید!');
+        notify('💡 ایده شما ثبت شد و در پنل کاربری شما همگام‌سازی گردید!');
       }
     } finally {
       setIsSubmittingIdea(false);
@@ -230,8 +220,8 @@ export const FatehanStorefrontHome: React.FC = () => {
       ].includes(b.id) && !b.desktopHidden
   );
 
+  const [lastIdeaPhone, setLastIdeaPhone] = useState<string>('');
   // Student Ideas filtered for current user in the modal
-  const lastIdeaPhone = typeof window !== 'undefined' ? localStorage.getItem('fatehan_last_idea_phone') || '' : '';
   const activeUserPhone = loggedInCustomer?.phone || ideaPhone.trim() || lastIdeaPhone;
   const userSubmittedIdeas = (state?.studentIdeas || []).filter(
     (item) => !activeUserPhone || item.phone === activeUserPhone

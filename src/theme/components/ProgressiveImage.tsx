@@ -1,11 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { resolveStaticImageUrl, VITE_IMAGES } from '../../data/mediaAssets';
+import {
+  buildResponsiveSrcSet,
+  resolveStaticImageUrl,
+  VITE_IMAGES,
+} from '../../data/mediaAssets';
 
 interface ProgressiveImageProps
   extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   src: string;
   alt: string;
   wrapperClassName?: string;
+  /** Mark above-the-fold LCP hero images as priority to paint immediately with fetchPriority="high". */
+  priority?: boolean;
 }
 
 export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
@@ -13,33 +19,44 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
   alt,
   className = '',
   wrapperClassName = '',
-  loading = 'lazy',
-  decoding = 'async',
+  priority = false,
+  loading,
+  decoding,
+  sizes,
+  srcSet,
   ...rest
 }) => {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const resolvedInitial = resolveStaticImageUrl(src);
   const [activeSrc, setActiveSrc] = useState(resolvedInitial);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(priority);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     const nextSrc = resolveStaticImageUrl(src);
     setActiveSrc(nextSrc);
     setHasError(false);
+    if (priority) {
+      setLoaded(true);
+      return;
+    }
     if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
       setLoaded(true);
     } else {
       setLoaded(false);
     }
-  }, [src]);
+  }, [src, priority]);
+
+  const computedSrcSet = srcSet ?? buildResponsiveSrcSet(activeSrc);
+  const computedSizes =
+    sizes ?? (computedSrcSet ? '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px' : undefined);
 
   return (
     <div
       className={`relative overflow-hidden bg-stone-200/70 dark:bg-slate-800/70 ${wrapperClassName}`}
     >
-      {/* Subtle Shimmer Blur Placeholder until image settles */}
-      {!loaded && !hasError && (
+      {/* Subtle Shimmer Placeholder for non-LCP lazy images */}
+      {!priority && !loaded && !hasError && (
         <div
           aria-hidden="true"
           className="absolute inset-0 img-shimmer-placeholder pointer-events-none"
@@ -54,9 +71,12 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
         <img
           ref={imgRef}
           src={activeSrc}
+          srcSet={computedSrcSet}
+          sizes={computedSizes}
           alt={alt}
-          loading={loading}
-          decoding={decoding}
+          loading={loading ?? (priority ? 'eager' : 'lazy')}
+          decoding={decoding ?? (priority ? 'sync' : 'async')}
+          fetchPriority={priority ? 'high' : undefined}
           referrerPolicy="no-referrer"
           onLoad={() => setLoaded(true)}
           onError={() => {
@@ -67,11 +87,13 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
               setLoaded(true);
             }
           }}
-          className={`transition-all duration-700 ease-out will-change-[transform,opacity,filter] ${
-            loaded
-              ? 'opacity-100 blur-0 scale-100'
-              : 'opacity-0 blur-md scale-[1.04]'
-          } ${className}`}
+          className={
+            priority
+              ? `opacity-100 ${className}`
+              : `transition-opacity duration-300 ease-out ${
+                  loaded ? 'opacity-100' : 'opacity-0'
+                } ${className}`
+          }
           {...rest}
         />
       )}

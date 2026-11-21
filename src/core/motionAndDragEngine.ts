@@ -446,36 +446,20 @@ export function animatePageEntrance(rootEl: HTMLElement | null) {
     };
   };
 
-  // Animate initially visible above-the-fold elements cleanly
+  // Keep initially visible above-the-fold elements immediately painted (zero LCP opacity delay!)
   const initialViewportItems = animatedItems.filter((el) => {
     const rect = el.getBoundingClientRect();
     return rect.top < window.innerHeight * 0.96 && rect.bottom > 0;
   });
 
-  initialViewportItems.forEach((el, idx) => {
-    const fromState = getHiddenTransform(el, 'down');
-    gsap.fromTo(
-      el,
-      {
-        opacity: 0,
-        x: fromState.x * 0.55,
-        y: fromState.y * 0.65,
-        scale: fromState.scale,
-        filter: 'blur(4px)',
-      },
-      {
-        opacity: 1,
-        x: 0,
-        y: 0,
-        scale: 1,
-        filter: 'blur(0px)',
-        duration: 0.58,
-        delay: Math.min(idx * 0.045, 0.28),
-        ease: 'power3.out',
-        overwrite: 'auto',
-        clearProps: 'filter,transform',
-      }
-    );
+  initialViewportItems.forEach((el) => {
+    gsap.set(el, {
+      opacity: 1,
+      x: 0,
+      y: 0,
+      scale: 1,
+      clearProps: 'filter,transform,opacity',
+    });
   });
 
   if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {

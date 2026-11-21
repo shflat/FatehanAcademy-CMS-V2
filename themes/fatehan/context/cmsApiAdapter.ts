@@ -20,6 +20,7 @@ import {
   ProductItem,
   PaymentGatewayConfig,
 } from '../types';
+import { getAuthHeaders, writeStoredSession } from '../../../src/core/apiClient';
 
 export interface CmsApiAdapterOptions {
   /** Base URL of CMS Core API ('' for same-origin) */
@@ -31,20 +32,16 @@ export interface CmsApiAdapterOptions {
 }
 
 function getAuthTokenHeader(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  try {
-    const raw = window.localStorage.getItem('skill98_auth_session_v1');
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as { token?: string };
-    return parsed?.token ? { Authorization: `Bearer ${parsed.token}` } : {};
-  } catch {
-    return {};
-  }
+  return getAuthHeaders();
 }
 
 async function safeJsonFetch<T>(url: string, init?: RequestInit): Promise<T | null> {
   try {
-    const res = await fetch(url, init);
+    const res = await fetch(url, {
+      ...init,
+      cache: 'no-store',
+      credentials: 'include',
+    });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -325,6 +322,8 @@ export function createCmsV2ApiAdapter(options: CmsApiAdapterOptions = {}): CmsAp
     async sendOtp(payload) {
       const res = await fetch(`${base}/api/sms/send-otp`, {
         method: 'POST',
+        cache: 'no-store',
+        credentials: 'include',
         headers: buildHeaders(),
         body: JSON.stringify({ phone: payload.phone }),
       });
@@ -335,6 +334,8 @@ export function createCmsV2ApiAdapter(options: CmsApiAdapterOptions = {}): CmsAp
     async verifyOtp(payload) {
       const res = await fetch(`${base}/api/sms/verify-otp`, {
         method: 'POST',
+        cache: 'no-store',
+        credentials: 'include',
         headers: buildHeaders(),
         body: JSON.stringify({
           phone: payload.phone,
@@ -343,21 +344,15 @@ export function createCmsV2ApiAdapter(options: CmsApiAdapterOptions = {}): CmsAp
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && data.token && typeof window !== 'undefined') {
-        try {
-          window.localStorage.setItem(
-            'skill98_auth_session_v1',
-            JSON.stringify({
-              token: data.token,
-              phone: data.phone || payload.phone,
-              fullName: data.fullName || payload.fullName || 'کاربر',
-              userRole: data.role || 'customer',
-              roleId: data.roleId || 'role_customer',
-            })
-          );
-        } catch {
-          // ignore
-        }
+      if (res.ok && (data.sessionToken || data.token)) {
+        writeStoredSession({
+          sessionToken: data.sessionToken || data.token,
+          phone: data.phone || payload.phone,
+          fullName: data.displayName || data.fullName || payload.fullName || 'کاربر',
+          userRole:
+            data.role === 'super_admin' || data.role === 'admin' ? data.role : 'customer',
+          roleId: data.roleId || 'role_customer',
+        });
       }
       return {
         ok: res.ok,

@@ -10,7 +10,7 @@ import type {
 import { ALL_CAPABILITY_KEYS } from '../../core/permissions.js';
 import { INITIAL_CMS_ROLES } from '../../data/defaults.js';
 import { getEnvConfig } from './envConfig.js';
-import { extractSessionToken, timingSafeHexEqual } from './cryptoSecurity.js';
+import { clearSessionCookie, extractSessionToken, timingSafeHexEqual } from './cryptoSecurity.js';
 import { DATA_DIR, dbExec, dbQuery } from '../database/connection.js';
 import { getSetting, writeSystemLog } from '../database/settingsLogsRepo.js';
 import {
@@ -262,6 +262,9 @@ export async function requireAuth(
   try {
     const session = await resolveActiveSession(req);
     if (!session) {
+      if (extractSessionToken(req)) {
+        clearSessionCookie(res, req);
+      }
       res.status(401).json({
         error: 'نشست کاربری معتبر نیست یا منقضی شده است. لطفاً ابتدا وارد حساب کاربری شوید.',
       });
@@ -285,6 +288,9 @@ export function requirePermission(
     try {
       const session = req.authSession || (await resolveActiveSession(req));
       if (!session) {
+        if (extractSessionToken(req)) {
+          clearSessionCookie(res, req);
+        }
         res.status(401).json({
           error: 'دسترسی غیرمجاز: برای دسترسی به این بخش باید وارد حساب مدیریتی شوید.',
         });

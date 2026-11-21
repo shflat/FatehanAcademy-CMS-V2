@@ -1,7 +1,7 @@
-import heroStudioImg from '../assets/images/skill98_ai_architecture_hero_1795088218603.jpg';
-import fullstackPkgImg from '../assets/images/skill98_mcp_agents_cover_1795088217282.jpg';
-import uiuxPkgImg from '../assets/images/skill98_motion_ui_cover_1795088220877.jpg';
-import securityPkgImg from '../assets/images/skill98_cloud_security_cover_1795088218781.jpg';
+import heroStudioImg from '../assets/images/skill98_ai_architecture_hero_1795088218603.webp';
+import fullstackPkgImg from '../assets/images/skill98_mcp_agents_cover_1795088217282.webp';
+import uiuxPkgImg from '../assets/images/skill98_motion_ui_cover_1795088220877.webp';
+import securityPkgImg from '../assets/images/skill98_cloud_security_cover_1795088218781.webp';
 import aiAutomationPkgImg from '../assets/images/pkg_ai_automation_1794606448806.webp';
 
 export const VITE_IMAGES = {
@@ -95,17 +95,47 @@ export function resolveResponsiveMediaUrl(
     }
   }
   const resolved = resolveStaticImageUrl(url);
-  // If physical multi-size upload follows /uploads/YYYY/MM/<name>-800.webp convention, swap suffix cleanly
-  if (resolved.startsWith('/uploads/') && /-(25|300|800|orig)\.webp$/i.test(resolved)) {
-    const suffixMap: Record<ResponsiveImageSlot, string> = {
-      thumb25: '-25.webp',
-      thumb300: '-300.webp',
-      medium800: '-800.webp',
-      original: '-orig.webp',
-    };
-    return resolved.replace(/-(25|300|800|orig)\.webp$/i, suffixMap[slot]);
+  if (resolved.startsWith('/uploads/')) {
+    if (/-(thumb-25|thumb-300|medium-800|original-webp)\.webp$/i.test(resolved)) {
+      const suffixMap: Record<ResponsiveImageSlot, string> = {
+        thumb25: '-thumb-25.webp',
+        thumb300: '-thumb-300.webp',
+        medium800: '-medium-800.webp',
+        original: '-original-webp.webp',
+      };
+      return resolved.replace(
+        /-(thumb-25|thumb-300|medium-800|original-webp)\.webp$/i,
+        suffixMap[slot]
+      );
+    }
+    if (/-(25|300|800|orig)\.webp$/i.test(resolved)) {
+      const suffixMap: Record<ResponsiveImageSlot, string> = {
+        thumb25: '-25.webp',
+        thumb300: '-300.webp',
+        medium800: '-800.webp',
+        original: '-orig.webp',
+      };
+      return resolved.replace(/-(25|300|800|orig)\.webp$/i, suffixMap[slot]);
+    }
   }
   return resolved;
+}
+
+export function buildResponsiveSrcSet(url?: string): string | undefined {
+  if (!url || !url.startsWith('/uploads/')) return undefined;
+  if (/-(thumb-25|thumb-300|medium-800|original-webp)\.webp$/i.test(url)) {
+    const w300 = url.replace(/-(thumb-25|thumb-300|medium-800|original-webp)\.webp$/i, '-thumb-300.webp');
+    const w800 = url.replace(/-(thumb-25|thumb-300|medium-800|original-webp)\.webp$/i, '-medium-800.webp');
+    const orig = url.replace(/-(thumb-25|thumb-300|medium-800|original-webp)\.webp$/i, '-original-webp.webp');
+    return `${w300} 300w, ${w800} 800w, ${orig} 1600w`;
+  }
+  if (/-(25|300|800|orig)\.webp$/i.test(url)) {
+    const w300 = url.replace(/-(25|300|800|orig)\.webp$/i, '-300.webp');
+    const w800 = url.replace(/-(25|300|800|orig)\.webp$/i, '-800.webp');
+    const orig = url.replace(/-(25|300|800|orig)\.webp$/i, '-orig.webp');
+    return `${w300} 300w, ${w800} 800w, ${orig} 1600w`;
+  }
+  return undefined;
 }
 
 export function isVideoMediaUrl(url?: string, mimeType?: string): boolean {

@@ -4,7 +4,7 @@ import path from 'path';
 import express from 'express';
 import { DEFAULT_SMS_GATEWAY_SETTINGS } from '../../../data/defaults.js';
 import type { SmsGatewaySettings } from '../../../core/types.js';
-import { getEnvConfig } from '../../core/envConfig.js';
+import { getEnvConfig, resolveBuildId } from '../../core/envConfig.js';
 import {
   checkRateLimit,
   clearSessionCookie,
@@ -30,6 +30,7 @@ import {
   findUserByPhone,
   getSetting,
   listActiveAuthSessions,
+  resolveSessionTtlHours,
   revokeAuthSessionByToken,
   setSetting,
   upsertUserByPhone,
@@ -253,6 +254,7 @@ export function createAuthRouter(): express.Router {
             sqlOrEndpoint: 'POST /api/sms/verify-otp (ADMIN)',
           });
           const clientMeta = extractClientDeviceAndIp(req);
+          const ttlHours = await resolveSessionTtlHours();
           const sessionToken = await createAuthSession({
             phone: cleanPhone,
             userDisplay: masterRow.full_name || 'مدیر ارشد سیستم',
@@ -260,8 +262,9 @@ export function createAuthRouter(): express.Router {
             roleId: 'role_super_admin',
             deviceLabel: clientMeta.deviceLabel,
             ipMasked: clientMeta.ipMasked,
+            ttlHours,
           });
-          setSessionCookie(req, res, sessionToken);
+          setSessionCookie(req, res, sessionToken, ttlHours);
           let masterSkills: string[] = [];
           try {
             masterSkills = JSON.parse(masterRow.claimed_skill_ids_json || '[]');
@@ -360,6 +363,7 @@ export function createAuthRouter(): express.Router {
       });
 
       const clientMeta = extractClientDeviceAndIp(req);
+      const ttlHours = await resolveSessionTtlHours();
       const sessionToken = await createAuthSession({
         phone: cleanPhone,
         userDisplay: resolvedName,
@@ -367,8 +371,9 @@ export function createAuthRouter(): express.Router {
         roleId: userRow.role_id || resolvedRoleId,
         deviceLabel: clientMeta.deviceLabel,
         ipMasked: clientMeta.ipMasked,
+        ttlHours,
       });
-      setSessionCookie(req, res, sessionToken);
+      setSessionCookie(req, res, sessionToken, ttlHours);
       let claimedSkillIds: string[] = [];
       try {
         claimedSkillIds = JSON.parse(userRow.claimed_skill_ids_json || '[]');
@@ -459,6 +464,7 @@ export function createAuthRouter(): express.Router {
       });
 
       const clientMeta = extractClientDeviceAndIp(req);
+      const ttlHours = await resolveSessionTtlHours();
       const sessionToken = await createAuthSession({
         phone: userRow.phone,
         userDisplay: displayName,
@@ -466,8 +472,9 @@ export function createAuthRouter(): express.Router {
         roleId: userRow.role_id || resolvedRoleId,
         deviceLabel: `${clientMeta.deviceLabel} (Google OAuth)`,
         ipMasked: clientMeta.ipMasked,
+        ttlHours,
       });
-      setSessionCookie(req, res, sessionToken);
+      setSessionCookie(req, res, sessionToken, ttlHours);
 
       res.json({
         authenticated: true,
@@ -519,28 +526,36 @@ export function createAuthRouter(): express.Router {
   );
 
   router.get('/api/auth/session', async (req, res) => {
+    const buildId = resolveBuildId();
     try {
       const token = extractSessionToken(req);
       if (!token) {
-        res.json({ authenticated: false });
+        res.json({ authenticated: false, buildId });
         return;
       }
       const sess = await findAuthSession(token);
       if (!sess) {
-        clearSessionCookie(res);
-        res.json({ authenticated: false });
+        clearSessionCookie(res, req);
+        res.status(401).json({
+          authenticated: false,
+          expired: true,
+          buildId,
+          error: 'نشست شما منقضی یا ابطال شده است. لطفاً مجدداً وارد شوید.',
+        });
         return;
       }
-      const [user, master] = await Promise.all([
+      const [user, master, sessionTtlHours] = await Promise.all([
         findUserByPhone(sess.phone),
         resolveMasterCredentials(),
+        resolveSessionTtlHours(),
       ]);
       const isMaster = Boolean(master.masterPhone && sess.phone === master.masterPhone);
       if (!user || (user.status === 'suspended' && !isMaster)) {
         await deleteAuthSession(token);
-        clearSessionCookie(res);
+        clearSessionCookie(res, req);
         res.status(403).json({
           authenticated: false,
+          buildId,
           error: 'حساب کاربری غیرفعال یا مسدود شده است.',
         });
         return;
@@ -562,6 +577,9 @@ export function createAuthRouter(): express.Router {
 
       res.json({
         authenticated: true,
+        buildId,
+        sessionTtlHours,
+        expiresAt: sess.expires_at,
         sessionToken: token,
         sessions,
         user: {
@@ -586,7 +604,7 @@ export function createAuthRouter(): express.Router {
         },
       });
     } catch {
-      res.status(500).json({ authenticated: false });
+      res.status(500).json({ authenticated: false, buildId });
     }
   });
 
@@ -662,10 +680,10 @@ export function createAuthRouter(): express.Router {
       if (token) {
         await deleteAuthSession(token);
       }
-      clearSessionCookie(res);
+      clearSessionCookie(res, req);
       res.json({ ok: true });
     } catch {
-      clearSessionCookie(res);
+      clearSessionCookie(res, req);
       res.json({ ok: true });
     }
   });

@@ -19,6 +19,8 @@ import {
   writeSystemLog,
 } from '../../database/index.js';
 
+import { resolveBuildId } from '../../core/envConfig.js';
+
 export function createStorefrontRouter(): express.Router {
   const router = express.Router();
 
@@ -27,6 +29,7 @@ export function createStorefrontRouter(): express.Router {
       status: 'ok',
       service: 'skill98-platform',
       cmsVersion: 'v2.7.0',
+      buildId: resolveBuildId(),
       databaseEngine: getActiveEngine(),
       cacheStats: cmsCache.getStats(),
       uptimeSeconds: Math.floor(process.uptime()),
@@ -41,20 +44,27 @@ export function createStorefrontRouter(): express.Router {
       try {
         const isAdminSession =
           req.authSession?.role === 'super_admin' || req.authSession?.role === 'admin';
-        const cacheKey = isAdminSession ? 'bootstrap:admin' : 'bootstrap:public';
-        const cached = cmsCache.get<Record<string, unknown>>(cacheKey);
-        if (cached) {
-          res.json({
-            engine: getActiveEngine(),
-            cached: true,
-            ...cached,
-          });
-          return;
+        const bypassCache = isAdminSession || req.query.fresh === '1';
+        const cacheKey = 'bootstrap:public';
+        if (!bypassCache) {
+          const cached = cmsCache.get<Record<string, unknown>>(cacheKey);
+          if (cached) {
+            res.json({
+              engine: getActiveEngine(),
+              buildId: resolveBuildId(),
+              cached: true,
+              ...cached,
+            });
+            return;
+          }
         }
         const data = await getStorefrontBootstrapData(isAdminSession);
-        cmsCache.set(cacheKey, data, isAdminSession ? 5_000 : 25_000);
+        if (!isAdminSession) {
+          cmsCache.set(cacheKey, data, 15_000);
+        }
         res.json({
           engine: getActiveEngine(),
+          buildId: resolveBuildId(),
           cached: false,
           ...data,
         });

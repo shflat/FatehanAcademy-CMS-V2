@@ -56,6 +56,22 @@ export async function optimizeAndStoreImageBuffer({
   const { relDir, absDir } = getUploadMonthDir();
   const variants = {};
 
+  // Non-destructive original preservation: keep exact untouched user/designer file on disk
+  const mimeLower = String(mimeType || 'image/webp').toLowerCase();
+  const origExt =
+    mimeLower === 'image/png'
+      ? 'png'
+      : mimeLower === 'image/jpeg' || mimeLower === 'image/jpg'
+      ? 'jpg'
+      : mimeLower === 'image/svg+xml'
+      ? 'svg'
+      : mimeLower === 'image/gif'
+      ? 'gif'
+      : 'webp';
+  const rawOriginalName = `${safeSlug}-${uniqueHash}-original.${origExt}`;
+  fs.writeFileSync(path.join(absDir, rawOriginalName), buffer);
+  variants.originalFile = `${relDir}/${rawOriginalName}`;
+
   let sharpModule = null;
   try {
     const imported = await import('sharp');
@@ -69,7 +85,7 @@ export async function optimizeAndStoreImageBuffer({
     const absFile = path.join(absDir, fileName);
     const publicUrl = `${relDir}/${fileName}`;
 
-    if (sharpModule && mimeType !== 'image/svg+xml') {
+    if (sharpModule && mimeLower !== 'image/svg+xml') {
       let pipeline = sharpModule(buffer);
       if (size.width && size.height) {
         pipeline = pipeline.resize(size.width, size.height, {
@@ -77,7 +93,7 @@ export async function optimizeAndStoreImageBuffer({
           withoutEnlargement: true,
         });
       }
-      await pipeline.webp({ quality: 84 }).toFile(absFile);
+      await pipeline.webp({ quality: 82, effort: 4 }).toFile(absFile);
     } else {
       fs.writeFileSync(absFile, buffer);
     }
@@ -86,6 +102,7 @@ export async function optimizeAndStoreImageBuffer({
 
   return {
     url: variants.original,
+    originalFile: variants.originalFile,
     variants,
     storedIn: relDir,
   };

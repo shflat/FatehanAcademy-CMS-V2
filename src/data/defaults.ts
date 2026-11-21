@@ -349,7 +349,7 @@ export const DEFAULT_OTP_SECURITY_CONFIG: OtpSecurityConfig = {
   senderLine: '50004000000',
   otpExpirySeconds: 120,
   requireOtpForAdmin: true,
-  sessionTimeoutHours: 72,
+  sessionTimeoutHours: 24,
   strictIpBinding: false,
 };
 

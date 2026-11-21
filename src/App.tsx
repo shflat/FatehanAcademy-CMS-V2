@@ -1,34 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense, lazy } from 'react';
 import { Check, RotateCcw, Sparkles } from 'lucide-react';
-import {
-  signInWithPopup,
-  signOut,
-  onAuthStateChanged,
-  User,
-} from 'firebase/auth';
-import {
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  where,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-import {
-  db,
-  auth,
-  googleProvider,
-  BOOTSTRAPPED_ADMIN_EMAIL,
-  OperationType,
-  handleFirestoreError,
-  sanitizeSlugOrId,
-  truncateString,
-} from './firebase';
 import type {
   ActiveTab,
   AiEngineConfig,
@@ -39,6 +10,7 @@ import type {
   CmsSessionRecord,
   CouponRule,
   MediaAssetItem,
+  OrderRecord,
   OtpSecurityConfig,
   PaymentDisplayConfig,
   PaymentGatewayId,
@@ -53,8 +25,10 @@ import {
   apiJson,
   emitGlobalToast,
   readStoredSession,
+  syncClientBuildId,
   writeStoredSession,
 } from './core/apiClient';
+import { syncPageSeoHead } from './core/seoHeadManager';
 import { GlobalActivityOverlay } from './components/GlobalActivityOverlay';
 import {
   initSmoothScroll,
@@ -65,13 +39,11 @@ import {
   scrollToElementSmooth,
   MuuriGridController,
 } from './core/motionAndDragEngine';
-import { downloadSkill98StarterZip } from './core/zipGenerator';
 import {
   resolveRegisteredTheme,
   createCmsV2ApiAdapter,
 } from '../themes/registry';
 import {
-  IMAGES,
   INITIAL_SKILL98_CATALOG,
   INITIAL_ARTICLES,
   INITIAL_COUPONS,
@@ -90,25 +62,122 @@ import { SiteHeader } from './theme/components/SiteHeader';
 import { SiteFooter } from './theme/components/SiteFooter';
 import { MobileBottomNav } from './theme/components/MobileBottomNav';
 import { StorefrontView } from './theme/components/StorefrontView';
-import { SingleProductView } from './theme/components/SingleProductView';
-import { ArticlesView } from './theme/components/ArticlesView';
-import { DynamicPageView } from './theme/components/DynamicPageView';
-import { SkillDetailModal } from './modules/catalog/SkillDetailModal';
-import {
-  AuthModal,
-  normalizeDigits,
-  normalizeIranMobile,
-  toLatinDigits,
-  type AuthStep,
-} from './modules/auth/AuthModal';
-import { CartDrawerModal } from './modules/cart/CartDrawerModal';
-import { CustomerDashboardView } from './modules/dashboard/CustomerDashboardView';
-import { TargetGuideAndZipView } from './modules/guide/TargetGuideAndZipView';
-import { AdminCmsView, type OrderRecord } from './modules/admin/AdminCmsView';
-import { GoftinoLiveChatWidget } from '../modules/mod_live_chat/GoftinoLiveChatWidget';
-import { PWAInstallBanner } from '../modules/mod_notifications_pwa/PWAInstallBanner';
-import { StorefrontPopupsRenderer } from '../modules/mod_announcements_popups/StorefrontPopupsRenderer';
+import type { AuthStep } from './modules/auth/AuthModal';
 import { initWebVitalsReporter } from './core/webVitalsReporter';
+
+// Route & Modal Code Splitting (keeps initial storefront JS minimal for PageSpeed 95+)
+const SingleProductView = lazy(() =>
+  import('./theme/components/SingleProductView').then((m) => ({
+    default: m.SingleProductView,
+  }))
+);
+const ArticlesView = lazy(() =>
+  import('./theme/components/ArticlesView').then((m) => ({
+    default: m.ArticlesView,
+  }))
+);
+const DynamicPageView = lazy(() =>
+  import('./theme/components/DynamicPageView').then((m) => ({
+    default: m.DynamicPageView,
+  }))
+);
+const SkillDetailModal = lazy(() =>
+  import('./modules/catalog/SkillDetailModal').then((m) => ({
+    default: m.SkillDetailModal,
+  }))
+);
+const AuthModal = lazy(() =>
+  import('./modules/auth/AuthModal').then((m) => ({ default: m.AuthModal }))
+);
+const CartDrawerModal = lazy(() =>
+  import('./modules/cart/CartDrawerModal').then((m) => ({
+    default: m.CartDrawerModal,
+  }))
+);
+const CustomerDashboardView = lazy(() =>
+  import('./modules/dashboard/CustomerDashboardView').then((m) => ({
+    default: m.CustomerDashboardView,
+  }))
+);
+const TargetGuideAndZipView = lazy(() =>
+  import('./modules/guide/TargetGuideAndZipView').then((m) => ({
+    default: m.TargetGuideAndZipView,
+  }))
+);
+const AdminCmsView = lazy(() =>
+  import('./modules/admin/AdminCmsView').then((m) => ({
+    default: m.AdminCmsView,
+  }))
+);
+const GoftinoLiveChatWidget = lazy(() =>
+  import('../modules/mod_live_chat/GoftinoLiveChatWidget').then((m) => ({
+    default: m.GoftinoLiveChatWidget,
+  }))
+);
+const PWAInstallBanner = lazy(() =>
+  import('../modules/mod_notifications_pwa/PWAInstallBanner').then((m) => ({
+    default: m.PWAInstallBanner,
+  }))
+);
+const StorefrontPopupsRenderer = lazy(() =>
+  import('../modules/mod_announcements_popups/StorefrontPopupsRenderer').then((m) => ({
+    default: m.StorefrontPopupsRenderer,
+  }))
+);
+
+function toLatinDigits(raw: string): string {
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
+  let cleaned = raw;
+  for (let i = 0; i < 10; i++) {
+    cleaned = cleaned
+      .replace(new RegExp(persianDigits[i], 'g'), String(i))
+      .replace(new RegExp(arabicDigits[i], 'g'), String(i));
+  }
+  return cleaned;
+}
+
+function normalizeIranMobile(raw: string): string {
+  let cleaned = toLatinDigits(raw.trim()).replace(/[^0-9+]/g, '');
+  if (cleaned.startsWith('+98')) cleaned = '0' + cleaned.slice(3);
+  else if (cleaned.startsWith('0098')) cleaned = '0' + cleaned.slice(4);
+  cleaned = cleaned.replace(/[^0-9]/g, '');
+  if (cleaned.startsWith('989') && cleaned.length === 12) cleaned = '0' + cleaned.slice(2);
+  else if (cleaned.startsWith('9') && cleaned.length === 10) cleaned = '0' + cleaned;
+  return cleaned;
+}
+
+function normalizeDigits(raw: string): string {
+  return toLatinDigits(raw.trim()).replace(/[^0-9]/g, '');
+}
+
+function sanitizeSlugOrId(input: string, fallback = 'item_98'): string {
+  const cleaned = input
+    .trim()
+    .replace(/[^a-zA-Z0-9_\-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 96);
+  return cleaned.length >= 2 ? cleaned : `${fallback}_${Date.now()}`;
+}
+
+function truncateString(val: string, minLen: number, maxLen: number, fallback: string): string {
+  const trimmed = (val || '').trim();
+  if (trimmed.length < minLen) return fallback.slice(0, maxLen);
+  return trimmed.slice(0, maxLen);
+}
+
+const ViewSuspenseSkeleton: React.FC = () => (
+  <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-6 animate-pulse min-h-[60vh]">
+    <div className="h-8 w-64 rounded-xl bg-stone-200 dark:bg-slate-800" />
+    <div className="h-4 w-96 max-w-full rounded-lg bg-stone-200/70 dark:bg-slate-800/70" />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+      <div className="h-56 rounded-2xl bg-stone-200/60 dark:bg-slate-800/60" />
+      <div className="h-56 rounded-2xl bg-stone-200/60 dark:bg-slate-800/60" />
+      <div className="h-56 rounded-2xl bg-stone-200/60 dark:bg-slate-800/60" />
+    </div>
+  </div>
+);
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('store');
@@ -121,6 +190,9 @@ export default function App() {
     () => INITIAL_SKILL98_CATALOG[0] || null
   );
 
+  // Defer non-critical floating widgets until after initial paint
+  const [widgetsReady, setWidgetsReady] = useState(false);
+
   // Refs for Barba.js + GSAP + Muuri Interactive Grid
   const mainContainerRef = useRef<HTMLElement | null>(null);
   const transitionOverlayRef = useRef<HTMLDivElement | null>(null);
@@ -128,27 +200,31 @@ export default function App() {
   const [isMuuriDragEnabled, setIsMuuriDragEnabled] = useState(true);
   const [hasDisplacedLayout, setHasDisplacedLayout] = useState(false);
 
-  // Restored session (client cache backed by HMAC/token server session)
-  const initialSession = useMemo(() => readStoredSession(), []);
-
   useEffect(() => {
     initWebVitalsReporter();
+    const idleCb = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number })
+      .requestIdleCallback;
+    if (typeof idleCb === 'function') {
+      const id = idleCb(() => setWidgetsReady(true), { timeout: 1800 });
+      return () => {
+        const cancelIdle = (window as unknown as { cancelIdleCallback?: (h: number) => void })
+          .cancelIdleCallback;
+        cancelIdle?.(id);
+      };
+    }
+    const timer = window.setTimeout(() => setWidgetsReady(true), 1200);
+    return () => window.clearTimeout(timer);
   }, []);
 
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
-  const [userRole, setUserRole] = useState<UserRoleType>(
-    initialSession?.userRole || 'guest'
-  );
-  const [loggedInRoleId, setLoggedInRoleId] = useState<string>(
-    initialSession?.roleId || 'role_customer'
-  );
-  const [loggedInName, setLoggedInName] = useState<string | null>(
-    initialSession?.fullName || null
-  );
-  const [loggedInPhone, setLoggedInPhone] = useState<string>(
-    initialSession?.phone || ''
-  );
+  // Auth state hydrated exclusively from live GET /api/auth/session (HttpOnly cookie) — zero localStorage
+  const [googleUserInfo, setGoogleUserInfo] = useState<{
+    uid: string;
+    displayName: string | null;
+  } | null>(null);
+  const [userRole, setUserRole] = useState<UserRoleType>('guest');
+  const [loggedInRoleId, setLoggedInRoleId] = useState<string>('role_customer');
+  const [loggedInName, setLoggedInName] = useState<string | null>(null);
+  const [loggedInPhone, setLoggedInPhone] = useState<string>('');
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authStep, setAuthStep] = useState<AuthStep>('phone');
@@ -167,8 +243,7 @@ export default function App() {
   const prevAnyModalOpenRef = useRef(false);
   const isPopStateHandlingRef = useRef(false);
 
-  // Platform State
-  const [cloudProducts, setCloudProducts] = useState<SkillProduct[]>([]);
+  // Platform State (hydrated strictly from live server DB — never cached in localStorage)
   const [localProducts, setLocalProducts] = useState<SkillProduct[]>(() =>
     INITIAL_SKILL98_CATALOG.map((p) => ({
       ...p,
@@ -202,20 +277,9 @@ export default function App() {
     string | undefined
   >(undefined);
   const [coupons, setCoupons] = useState<CouponRule[]>(INITIAL_COUPONS);
-  const [gateways, setGateways] = useState<PaymentGatewayOption[]>(() => {
-    try {
-      const saved = localStorage.getItem('skill98_gateways_v1');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch {
-      // ignore storage errors
-    }
-    return INITIAL_PAYMENT_GATEWAYS;
-  });
+  const [gateways, setGateways] = useState<PaymentGatewayOption[]>(
+    INITIAL_PAYMENT_GATEWAYS
+  );
   const [aiConfig, setAiConfig] = useState<AiEngineConfig>(
     DEFAULT_AI_ENGINE_CONFIG
   );
@@ -327,21 +391,15 @@ export default function App() {
     link.href = favHref;
   }, [themeConfig.faviconUrl]);
 
-  // 2C. Cache Payment Gateways locally
-  useEffect(() => {
-    try {
-      localStorage.setItem('skill98_gateways_v1', JSON.stringify(gateways));
-    } catch {
-      // ignore storage errors
-    }
-  }, [gateways]);
-
-  // 2D. Hydrate Storefront & CMS State from Server Database
+  // 2D. Hydrate Storefront & CMS State from Server Database (no localStorage caching of gateways/orders)
   const hydrateFromDatabase = async () => {
     try {
       const res = await apiFetch('/api/storefront/bootstrap');
       if (!res.ok) return;
       const data = await res.json();
+      if (typeof data.buildId === 'string') {
+        syncClientBuildId(data.buildId);
+      }
       if (Array.isArray(data.products) && data.products.length > 0) {
         setLocalProducts(
           data.products.map((p: SkillProduct) => ({
@@ -364,7 +422,7 @@ export default function App() {
         );
       }
       if (Array.isArray(data.coupons)) setCoupons(data.coupons);
-      if (Array.isArray(data.mediaItems)) {
+      if (Array.isArray(data.mediaItems) && data.mediaItems.length > 0) {
         setMediaItems(
           data.mediaItems.map((m: MediaAssetItem) => ({
             ...m,
@@ -372,7 +430,7 @@ export default function App() {
           }))
         );
       }
-      if (Array.isArray(data.orders)) {
+      if (Array.isArray(data.orders) && data.orders.length > 0) {
         setOrders(data.orders);
       }
       if (Array.isArray(data.gateways) && data.gateways.length > 0) {
@@ -384,8 +442,8 @@ export default function App() {
       if (data.themeConfig) setThemeConfig(data.themeConfig);
       if (data.aiConfig) setAiConfig(data.aiConfig);
       if (data.otpConfig) setOtpConfig(data.otpConfig);
-      if (Array.isArray(data.roles)) setCmsRoles(data.roles);
-      if (Array.isArray(data.sessions)) setCmsSessions(data.sessions);
+      if (Array.isArray(data.roles) && data.roles.length > 0) setCmsRoles(data.roles);
+      if (Array.isArray(data.sessions) && data.sessions.length > 0) setCmsSessions(data.sessions);
 
       // Check /product/:slug URL path routing
       const currentRawPath = window.location.pathname.replace(/^\/+|\/+$/g, '');
@@ -564,7 +622,7 @@ export default function App() {
     }
   };
 
-  // 2F. Sync active session & per-phone claimed skills/orders in localStorage
+  // 2F. Keep in-memory session synced (zero localStorage persistence of sensitive user data)
   useEffect(() => {
     if (!loggedInPhone || userRole === 'guest') return;
     const currentStored = readStoredSession();
@@ -575,122 +633,75 @@ export default function App() {
       roleId: loggedInRoleId,
       sessionToken: currentStored?.sessionToken,
     });
-    try {
-      const raw = localStorage.getItem('skill98_profiles_by_phone_v1');
-      const map = raw ? JSON.parse(raw) : {};
-      const existing = map[loggedInPhone] || {};
-      map[loggedInPhone] = {
-        phone: loggedInPhone,
-        fullName: loggedInName || existing.fullName || 'کاربر اسکیل ۹۸',
-        claimedSkillIds,
-        orders: orders.filter((o) => o.buyerId === loggedInPhone),
-      };
-      localStorage.setItem('skill98_profiles_by_phone_v1', JSON.stringify(map));
-    } catch {
-      // ignore storage errors
-    }
-  }, [
-    loggedInPhone,
-    loggedInName,
-    userRole,
-    loggedInRoleId,
-    claimedSkillIds,
-    orders,
-  ]);
+  }, [loggedInPhone, loggedInName, userRole, loggedInRoleId]);
 
-  // 2G. Validate persisted session against server DB on mount + handle gateway callback (?payment_verify=1)
+  // 2G. Hydrate auth strictly from live GET /api/auth/session (HttpOnly cookie) + verify gateway callbacks
   useEffect(() => {
     let active = true;
+
+    const clearClientAuthState = () => {
+      writeStoredSession(null);
+      setUserRole('guest');
+      setLoggedInRoleId('role_customer');
+      setLoggedInName(null);
+      setLoggedInPhone('');
+      setClaimedSkillIds([]);
+      setOrders([]);
+      setCmsSessions([]);
+    };
 
     const restoreSessionFromServer = async () => {
       try {
         const res = await apiFetch('/api/auth/session');
         if (!active) return;
 
-        if (res.status === 403) {
-          writeStoredSession(null);
-          setUserRole('guest');
-          setLoggedInRoleId('role_customer');
-          setLoggedInName(null);
-          setLoggedInPhone('');
+        const data = await res.json().catch(() => ({}));
+        if (typeof data?.buildId === 'string') {
+          if (syncClientBuildId(data.buildId)) return;
+        }
+
+        if (res.status === 401 || res.status === 403 || !res.ok || !data?.authenticated || !data?.user) {
+          clearClientAuthState();
           return;
         }
 
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data?.authenticated && data?.user) {
-          const u = data.user;
-          const restoredRole: Exclude<UserRoleType, 'guest'> =
-            u.role === 'super_admin'
-              ? 'super_admin'
-              : u.role === 'admin'
-              ? 'admin'
-              : 'customer';
-          const resolvedRoleId = u.roleId || 'role_customer';
-          const resolvedFullName = u.fullName || 'کاربر اسکیل ۹۸';
+        const u = data.user;
+        const restoredRole: Exclude<UserRoleType, 'guest'> =
+          u.role === 'super_admin'
+            ? 'super_admin'
+            : u.role === 'admin'
+            ? 'admin'
+            : 'customer';
+        const resolvedRoleId = u.roleId || 'role_customer';
+        const resolvedFullName = u.fullName || 'کاربر اسکیل ۹۸';
 
-          writeStoredSession({
-            phone: u.phone,
-            fullName: resolvedFullName,
-            userRole: restoredRole,
-            roleId: resolvedRoleId,
-            sessionToken: data.sessionToken
-              ? String(data.sessionToken)
-              : readStoredSession()?.sessionToken,
-          });
+        writeStoredSession({
+          phone: u.phone,
+          fullName: resolvedFullName,
+          userRole: restoredRole,
+          roleId: resolvedRoleId,
+          sessionToken: data.sessionToken ? String(data.sessionToken) : undefined,
+        });
 
-          setUserRole(restoredRole);
-          setLoggedInRoleId(resolvedRoleId);
-          setLoggedInName(resolvedFullName);
-          setLoggedInPhone(u.phone);
+        setUserRole(restoredRole);
+        setLoggedInRoleId(resolvedRoleId);
+        setLoggedInName(resolvedFullName);
+        setLoggedInPhone(u.phone);
 
-          if (Array.isArray(u.claimedSkillIds) && u.claimedSkillIds.length > 0) {
-            setClaimedSkillIds((prev) =>
-              Array.from(new Set([...prev, ...u.claimedSkillIds]))
-            );
-          }
-          if (Array.isArray(u.orders)) {
-            setOrders((prev) => {
-              const cleanedPrev = prev.filter(
-                (o) => o.id !== 'ord_981042' && o.buyerId !== 'guest_preview'
-              );
-              const ids = new Set(cleanedPrev.map((o) => o.id));
-              const merged = u.orders.filter(
-                (o: OrderRecord) => !ids.has(o.id)
-              );
-              return [...merged, ...cleanedPrev];
-            });
-          }
-          if (Array.isArray(data.sessions)) {
-            setCmsSessions(data.sessions);
-          }
-          if (restoredRole === 'admin' || restoredRole === 'super_admin') {
-            void hydrateFromDatabase();
-          }
-        } else if (initialSession?.phone) {
-          const profRes = await apiFetch(
-            `/api/user/profile?phone=${encodeURIComponent(initialSession.phone)}`
-          );
-          if (profRes.ok && active) {
-            const prof = await profRes.json();
-            if (Array.isArray(prof.claimedSkillIds)) {
-              setClaimedSkillIds((prev) =>
-                Array.from(new Set([...prev, ...prof.claimedSkillIds]))
-              );
-            }
-            if (Array.isArray(prof.orders)) {
-              setOrders((prev) => {
-                const ids = new Set(prev.map((o) => o.id));
-                const merged = prof.orders.filter(
-                  (o: OrderRecord) => !ids.has(o.id)
-                );
-                return [...merged, ...prev];
-              });
-            }
-          }
+        if (Array.isArray(u.claimedSkillIds)) {
+          setClaimedSkillIds(u.claimedSkillIds);
+        }
+        if (Array.isArray(u.orders)) {
+          setOrders(u.orders);
+        }
+        if (Array.isArray(data.sessions)) {
+          setCmsSessions(data.sessions);
+        }
+        if (restoredRole === 'admin' || restoredRole === 'super_admin') {
+          void hydrateFromDatabase();
         }
       } catch {
-        // Offline / transient network error keeps cached session intact
+        if (active) clearClientAuthState();
       }
     };
 
@@ -705,10 +716,8 @@ export default function App() {
           sp.get('Status') ||
           sp.get('success') ||
           '';
-        const rawPending = localStorage.getItem('skill98_pending_payment_v1');
-        if (!authority && !rawPending) return;
+        if (!authority) return;
 
-        const pending = rawPending ? JSON.parse(rawPending) : {};
         const { ok, data } = await apiJson<{
           ok?: boolean;
           refId?: string;
@@ -716,17 +725,10 @@ export default function App() {
         }>('/api/payment/verify', {
           method: 'POST',
           body: JSON.stringify({
-            gatewayId: pending.gatewayId || 'novinopay',
-            authority: authority || pending.authority || '',
+            authority,
             paymentStatus,
-            amountTomans: pending.amountTomans || 0,
-            orderId: pending.orderId || '',
-            phone: pending.phone || initialSession?.phone || '',
-            buyerName: pending.buyerName || initialSession?.fullName || '',
-            skillIds: pending.skillIds || [],
           }),
         });
-        localStorage.removeItem('skill98_pending_payment_v1');
         window.history.replaceState(
           {},
           document.title,
@@ -734,15 +736,11 @@ export default function App() {
         );
 
         if (ok && data.ok) {
-          if (Array.isArray(pending.skillIds) && pending.skillIds.length > 0) {
-            setClaimedSkillIds((prev) =>
-              Array.from(new Set([...prev, ...pending.skillIds]))
-            );
-          }
           setCart([]);
           setCheckoutSuccessBanner(
             `پرداخت شما از طریق درگاه بانکی با کد پیگیری (${data.refId}) تایید و اسکیل‌ها فعال شدند!`
           );
+          void restoreSessionFromServer();
           setActiveTab('dashboard');
           showToast('پرداخت تایید شد و اسکیل‌های شما آزاد شدند.');
         } else {
@@ -883,13 +881,8 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [activeTab, articles, isAuthModalOpen, isCartOpen, selectedSkillModal]);
 
-  // Merge cloud & local catalog
-  const activeCatalog = useMemo(() => {
-    if (cloudProducts.length === 0) return localProducts;
-    const cloudIds = new Set(cloudProducts.map((p) => p.id));
-    const remainingLocal = localProducts.filter((p) => !cloudIds.has(p.id));
-    return [...cloudProducts, ...remainingLocal];
-  }, [cloudProducts, localProducts]);
+  // Active catalog from live SQL/PostgreSQL CMS database
+  const activeCatalog = localProducts;
 
   const filteredCatalog = useMemo(() => {
     return activeCatalog.filter((item) => {
@@ -1035,204 +1028,83 @@ export default function App() {
     [themeConfig.accentPreset]
   );
 
-  const isFirebaseAdmin = Boolean(
-    currentUser &&
-      currentUser.emailVerified &&
-      BOOTSTRAPPED_ADMIN_EMAIL &&
-      currentUser.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase()
-  );
-
-  // Firebase Auth Listener
+  // Dynamic SEO Head & Structured Data (JSON-LD) Sync — keeps <meta name="robots"> untouched (default OFF)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      setIsAuthReady(true);
-
-      if (!user) return;
-
-      const computedRole: UserRoleType =
-        user.emailVerified &&
-        BOOTSTRAPPED_ADMIN_EMAIL &&
-        user.email?.toLowerCase() === BOOTSTRAPPED_ADMIN_EMAIL.toLowerCase()
-          ? 'super_admin'
-          : 'customer';
-
-      setUserRole((prev) => (prev === 'super_admin' || prev === 'admin' ? prev : computedRole));
-      setLoggedInName((prev) => prev || user.displayName || 'کاربر اسکیل ۹۸');
-
-      if (!user.emailVerified) return;
-
-      const uid = sanitizeSlugOrId(user.uid, 'user_98');
-      const userPublicPath = `users/${uid}`;
-      const userRef = doc(db, 'users', uid);
-      const safeDisplayName = truncateString(
-        user.displayName || 'کاربر اسکیل ۹۸',
-        1,
-        100,
-        'کاربر اسکیل ۹۸'
-      );
-      const targetRole = computedRole === 'super_admin' ? 'admin' : 'customer';
-
-      try {
-        const existingSnap = await getDoc(userRef);
-        if (!existingSnap.exists()) {
-          await setDoc(userRef, {
-            uid,
-            displayName: safeDisplayName,
-            role: targetRole,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
-        } else {
-          const updatePayload: Record<string, unknown> = {
-            displayName: safeDisplayName,
-            updatedAt: serverTimestamp(),
-          };
-          if (targetRole === 'admin' && existingSnap.data()?.role !== 'admin') {
-            updatePayload.role = 'admin';
-          }
-          await updateDoc(userRef, updatePayload);
-        }
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, userPublicPath);
-      }
+    const brandFa = themeConfig.brandNameFa || 'اسکیل ۹۸';
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    if (activeTab === 'product_single' && activeProduct) {
+      syncPageSeoHead({
+        title: activeProduct.seoTitle || `${activeProduct.title} | ${brandFa}`,
+        description:
+          activeProduct.seoDescription || activeProduct.shortDescription || themeConfig.heroSubtitle,
+        canonicalPath: `/product/${activeProduct.slug}`,
+        ogType: 'product',
+        imageUrl: activeProduct.imageUrl,
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: activeProduct.title,
+          description: activeProduct.seoDescription || activeProduct.shortDescription,
+          image: activeProduct.imageUrl,
+          category: activeProduct.category,
+          offers: {
+            '@type': 'Offer',
+            priceCurrency: 'IRR',
+            price: Math.max(0, Number(activeProduct.price || 0) * 10),
+            availability: 'https://schema.org/InStock',
+          },
+        },
+      });
+      return;
+    }
+    if (activeTab === 'article_single' && activeArticle) {
+      syncPageSeoHead({
+        title: activeArticle.seoTitle || `${activeArticle.title} | ${brandFa}`,
+        description: activeArticle.seoDescription || activeArticle.summary || themeConfig.heroSubtitle,
+        canonicalPath: `/article/${activeArticle.slug}`,
+        ogType: 'article',
+        imageUrl: activeArticle.featuredImageUrl,
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: activeArticle.title,
+          description: activeArticle.seoDescription || activeArticle.summary,
+          image: activeArticle.featuredImageUrl,
+          author: { '@type': 'Organization', name: brandFa },
+        },
+      });
+      return;
+    }
+    if (activeTab === 'page_single' && activeDynamicPage) {
+      syncPageSeoHead({
+        title: activeDynamicPage.seoTitle || `${activeDynamicPage.title} | ${brandFa}`,
+        description: activeDynamicPage.seoDescription || themeConfig.heroSubtitle,
+        canonicalPath: `/page/${activeDynamicPage.slug}`,
+        ogType: 'website',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          name: activeDynamicPage.title,
+          description: activeDynamicPage.seoDescription || themeConfig.heroSubtitle,
+        },
+      });
+      return;
+    }
+    syncPageSeoHead({
+      title: `${themeConfig.brandNameEn || 'Skill 98'} — ${brandFa} | پلتفرم فروشگاهی`,
+      description:
+        themeConfig.heroSubtitle ||
+        'فروشگاه اسکیل‌های آماده برای Claude، ChatGPT و Codex همراه با مقالات آموزشی، پیشخوان کاربری و سیستم مدیریت هوشمند محتوا.',
+      canonicalPath: '/',
+      ogType: 'website',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: brandFa,
+        url: origin || '/',
+      },
     });
-
-    return () => unsubscribe();
-  }, []);
-
-  // Firestore Real-time Listeners
-  useEffect(() => {
-    if (!isAuthReady) return;
-
-    let cancelled = false;
-    let unsubProducts: (() => void) | null = null;
-    let unsubOrders: (() => void) | null = null;
-
-    const attachListeners = () => {
-      if (cancelled) return;
-      const productsPath = 'products';
-      const productsQuery = isFirebaseAdmin
-        ? collection(db, 'products')
-        : query(collection(db, 'products'), where('status', '==', 'published'));
-
-      unsubProducts = onSnapshot(
-        productsQuery,
-        (snapshot) => {
-          const loaded: SkillProduct[] = snapshot.docs.map((docSnap) => {
-            const d = docSnap.data();
-            const cat = String(d.category || 'Codex');
-            return {
-              id: docSnap.id,
-              title: String(d.title || ''),
-              slug: String(d.slug || docSnap.id),
-              category: cat,
-              subCategory:
-                cat === 'Claude'
-                  ? 'نوشتن و تحلیل'
-                  : cat === 'ChatGPT'
-                  ? 'ایده و اجرا'
-                  : 'کدنویسی',
-              itemType: d.itemType === 'package' ? 'package' : 'product',
-              price: Number(d.price || 0),
-              originalPrice: Number(d.originalPrice || 0),
-              shortDescription: String(d.shortDescription || ''),
-              modulesCount: Number(d.modulesCount || 1),
-              durationHours: Number(d.durationHours || 1),
-              level: String(d.level || 'نسخه ۱.۰'),
-              imageUrl: resolveStaticImageUrl(
-                d.imageUrl ? String(d.imageUrl) : IMAGES.fullstackPkg
-              ),
-              featured: Boolean(d.featured),
-              status: d.status === 'draft' ? 'draft' : 'published',
-              authorId: String(d.authorId || 'admin'),
-              posterColor:
-                cat === 'Claude'
-                  ? 'terracotta'
-                  : cat === 'ChatGPT'
-                  ? 'sage'
-                  : d.itemType === 'package'
-                  ? 'slate'
-                  : 'cobalt',
-              posterIconType:
-                cat === 'Claude'
-                  ? 'starburst'
-                  : cat === 'ChatGPT'
-                  ? 'radial'
-                  : d.itemType === 'package'
-                  ? 'shield'
-                  : 'braces',
-            };
-          });
-          setCloudProducts(loaded);
-        },
-        (error) => {
-          handleFirestoreError(error, OperationType.LIST, productsPath);
-        }
-      );
-
-      if (!currentUser || !currentUser.emailVerified) return;
-
-      const uid = sanitizeSlugOrId(currentUser.uid, 'user_98');
-      const ordersPath = 'orders';
-      const ordersQuery = isFirebaseAdmin
-        ? collection(db, 'orders')
-        : query(collection(db, 'orders'), where('buyerId', '==', uid));
-
-      unsubOrders = onSnapshot(
-        ordersQuery,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const loadedOrders: OrderRecord[] = snapshot.docs.map((oDoc) => {
-              const d = oDoc.data();
-              const ts =
-                d.createdAt instanceof Timestamp
-                  ? d.createdAt.toDate()
-                  : new Date();
-              return {
-                id: oDoc.id,
-                buyerId: String(d.buyerId || uid),
-                buyerName: String(d.buyerName || 'کاربر اسکیل ۹۸'),
-                totalAmount: Number(d.totalAmount || 0),
-                itemsSummary: String(d.itemsSummary || ''),
-                itemsCount: Number(d.itemsCount || 1),
-                paymentMethod:
-                  d.paymentMethod === 'wallet_credit'
-                    ? 'wallet_credit'
-                    : d.paymentMethod === 'crypto_tether'
-                    ? 'crypto_tether'
-                    : 'zarinpal_online',
-                status:
-                  d.status === 'completed'
-                    ? 'completed'
-                    : d.status === 'cancelled'
-                    ? 'cancelled'
-                    : d.status === 'pending'
-                    ? 'pending'
-                    : 'paid',
-                createdAtLabel: ts.toLocaleDateString('fa-IR'),
-              };
-            });
-            setOrders(loadedOrders);
-          }
-        },
-        (error) => {
-          handleFirestoreError(error, OperationType.LIST, ordersPath);
-        }
-      );
-    };
-
-    const delayTimer = currentUser
-      ? setTimeout(attachListeners, 0)
-      : setTimeout(attachListeners, 1200);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(delayTimer);
-      unsubProducts?.();
-      unsubOrders?.();
-    };
-  }, [isAuthReady, currentUser, isFirebaseAdmin]);
+  }, [activeTab, activeProduct, activeArticle, activeDynamicPage, themeConfig]);
 
   const canAccessAdmin = userRole === 'admin' || userRole === 'super_admin';
 
@@ -1313,47 +1185,9 @@ export default function App() {
     assignedRoleId?: string,
     sessionToken?: string
   ) => {
-    let savedFullName: string | undefined;
-    try {
-      const raw = localStorage.getItem('skill98_profiles_by_phone_v1');
-      if (raw) {
-        const map = JSON.parse(raw);
-        const existing = map[verifiedPhone];
-        if (existing) {
-          savedFullName = existing.fullName;
-          if (
-            Array.isArray(existing.claimedSkillIds) &&
-            existing.claimedSkillIds.length > 0
-          ) {
-            setClaimedSkillIds((prev) =>
-              Array.from(new Set([...prev, ...existing.claimedSkillIds]))
-            );
-          }
-          if (Array.isArray(existing.orders) && existing.orders.length > 0) {
-            const validOrders = existing.orders.filter(
-              (o: OrderRecord) =>
-                o.buyerId === verifiedPhone && o.id !== 'ord_981042'
-            );
-            if (validOrders.length > 0) {
-              setOrders((prev) => {
-                const existingIds = new Set(prev.map((o) => o.id));
-                const newOnes = validOrders.filter(
-                  (o: OrderRecord) => !existingIds.has(o.id)
-                );
-                return [...newOnes, ...prev];
-              });
-            }
-          }
-        }
-      }
-    } catch {
-      // ignore storage errors
-    }
-
     const chosenName =
       fullNameInput.trim() ||
       customDisplayName ||
-      savedFullName ||
       (role === 'super_admin'
         ? 'مدیر ارشد سیستم'
         : role === 'admin'
@@ -1461,7 +1295,16 @@ export default function App() {
 
   const handleGoogleLogin = async () => {
     try {
+      // Lazy-load Firebase Auth ONLY when user clicks Google Login (zero bundle/network overhead on storefront!)
+      const [{ signInWithPopup }, { auth, googleProvider }] = await Promise.all([
+        import('firebase/auth'),
+        import('./firebase'),
+      ]);
       const cred = await signInWithPopup(auth, googleProvider);
+      setGoogleUserInfo({
+        uid: cred.user.uid,
+        displayName: cred.user.displayName,
+      });
       const idToken = await cred.user.getIdToken();
       const { ok, data } = await apiJson<{
         authenticated?: boolean;
@@ -1491,7 +1334,8 @@ export default function App() {
       showToast('ورود با حساب گوگل انجام شد و پیشخوان کاربری فعال گردید.');
     } catch {
       showToast(
-        'امکان ورود با گوگل در حال حاضر وجود ندارد. لطفاً با شماره موبایل وارد شوید.'
+        'امکان ورود با گوگل در شبکه فعلی وجود ندارد. لطفاً با شماره موبایل وارد شوید.',
+        'error'
       );
     }
   };
@@ -1571,21 +1415,6 @@ export default function App() {
           setAuthStep('master_code');
           showToast('شماره مدیریت شناسایی شد. لطفاً کد مستر را وارد کنید.');
           return;
-        }
-
-        if (!existsInDb) {
-          try {
-            const raw = localStorage.getItem('skill98_profiles_by_phone_v1');
-            if (raw) {
-              const map = JSON.parse(raw);
-              if (map[normalizedPhone]?.fullName) {
-                existsInDb = true;
-                savedName = String(map[normalizedPhone].fullName);
-              }
-            }
-          } catch {
-            // ignore
-          }
         }
 
         if (existsInDb) {
@@ -1674,10 +1503,17 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch {
-      // Ignore Firebase signOut failure
+    if (googleUserInfo) {
+      try {
+        const [{ signOut }, { auth }] = await Promise.all([
+          import('firebase/auth'),
+          import('./firebase'),
+        ]);
+        await signOut(auth);
+      } catch {
+        // Ignore Firebase signOut failure
+      }
+      setGoogleUserInfo(null);
     }
     try {
       await apiFetch('/api/auth/logout', { method: 'POST' });
@@ -1698,6 +1534,7 @@ export default function App() {
     setClaimedSkillIds([]);
     setBookmarkedIds([]);
     setOrders([]);
+    setCmsSessions([]);
     setDashboardSelectedSkillId(undefined);
     if (activeTab === 'dashboard' || activeTab === 'admin') {
       navigateWithTransition('store');
@@ -1850,14 +1687,14 @@ export default function App() {
       !paymentDisplayConfig.enablePaymentSimulator
     ) {
       const buyerDisplay =
-        loggedInName || currentUser?.displayName || 'خریدار اسکیل ۹۸';
+        loggedInName || googleUserInfo?.displayName || 'خریدار اسکیل ۹۸';
       const purchasedIds = cart.map((c) => c.product.id);
       try {
         await apiJson('/api/orders/create', {
           method: 'POST',
           body: JSON.stringify({
             id: orderId,
-            phone: loggedInPhone || currentUser?.uid || 'customer_98',
+            phone: loggedInPhone || googleUserInfo?.uid || 'customer_98',
             buyerName: buyerDisplay,
             totalAmount: cartFinalPayable,
             discountAmount,
@@ -1867,21 +1704,9 @@ export default function App() {
             paymentMethod: selectedGw.id,
             gatewayRef: liveAuthority || gatewayRef,
             status: 'pending',
-            skillIds: [],
+            skillIds: purchasedIds,
           }),
         });
-        localStorage.setItem(
-          'skill98_pending_payment_v1',
-          JSON.stringify({
-            orderId,
-            gatewayId: selectedGw.id,
-            authority: liveAuthority,
-            amountTomans: cartFinalPayable,
-            phone: loggedInPhone || '',
-            buyerName: buyerDisplay,
-            skillIds: purchasedIds,
-          })
-        );
       } catch {
         // Proceed to redirect even if background log fails
       }
@@ -1889,18 +1714,11 @@ export default function App() {
       return;
     }
 
-    const normalizedPm: 'zarinpal_online' | 'wallet_credit' | 'crypto_tether' =
-      selectedGw.id === 'wallet_credit'
-        ? 'wallet_credit'
-        : selectedGw.id === 'crypto_tether'
-        ? 'crypto_tether'
-        : 'zarinpal_online';
-
     const newLocalOrder: OrderRecord = {
       id: orderId,
-      buyerId: loggedInPhone || currentUser?.uid || 'customer_98',
+      buyerId: loggedInPhone || googleUserInfo?.uid || 'customer_98',
       buyerName:
-        loggedInName || currentUser?.displayName || 'خریدار اسکیل ۹۸',
+        loggedInName || googleUserInfo?.displayName || 'خریدار اسکیل ۹۸',
       totalAmount: cartFinalPayable,
       discountAmount,
       couponCode: appliedCoupon?.code,
@@ -1910,36 +1728,6 @@ export default function App() {
       status: 'paid',
       createdAtLabel: new Date().toLocaleDateString('fa-IR'),
     };
-
-    if (currentUser && currentUser.emailVerified) {
-      const uid = sanitizeSlugOrId(currentUser.uid, 'user_98');
-      const orderPath = `orders/${orderId}`;
-      try {
-        await setDoc(doc(db, 'orders', orderId), {
-          buyerId: uid,
-          buyerName: truncateString(
-            loggedInName || currentUser.displayName || 'خریدار اسکیل ۹۸',
-            1,
-            100,
-            'خریدار اسکیل ۹۸'
-          ),
-          totalAmount: Math.max(0, Math.min(2000000000, cartFinalPayable)),
-          itemsSummary: truncateString(
-            `${summary} · کد پیگیری: ${gatewayRef}`,
-            2,
-            500,
-            'سفارش اسکیل ۹۸'
-          ),
-          itemsCount: Math.max(1, Math.min(100, cartTotalItems)),
-          paymentMethod: normalizedPm,
-          status: 'paid',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, orderPath);
-      }
-    }
 
     void apiJson('/api/orders/create', {
       method: 'POST',
@@ -1990,8 +1778,8 @@ export default function App() {
       existingId || productData.slug || productData.id,
       'skill_98'
     );
-    const authorUid = currentUser
-      ? sanitizeSlugOrId(currentUser.uid, 'admin_98')
+    const authorUid = googleUserInfo
+      ? sanitizeSlugOrId(googleUserInfo.uid, 'admin_98')
       : 'admin_98';
 
     const fullItem: SkillProduct = {
@@ -2008,67 +1796,10 @@ export default function App() {
       }
       return [fullItem, ...prev];
     });
-
-    if (isFirebaseAdmin && currentUser) {
-      const path = `products/${cleanId}`;
-      const productRef = doc(db, 'products', cleanId);
-      const mutableFields = {
-        title: truncateString(fullItem.title, 2, 140, 'اسکیل ۹۸'),
-        slug: cleanId,
-        category: truncateString(fullItem.category, 2, 60, 'Codex'),
-        itemType: fullItem.itemType,
-        price: Math.max(0, Math.min(1000000000, fullItem.price)),
-        originalPrice: Math.max(
-          0,
-          Math.min(1000000000, fullItem.originalPrice)
-        ),
-        shortDescription: truncateString(
-          fullItem.shortDescription,
-          5,
-          600,
-          'توضیحات اسکیل ۹۸'
-        ),
-        modulesCount: Math.max(1, Math.min(500, fullItem.modulesCount)),
-        durationHours: Math.max(0, Math.min(2000, fullItem.durationHours)),
-        level: truncateString(fullItem.level, 2, 50, 'نسخه ۱.۰'),
-        imageUrl: truncateString(
-          fullItem.imageUrl,
-          1,
-          500,
-          IMAGES.fullstackPkg
-        ),
-        featured: Boolean(fullItem.featured),
-        status: fullItem.status,
-        updatedAt: serverTimestamp(),
-      };
-      try {
-        const existingSnap = await getDoc(productRef);
-        if (existingSnap.exists()) {
-          await updateDoc(productRef, mutableFields);
-        } else {
-          await setDoc(productRef, {
-            ...mutableFields,
-            authorId: authorUid,
-            createdAt: serverTimestamp(),
-          });
-        }
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, path);
-      }
-    }
   };
 
   const handleDeleteProduct = async (productId: string) => {
     setLocalProducts((prev) => prev.filter((p) => p.id !== productId));
-    if (isFirebaseAdmin) {
-      const cleanId = sanitizeSlugOrId(productId, 'skill_98');
-      const path = `products/${cleanId}`;
-      try {
-        await deleteDoc(doc(db, 'products', cleanId));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, path);
-      }
-    }
     showToast('محصول مورد نظر از کاتالوگ حذف شد.');
   };
 
@@ -2165,6 +1896,7 @@ export default function App() {
   };
 
   const handleDownloadStarterZip = async () => {
+    const { downloadSkill98StarterZip } = await import('./core/zipGenerator');
     const filename = await downloadSkill98StarterZip(themeConfig, activeCatalog);
     showToast(`بسته ${filename} شامل قالب خام و راهنمای شروع دانلود شد.`);
   };
@@ -2186,7 +1918,7 @@ export default function App() {
     });
   };
 
-  const displayUserName = currentUser?.displayName || loggedInName;
+  const displayUserName = googleUserInfo?.displayName || loggedInName;
   const isLoggedIn = userRole !== 'guest';
   const activeThemeDef = resolveRegisteredTheme(themeConfig.activeThemeId);
 
@@ -2329,6 +2061,7 @@ export default function App() {
           />
         )}
 
+        <Suspense fallback={<ViewSuspenseSkeleton />}>
         {activeTab === 'product_single' && activeProduct && (
           <SingleProductView
             product={activeProduct}
@@ -2383,7 +2116,7 @@ export default function App() {
 
         {activeTab === 'dashboard' && (
           <CustomerDashboardView
-            userUid={currentUser?.uid || (isLoggedIn ? 'user_logged_in' : null)}
+            userUid={googleUserInfo?.uid || (isLoggedIn ? 'user_logged_in' : null)}
             userDisplayName={displayUserName || null}
             userPhone={loggedInPhone || undefined}
             userRole={userRole}
@@ -2460,6 +2193,7 @@ export default function App() {
             onDownloadZip={handleDownloadStarterZip}
           />
         )}
+        </Suspense>
       </main>
 
       {/* Floating Compact Reset Layout FAB */}
@@ -2493,81 +2227,93 @@ export default function App() {
         </button>
       )}
 
-      {/* Cart Floating Bar & 1-Step Slide-Over Checkout Drawer Modal */}
-      <CartDrawerModal
-        activeTab={activeTab}
-        isCartOpen={isCartOpen}
-        isLoggedIn={isLoggedIn}
-        loggedInPhone={loggedInPhone}
-        loggedInName={displayUserName}
-        cart={cart}
-        cartTotalItems={cartTotalItems}
-        cartSubtotalAmount={cartSubtotalAmount}
-        discountAmount={discountAmount}
-        cartFinalPayable={cartFinalPayable}
-        coupons={coupons}
-        couponInput={couponInput}
-        appliedCoupon={appliedCoupon}
-        couponMessage={couponMessage}
-        activeGateways={activeGateways}
-        selectedGatewayId={selectedGatewayId}
-        accentStyles={accentStyles}
-        onOpenCart={() => setIsCartOpen(true)}
-        onCloseCart={() => setIsCartOpen(false)}
-        onUpdateQty={handleUpdateCartQty}
-        onCouponInputChange={setCouponInput}
-        onApplyCoupon={handleApplyCouponCode}
-        onClearCoupon={() => {
-          setAppliedCoupon(null);
-          setCouponInput('');
-          setCouponMessage(null);
-        }}
-        onSelectGateway={setSelectedGatewayId}
-        onCompleteCheckout={() => void handleCompleteCheckout()}
-        onInlineLoginSuccess={completeVerifiedLogin}
-      />
+      {/* Cart Floating Bar & 1-Step Slide-Over Checkout Drawer Modal (Lazy-loaded when cart has items or opened) */}
+      {(isCartOpen || cart.length > 0) && (
+        <Suspense fallback={null}>
+          <CartDrawerModal
+            activeTab={activeTab}
+            isCartOpen={isCartOpen}
+            isLoggedIn={isLoggedIn}
+            loggedInPhone={loggedInPhone}
+            loggedInName={displayUserName}
+            cart={cart}
+            cartTotalItems={cartTotalItems}
+            cartSubtotalAmount={cartSubtotalAmount}
+            discountAmount={discountAmount}
+            cartFinalPayable={cartFinalPayable}
+            coupons={coupons}
+            couponInput={couponInput}
+            appliedCoupon={appliedCoupon}
+            couponMessage={couponMessage}
+            activeGateways={activeGateways}
+            selectedGatewayId={selectedGatewayId}
+            accentStyles={accentStyles}
+            onOpenCart={() => setIsCartOpen(true)}
+            onCloseCart={() => setIsCartOpen(false)}
+            onUpdateQty={handleUpdateCartQty}
+            onCouponInputChange={setCouponInput}
+            onApplyCoupon={handleApplyCouponCode}
+            onClearCoupon={() => {
+              setAppliedCoupon(null);
+              setCouponInput('');
+              setCouponMessage(null);
+            }}
+            onSelectGateway={setSelectedGatewayId}
+            onCompleteCheckout={() => void handleCompleteCheckout()}
+            onInlineLoginSuccess={completeVerifiedLogin}
+          />
+        </Suspense>
+      )}
 
-      {/* Authentication & Registration Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        themeConfig={themeConfig}
-        accentStyles={accentStyles}
-        authStep={authStep}
-        phoneInput={phoneInput}
-        fullNameInput={fullNameInput}
-        otpInput={otpInput}
-        isAuthSubmitting={isAuthSubmitting}
-        simulatedSmsCodeBanner={simulatedSmsCodeBanner}
-        onPhoneChange={setPhoneInput}
-        onFullNameChange={setFullNameInput}
-        onOtpChange={setOtpInput}
-        onAuthStepChange={setAuthStep}
-        onClearSimulatedBanner={() => setSimulatedSmsCodeBanner(null)}
-        onClose={() => {
-          setIsAuthModalOpen(false);
-          setAuthStep('phone');
-          setPhoneInput('');
-          setFullNameInput('');
-          setOtpInput('');
-          setSimulatedSmsCodeBanner(null);
-          setPendingActionAfterAuth(null);
-        }}
-        onSubmit={(e) => void handlePhoneLoginSubmit(e)}
-        onGoogleLogin={() => void handleGoogleLogin()}
-      />
+      {/* Authentication & Registration Modal (Lazy-loaded on demand) */}
+      {isAuthModalOpen && (
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            themeConfig={themeConfig}
+            accentStyles={accentStyles}
+            authStep={authStep}
+            phoneInput={phoneInput}
+            fullNameInput={fullNameInput}
+            otpInput={otpInput}
+            isAuthSubmitting={isAuthSubmitting}
+            simulatedSmsCodeBanner={simulatedSmsCodeBanner}
+            onPhoneChange={setPhoneInput}
+            onFullNameChange={setFullNameInput}
+            onOtpChange={setOtpInput}
+            onAuthStepChange={setAuthStep}
+            onClearSimulatedBanner={() => setSimulatedSmsCodeBanner(null)}
+            onClose={() => {
+              setIsAuthModalOpen(false);
+              setAuthStep('phone');
+              setPhoneInput('');
+              setFullNameInput('');
+              setOtpInput('');
+              setSimulatedSmsCodeBanner(null);
+              setPendingActionAfterAuth(null);
+            }}
+            onSubmit={(e) => void handlePhoneLoginSubmit(e)}
+            onGoogleLogin={() => void handleGoogleLogin()}
+          />
+        </Suspense>
+      )}
 
-      {/* Skill Details & Markdown Preview Modal */}
-      <SkillDetailModal
-        skill={selectedSkillModal}
-        brandNameFa={themeConfig.brandNameFa}
-        bookmarkedIds={bookmarkedIds}
-        claimedSkillIds={claimedSkillIds}
-        accentStyles={accentStyles}
-        onClose={() => setSelectedSkillModal(null)}
-        onToggleBookmark={handleToggleBookmark}
-        onQuickSkillAction={handleQuickSkillAction}
-        onAddToCart={handleAddToCart}
-      />
+      {/* Skill Details & Markdown Preview Modal (Lazy-loaded on demand) */}
+      {selectedSkillModal && (
+        <Suspense fallback={null}>
+          <SkillDetailModal
+            skill={selectedSkillModal}
+            brandNameFa={themeConfig.brandNameFa}
+            bookmarkedIds={bookmarkedIds}
+            claimedSkillIds={claimedSkillIds}
+            accentStyles={accentStyles}
+            onClose={() => setSelectedSkillModal(null)}
+            onToggleBookmark={handleToggleBookmark}
+            onQuickSkillAction={handleQuickSkillAction}
+            onAddToCart={handleAddToCart}
+          />
+        </Suspense>
+      )}
 
       {/* Theme Editorial Footer */}
       <SiteFooter
@@ -2578,9 +2324,9 @@ export default function App() {
         onOpenDynamicPage={handleOpenDynamicPage}
       />
 
-      {/* Goftino-Style Self-Hosted Floating Live Chat Widget */}
-      {activeTab !== 'admin' && (
-        <>
+      {/* Deferred Non-Critical Floating Widgets (mounted after initial paint for 95+ PageSpeed) */}
+      {widgetsReady && activeTab !== 'admin' && (
+        <Suspense fallback={null}>
           <GoftinoLiveChatWidget
             loggedInName={displayUserName}
             loggedInPhone={loggedInPhone}
@@ -2589,7 +2335,7 @@ export default function App() {
           />
           <PWAInstallBanner enabled />
           <StorefrontPopupsRenderer enabled />
-        </>
+        </Suspense>
       )}
 
       {/* Mobile Translucent Bottom Navigation */}

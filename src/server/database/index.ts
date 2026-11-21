@@ -28,6 +28,7 @@ export {
   findUserByEmail,
   countSuperAdmins,
   upsertUserByPhone,
+  resolveSessionTtlHours,
   createAuthSession,
   findAuthSession,
   deleteAuthSession,

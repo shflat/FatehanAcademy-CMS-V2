@@ -10,6 +10,7 @@ const __earlyDirname = path.dirname(__earlyFilename);
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config({ path: path.resolve(__earlyDirname, '.env') });
 import { resolveServerPort } from './src/server/core/cryptoSecurity.js';
+import { resolveBuildId } from './src/server/core/envConfig.js';
 import { closeDatabaseCleanly, getActiveEngine, initDatabase } from './src/server/database/index.js';
 import { createAdminDbBackupRouter } from './src/server/modules/admin/adminDbBackupRouter.js';
 import { createAdminGatewaysSmsRouter } from './src/server/modules/admin/adminGatewaysSmsRouter.js';
@@ -69,6 +70,13 @@ async function startServer() {
 
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
+  const applyNoStoreHeaders = (res: express.Response) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  };
+
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -78,6 +86,25 @@ async function startServer() {
       'camera=(), microphone=(), geolocation=(), payment=(self)'
     );
     next();
+  });
+
+  // Strict Anti-Cache on ALL dynamic /api/* routes
+  app.use('/api', (_req, res, next) => {
+    applyNoStoreHeaders(res);
+    next();
+  });
+
+  // Dynamic Service Worker with active BUILD_ID cache version & strict no-store
+  app.get('/sw.js', (_req, res) => {
+    const swPath = path.join(__dirname, 'public', 'sw.js');
+    try {
+      const raw = fs.readFileSync(swPath, 'utf-8');
+      const stamped = raw.replace(/__SW_CACHE_VERSION__/g, resolveBuildId());
+      applyNoStoreHeaders(res);
+      res.type('application/javascript; charset=utf-8').send(stamped);
+    } catch {
+      res.status(404).end();
+    }
   });
 
   app.use(express.json({ limit: '50mb' }));
@@ -173,6 +200,20 @@ async function startServer() {
 
   // Frontend Vite (Dev) or Static Assets (Production)
   if (process.env.NODE_ENV !== 'production') {
+    app.use((req, res, next) => {
+      if (
+        req.method === 'GET' &&
+        (req.path === '/' || req.path === '/index.html' || !req.path.includes('.'))
+      ) {
+        applyNoStoreHeaders(res);
+        const origWriteHead = res.writeHead.bind(res);
+        res.writeHead = ((...args: Parameters<typeof res.writeHead>) => {
+          applyNoStoreHeaders(res);
+          return origWriteHead(...args);
+        }) as typeof res.writeHead;
+      }
+      next();
+    });
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
@@ -189,14 +230,35 @@ async function startServer() {
       '/assets',
       express.static(path.join(distPath, 'assets'), { maxAge: '30d', immutable: true })
     );
-    app.use(express.static(distPath, { maxAge: '1d' }));
-    app.use(express.static(publicPath, { maxAge: '7d' }));
+    app.use(
+      express.static(distPath, {
+        index: false,
+        maxAge: '1d',
+        setHeaders(res, filePath) {
+          if (filePath.endsWith('index.html') || filePath.endsWith('sw.js')) {
+            applyNoStoreHeaders(res);
+          }
+        },
+      })
+    );
+    app.use(
+      express.static(publicPath, {
+        index: false,
+        maxAge: '7d',
+        setHeaders(res, filePath) {
+          if (filePath.endsWith('sw.js')) {
+            applyNoStoreHeaders(res);
+          }
+        },
+      })
+    );
 
     app.get('*', (req, res) => {
       if (/\.(png|jpe?g|webp|gif|svg|ico|css|js|woff2?)$/i.test(req.path)) {
         res.status(404).end();
         return;
       }
+      applyNoStoreHeaders(res);
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

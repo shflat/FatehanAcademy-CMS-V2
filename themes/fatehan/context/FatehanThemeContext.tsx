@@ -225,17 +225,9 @@ export const FatehanThemeProvider: React.FC<FatehanThemeProviderProps> = ({
   // Video Modal state
   const [activeVideoModal, setActiveVideoModal] = useState<VideoModalPayload>({ open: false });
 
-  // Customer OTP Auth state
+  // Customer OTP Auth state — hydrated strictly from server HttpOnly session (never localStorage)
   const [isOtpModalOpen, setIsOtpModalOpen] = useState<boolean>(false);
-  const [loggedInCustomer, setLoggedInCustomer] = useState<LoggedInCustomer | null>(() => {
-    try {
-      const saved = localStorage.getItem(CUSTOMER_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return null;
-  });
+  const [loggedInCustomer, setLoggedInCustomer] = useState<LoggedInCustomer | null>(null);
 
   useEffect(() => {
     try {
@@ -247,15 +239,34 @@ export const FatehanThemeProvider: React.FC<FatehanThemeProviderProps> = ({
 
   useEffect(() => {
     try {
-      if (loggedInCustomer) {
-        localStorage.setItem(CUSTOMER_STORAGE_KEY, JSON.stringify(loggedInCustomer));
-      } else {
-        localStorage.removeItem(CUSTOMER_STORAGE_KEY);
-      }
+      localStorage.removeItem(CUSTOMER_STORAGE_KEY);
     } catch {
       // ignore
     }
-  }, [loggedInCustomer]);
+    let cancelled = false;
+    fetch('/api/auth/session', { cache: 'no-store', credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : { authenticated: false }))
+      .then((data: { authenticated?: boolean; user?: { phone?: string; fullName?: string; role?: string } }) => {
+        if (cancelled) return;
+        if (data?.authenticated && data.user?.phone) {
+          setLoggedInCustomer({
+            fullName: data.user.fullName || 'کاربر',
+            phone: data.user.phone,
+            verified: true,
+            walletBalanceToman: 0,
+            role: data.user.role || 'customer',
+          });
+        } else {
+          setLoggedInCustomer(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoggedInCustomer(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Responsive viewport detection when not forced
   useEffect(() => {

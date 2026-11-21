@@ -44,6 +44,7 @@ export function createOrdersRouter(): express.Router {
       const createdAtLabel = new Date().toLocaleDateString('fa-IR');
       const nowIso = new Date().toISOString();
 
+      const requestedStatus = req.body?.status === 'pending' ? 'pending' : 'paid';
       await dbExec(
         `INSERT INTO orders (
            id, buyer_phone, buyer_name, total_amount, discount_amount, coupon_code,
@@ -61,13 +62,13 @@ export function createOrdersRouter(): express.Router {
           itemsCount,
           paymentMethod,
           gatewayRef,
-          'paid',
+          requestedStatus,
           createdAtLabel,
           nowIso,
         ]
       );
 
-      if (purchasedIds.length > 0) {
+      if (requestedStatus === 'paid' && purchasedIds.length > 0) {
         await addClaimedSkillsToUser(cleanPhone, purchasedIds);
       }
 
@@ -364,8 +365,8 @@ export function createOrdersRouter(): express.Router {
 
   router.post('/api/payment/verify', async (req, res) => {
     try {
-      const {
-        gatewayId = 'novinopay',
+      let {
+        gatewayId = '',
         authority = '',
         paymentStatus = '',
         amountTomans = 0,
@@ -376,6 +377,27 @@ export function createOrdersRouter(): express.Router {
       } = req.body || {};
 
       const cleanAuthority = String(authority || '').trim();
+      if (cleanAuthority && (!orderId || !amountTomans || !gatewayId)) {
+        const pendingRows = await dbQuery<{
+          id: string;
+          buyer_phone: string;
+          buyer_name: string;
+          total_amount: number;
+          payment_method: string;
+        }>(
+          'SELECT id, buyer_phone, buyer_name, total_amount, payment_method FROM orders WHERE gateway_ref = $1 ORDER BY created_at DESC LIMIT 1',
+          [cleanAuthority]
+        );
+        if (pendingRows[0]) {
+          orderId = orderId || pendingRows[0].id;
+          phone = phone || pendingRows[0].buyer_phone;
+          buyerName = buyerName || pendingRows[0].buyer_name;
+          amountTomans = Number(amountTomans || pendingRows[0].total_amount || 0);
+          gatewayId = gatewayId || pendingRows[0].payment_method || 'novinopay';
+        }
+      }
+      gatewayId = gatewayId || 'novinopay';
+
       const statusNorm = String(paymentStatus || '').toUpperCase();
       if (statusNorm && statusNorm !== 'OK' && statusNorm !== '1' && statusNorm !== 'SUCCESS') {
         await writeSystemLog({

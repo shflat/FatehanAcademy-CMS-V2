@@ -500,31 +500,71 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/60">
-              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1.5">
-                مدت اعتبار سشن‌های ورود کاربران (ساعت)
+            <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/60 space-y-3">
+              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300">
+                مدت اعتبار سشن‌های ورود کاربران و کوکی HttpOnly (ساعت)
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {[24, 48, 72].map((hours) => {
+                  const active = Number(otpConfig.sessionTimeoutHours || 24) === hours;
+                  return (
+                    <button
+                      key={hours}
+                      type="button"
+                      onClick={() => {
+                        onUpdateOtpConfig({
+                          ...otpConfig,
+                          sessionTimeoutHours: hours,
+                        });
+                        onNotice('success', `سیاست انقضای سشن روی ${hours.toLocaleString('fa-IR')} ساعت تنظیم و ذخیره شد.`);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-extrabold border transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : 'bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:border-emerald-500'
+                      }`}
+                    >
+                      {hours.toLocaleString('fa-IR')} ساعت {hours === 24 ? '(پیش‌فرض امن)' : ''}
+                    </button>
+                  );
+                })}
                 <input
                   type="number"
                   min={1}
-                  max={8760}
-                  value={otpConfig.sessionTimeoutHours}
+                  max={720}
+                  value={otpConfig.sessionTimeoutHours || 24}
                   onChange={(e) =>
                     onUpdateOtpConfig({
                       ...otpConfig,
                       sessionTimeoutHours: Math.max(
                         1,
-                        Number(e.target.value) || 24
+                        Math.min(720, Number(e.target.value) || 24)
                       ),
                     })
                   }
-                  className="w-36 px-3.5 py-2 text-xs smooth-nums rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                  className="w-24 px-3 py-1.5 text-xs smooth-nums rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
                 />
-                <span className="text-xs text-stone-500">
-                  ساعت ماندگاری کوکی HttpOnly و توکن دیتابیس (auth_sessions)
-                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUpdateOtpConfig({
+                      ...otpConfig,
+                      sessionTimeoutHours: Math.max(
+                        1,
+                        Math.min(720, Number(otpConfig.sessionTimeoutHours) || 24)
+                      ),
+                    });
+                    onNotice('success', 'مدت اعتبار سشن با موفقیت در دیتابیس ذخیره شد.');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-stone-900 dark:bg-white text-white dark:text-stone-900 text-xs font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>ذخیره</span>
+                </button>
               </div>
+              <p className="text-[11px] text-stone-500">
+                مقدار Max-Age کوکی HttpOnly و ستون <code className="font-mono" dir="ltr">expires_at</code> دقیقاً مطابق همین عدد (یا <code className="font-mono" dir="ltr">SESSION_TTL_HOURS</code>) اعمال و پس از انقضا نشست با ۴۰۱ حذف می‌شود.
+              </p>
             </div>
 
             <div className="p-4 rounded-xl border border-emerald-500/25 bg-emerald-500/5 flex flex-col justify-center space-y-1">

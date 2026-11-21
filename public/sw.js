@@ -1,6 +1,8 @@
-const CACHE_NAME = 'skill98-pwa-cache-v26';
-const CORE_ASSETS = [
-  '/',
+// Dynamically versioned on server response via __SW_CACHE_VERSION__
+const CACHE_NAME = 'skill98-static-__SW_CACHE_VERSION__';
+
+// Only immutable static icons/manifest — NEVER cache '/', 'index.html', '/api/*', or '/admin*'
+const STATIC_SHELL_ASSETS = [
   '/manifest.webmanifest',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
@@ -9,10 +11,12 @@ const CORE_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS).catch(() => undefined))
-  );
   self.skipWaiting();
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_SHELL_ASSETS).catch(() => undefined))
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -20,41 +24,85 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+        Promise.all(
+          keys
+            .filter((k) => k !== CACHE_NAME)
+            .map((k) => caches.delete(k))
+        )
       )
       .then(() => self.clients.claim())
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/uploads/_protected_downloads')) {
-    return;
-  }
 
-  if (req.mode === 'navigate') {
+  // STRICT NETWORK-ONLY: Never cache API routes, Admin routes, Service Worker, protected downloads, or HTML documents
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/admin') ||
+    url.pathname.startsWith('/uploads/_protected_downloads') ||
+    url.pathname === '/sw.js' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('.html') ||
+    req.mode === 'navigate'
+  ) {
     event.respondWith(
-      fetch(req).catch(() => caches.match('/') || new Response('Offline', { status: 503 }))
+      fetch(req, { cache: 'no-store' }).catch(
+        () =>
+          new Response('عدم دسترسی موقت به سرور. لطفاً اتصال اینترنت را بررسی و صفحه را بازآوری کنید.', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+          })
+      )
     );
     return;
   }
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      const networkFetch = fetch(req)
-        .then((res) => {
+  // Immutable hashed bundles (/assets/*) and self-hosted fonts (/fonts/*): Cache-First
+  const isImmutableAsset =
+    url.pathname.startsWith('/assets/') ||
+    url.pathname.startsWith('/fonts/') ||
+    url.pathname.startsWith('/badges/') ||
+    STATIC_SHELL_ASSETS.includes(url.pathname);
+
+  if (isImmutableAsset) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+        return fetch(req).then((res) => {
           if (res && res.status === 200 && res.type === 'basic') {
             const clone = res.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
           }
           return res;
-        })
-        .catch(() => cached);
-      return cached || networkFetch;
-    })
+        });
+      })
+    );
+    return;
+  }
+
+  // All other requests (e.g. uploaded images / dynamic media): Network-First with cache fallback
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        if (res && res.status === 200 && res.type === 'basic' && url.pathname.startsWith('/uploads/')) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
+        }
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });
 

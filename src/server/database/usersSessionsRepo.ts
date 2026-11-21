@@ -6,6 +6,7 @@ import type {
   OtpSecurityConfig,
 } from '../../core/types.js';
 import { DEFAULT_OTP_SECURITY_CONFIG, INITIAL_CMS_ROLES } from '../../data/defaults.js';
+import { getEnvConfig } from '../core/envConfig.js';
 import { dbExec, dbQuery, formatPersianDateTime } from './connection.js';
 import { getSetting } from './settingsLogsRepo.js';
 
@@ -109,6 +110,23 @@ export async function upsertUserByPhone(params: {
   return (await findUserByPhone(params.phone))!;
 }
 
+export async function resolveSessionTtlHours(): Promise<number> {
+  const envDefault = getEnvConfig().sessionTtlHours || 24;
+  try {
+    const otpCfg = await getSetting<OtpSecurityConfig>('otp_config', {
+      ...DEFAULT_OTP_SECURITY_CONFIG,
+      sessionTimeoutHours: envDefault,
+    });
+    const configured = Number(otpCfg?.sessionTimeoutHours);
+    if (Number.isFinite(configured) && configured >= 1 && configured <= 720) {
+      return Math.round(configured);
+    }
+  } catch {
+    // fallback to env default
+  }
+  return envDefault;
+}
+
 export async function createAuthSession(params: {
   phone: string;
   userDisplay?: string;
@@ -116,15 +134,14 @@ export async function createAuthSession(params: {
   roleId: string;
   deviceLabel?: string;
   ipMasked?: string;
-  ttlDays?: number;
+  ttlHours?: number;
 }): Promise<string> {
   const token = `s98_${crypto.randomBytes(24).toString('hex')}`;
   const now = new Date();
-  const otpCfg = await getSetting<OtpSecurityConfig>('otp_config', DEFAULT_OTP_SECURITY_CONFIG);
   const timeoutHours =
-    Number(otpCfg?.sessionTimeoutHours) > 0
-      ? Number(otpCfg.sessionTimeoutHours)
-      : (params.ttlDays || 30) * 24;
+    params.ttlHours && params.ttlHours >= 1 && params.ttlHours <= 720
+      ? Math.round(params.ttlHours)
+      : await resolveSessionTtlHours();
   const expires = new Date(now.getTime() + timeoutHours * 60 * 60 * 1000);
   const nowIso = now.toISOString();
   await dbExec(
