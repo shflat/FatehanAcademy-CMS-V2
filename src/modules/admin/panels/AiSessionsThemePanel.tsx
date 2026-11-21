@@ -7,6 +7,11 @@ import {
   Palette,
   ShieldCheck,
   Lock,
+  Save,
+  Loader2,
+  PlugZap,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import type {
   AccentPresetId,
@@ -22,6 +27,7 @@ type NoticeFn = (type: 'success' | 'error', text: string) => void;
 
 interface AiSessionsThemePanelProps {
   mode: 'super_ai' | 'super_sessions' | 'super_theme';
+  hideBrandIdentityCard?: boolean;
   aiConfig: AiEngineConfig;
   sessions: CmsSessionRecord[];
   otpConfig: OtpSecurityConfig;
@@ -31,6 +37,7 @@ interface AiSessionsThemePanelProps {
   onRevokeSession: (sessionId: string) => void;
   onUpdateOtpConfig: (next: OtpSecurityConfig) => void;
   onUpdateTheme: (next: ThemeConfig) => void;
+  onSaveThemeNow?: (next?: ThemeConfig, successText?: string) => Promise<void>;
   onGoToSms: () => void;
   onRefreshFromServer?: () => void;
   onNotice: NoticeFn;
@@ -38,6 +45,7 @@ interface AiSessionsThemePanelProps {
 
 export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
   mode,
+  hideBrandIdentityCard = false,
   aiConfig,
   sessions,
   otpConfig,
@@ -47,6 +55,7 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
   onRevokeSession,
   onUpdateOtpConfig,
   onUpdateTheme,
+  onSaveThemeNow,
   onGoToSms,
   onRefreshFromServer,
   onNotice,
@@ -55,6 +64,71 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
   const [confirmMasterCode, setConfirmMasterCode] = useState('');
   const [isUpdatingMasterCode, setIsUpdatingMasterCode] = useState(false);
   const [uploadingBrandAsset, setUploadingBrandAsset] = useState<'logo' | 'favicon' | null>(null);
+  const [isSavingTheme, setIsSavingTheme] = useState(false);
+  const [isTestingAiEngine, setIsTestingAiEngine] = useState(false);
+  const [aiEngineTestResult, setAiEngineTestResult] = useState<{
+    ok: boolean;
+    message: string;
+    hint?: string;
+    latencyMs?: number;
+    modelName?: string;
+  } | null>(null);
+
+  const handleTestAiEngineConnection = async () => {
+    setIsTestingAiEngine(true);
+    setAiEngineTestResult(null);
+    try {
+      const { ok, data } = await apiJson<{
+        ok?: boolean;
+        message?: string;
+        hint?: string;
+        latencyMs?: number;
+        modelName?: string;
+        error?: string;
+      }>('/api/v1/modules/ai-hub/slots/test', {
+        method: 'POST',
+        body: JSON.stringify({
+          slotKey: 'custom_probe',
+          providerKind: aiConfig.activeProvider,
+          modelName: aiConfig.modelName,
+          baseUrl: aiConfig.customBaseUrl,
+        }),
+      });
+      const isOk = Boolean(ok && data.ok);
+      const msg =
+        data.message ||
+        data.error ||
+        (isOk ? 'اتصال به موتور هوش مصنوعی برقرار است.' : 'اتصال به سرویس هوش مصنوعی برقرار نشد.');
+      setAiEngineTestResult({
+        ok: isOk,
+        message: msg,
+        hint: data.hint,
+        latencyMs: data.latencyMs,
+        modelName: data.modelName,
+      });
+      onNotice(isOk ? 'success' : 'error', msg);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'خطا در برقراری ارتباط با سرور برای تست اتصال AI';
+      setAiEngineTestResult({ ok: false, message: msg });
+      onNotice('error', msg);
+    } finally {
+      setIsTestingAiEngine(false);
+    }
+  };
+
+  const handleSaveThemeExplicit = async (msg: string) => {
+    setIsSavingTheme(true);
+    try {
+      if (onSaveThemeNow) {
+        await onSaveThemeNow(themeConfig, msg);
+      } else {
+        onUpdateTheme({ ...themeConfig });
+        onNotice('success', msg);
+      }
+    } finally {
+      setIsSavingTheme(false);
+    }
+  };
 
   const handleUploadBrandImage = async (
     target: 'logo' | 'favicon',
@@ -197,8 +271,8 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
               {
                 id: 'gemini',
                 title: 'Google Gemini',
-                sub: 'مدل Gemini 2.5 / 3 Flash',
-                defaultModel: 'gemini-2.5-flash',
+                sub: 'مدل Gemini 4 Hydrogen (سریع و پایدار)',
+                defaultModel: 'gemini-4-hydrogen',
               },
               {
                 id: 'custom_openai',
@@ -327,6 +401,70 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
               </span>
             </label>
           </div>
+        </div>
+
+        {/* Connection Test & Explicit Save Bar */}
+        <div className="pt-4 border-t border-stone-200 dark:border-stone-800 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              disabled={isTestingAiEngine}
+              onClick={() => void handleTestAiEngineConnection()}
+              className="px-4 py-2.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+            >
+              {isTestingAiEngine ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <PlugZap className="w-4 h-4" />
+              )}
+              <span>
+                {isTestingAiEngine
+                  ? 'در حال بررسی اتصال واقعی...'
+                  : 'تست اتصال سرویس انتخابی (Check Connection)'}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onUpdateAiConfig({ ...aiConfig });
+                onNotice('success', 'تنظیمات موتور هوش مصنوعی با موفقیت ذخیره و اعمال شد.');
+              }}
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              <span>ذخیره تنظیمات موتور AI</span>
+            </button>
+          </div>
+
+          {aiEngineTestResult && (
+            <div
+              className={`p-3.5 rounded-xl border text-xs space-y-1 ${
+                aiEngineTestResult.ok
+                  ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
+                  : 'border-rose-500/35 bg-rose-500/10 text-rose-900 dark:text-rose-200'
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 font-extrabold">
+                <span className="inline-flex items-center gap-1.5">
+                  {aiEngineTestResult.ok ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  )}
+                  <span>{aiEngineTestResult.message}</span>
+                </span>
+                {typeof aiEngineTestResult.latencyMs === 'number' && (
+                  <span className="font-mono text-[11px] opacity-80" dir="ltr">
+                    {aiEngineTestResult.latencyMs}ms · {aiEngineTestResult.modelName}
+                  </span>
+                )}
+              </div>
+              {aiEngineTestResult.hint && (
+                <p className="text-[11px] opacity-90">{aiEngineTestResult.hint}</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -550,18 +688,38 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
   return (
     <div className="space-y-6">
       {/* Brand Identity, Site Logo & Favicon Physical Uploader */}
+      {!hideBrandIdentityCard && (
       <div className="border border-stone-200 dark:border-stone-800 rounded-2xl bg-white dark:bg-stone-900 p-6 sm:p-8 space-y-6 shadow-sm">
-        <div className="border-b border-stone-200 dark:border-stone-800 pb-4">
-          <div className="text-xs font-extrabold text-[#1D4ED8] mb-1">
-            هویت بصری و برندینگ سایت (آپلود مستقیم لوگو و فاوآیکون)
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-4">
+          <div>
+            <div className="text-xs font-extrabold text-[#1D4ED8] mb-1">
+              هویت بصری و برندینگ سایت (آپلود مستقیم لوگو و فاوآیکون)
+            </div>
+            <h2 className="text-lg font-extrabold text-stone-900 dark:text-white flex items-center gap-2">
+              <Palette className="w-5 h-5 text-[#1D4ED8]" />
+              <span>لوگوی سایت، فاوآیکون مرورگر و نام برند</span>
+            </h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              تغییرات لوگو، فاوآیکون و عنوان برند به صورت آنی در هدر، فوتر، فاکتور و تب مرورگر اعمال می‌شوند.
+            </p>
           </div>
-          <h2 className="text-lg font-extrabold text-stone-900 dark:text-white flex items-center gap-2">
-            <Palette className="w-5 h-5 text-[#1D4ED8]" />
-            <span>لوگوی سایت، فاوآیکون مرورگر و نام برند</span>
-          </h2>
-          <p className="text-xs text-stone-500 mt-0.5">
-            تغییرات لوگو، فاوآیکون و عنوان برند به صورت آنی در هدر، فوتر، فاکتور و تب مرورگر اعمال می‌شوند.
-          </p>
+          <button
+            type="button"
+            disabled={isSavingTheme}
+            onClick={() =>
+              void handleSaveThemeExplicit(
+                'تنظیمات هویت بصری، لوگو و نام برند با موفقیت در دیتابیس ذخیره شد.'
+              )
+            }
+            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shrink-0"
+          >
+            {isSavingTheme ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            <span>{isSavingTheme ? 'در حال ذخیره...' : 'ذخیره هویت بصری و لوگو'}</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -694,19 +852,41 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* Color Palette & Motion Libraries Card */}
       <div className="border border-stone-200 dark:border-stone-800 rounded-2xl bg-white dark:bg-stone-900 p-6 sm:p-8 space-y-6 shadow-sm">
-        <div className="border-b border-stone-200 dark:border-stone-800 pb-4">
-          <h2 className="text-lg font-extrabold text-stone-900 dark:text-white flex items-center gap-2">
-            <Palette className="w-5 h-5 text-[#1D4ED8]" />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-4">
+          <div>
+            <h2 className="text-lg font-extrabold text-stone-900 dark:text-white flex items-center gap-2">
+              <Palette className="w-5 h-5 text-[#1D4ED8]" />
+              <span>
+                پوسته‌ها و کتابخانه‌های انیمیشن (GSAP / Lenis / Barba / Muuri)
+              </span>
+            </h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              سفارشی‌سازی رنگ‌بندی و کنترل ۴ کتابخانه حرکتی و تعاملی سایت
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={isSavingTheme}
+            onClick={() =>
+              void handleSaveThemeExplicit(
+                'تنظیمات پالت رنگی و کتابخانه‌های انیمیشن با موفقیت ذخیره و اعمال شد.'
+              )
+            }
+            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shrink-0 shadow-xs"
+          >
+            {isSavingTheme ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
             <span>
-              پوسته‌ها و کتابخانه‌های انیمیشن (GSAP / Lenis / Barba / Muuri)
+              {isSavingTheme ? 'در حال ذخیره...' : 'ذخیره و اعمال پوسته و انیمیشن‌ها'}
             </span>
-          </h2>
-          <p className="text-xs text-stone-500 mt-0.5">
-            سفارشی‌سازی رنگ‌بندی و کنترل ۴ کتابخانه حرکتی و تعاملی سایت
-          </p>
+          </button>
         </div>
 
         <div className="space-y-2">
@@ -808,6 +988,31 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
               </span>
             </label>
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-stone-200 dark:border-stone-800">
+          <p className="text-[11px] text-stone-500">
+            پس از انتخاب رنگ‌بندی و کتابخانه‌های انیمیشن، برای ثبت قطعی در دیتابیس سرور روی دکمه ذخیره کلیک کنید.
+          </p>
+          <button
+            type="button"
+            disabled={isSavingTheme}
+            onClick={() =>
+              void handleSaveThemeExplicit(
+                'تمامی تنظیمات پوسته، هویت بصری و کتابخانه‌های انیمیشن ذخیره و اعمال شد.'
+              )
+            }
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shadow-xs"
+          >
+            {isSavingTheme ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            <span>
+              {isSavingTheme ? 'در حال ذخیره...' : 'ذخیره و اعمال تنظیمات'}
+            </span>
+          </button>
         </div>
       </div>
     </div>

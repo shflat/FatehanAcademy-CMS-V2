@@ -322,13 +322,41 @@ export async function sendSmtpBackupEmail(
   return info.messageId;
 }
 
+function sanitizeBaleBotToken(token: string): string {
+  return String(token || '')
+    .trim()
+    .replace(/^bot/i, '')
+    .replace(/[^\w:-]/g, '');
+}
+
+async function parseBaleApiResponse(
+  resp: Response,
+  fallbackError: string
+): Promise<{ ok?: boolean; description?: string; result?: unknown; rawText?: string }> {
+  const rawText = await resp.text().catch(() => '');
+  let parsed: { ok?: boolean; description?: string; result?: unknown } = {};
+  if (rawText) {
+    try {
+      parsed = JSON.parse(rawText) as { ok?: boolean; description?: string; result?: unknown };
+    } catch {
+      parsed = { ok: false, description: rawText.slice(0, 220) };
+    }
+  }
+  if (!resp.ok || parsed.ok === false) {
+    throw new Error(
+      parsed.description || `${fallbackError} (HTTP ${resp.status})`
+    );
+  }
+  return { ...parsed, rawText };
+}
+
 export async function sendBaleNotification(
   token: string,
   chatId: string,
   textOrCaption: string,
   attachment?: { filename: string; content: Buffer }
 ) {
-  const cleanToken = String(token || '').trim();
+  const cleanToken = sanitizeBaleBotToken(token);
   const cleanChatId = String(chatId || '').trim();
   if (!cleanToken || !cleanChatId) {
     throw new Error('توکن ربات بله (Bot Token) و شناسه چت/کانال (Chat ID) الزامی هستند.');
@@ -343,18 +371,14 @@ export async function sendBaleNotification(
     });
     form.append('document', blob, attachment.filename);
 
-    const resp = await fetch(`https://tapi.bale.bot/bot${cleanToken}/sendDocument`, {
+    const resp = await fetch(`https://tapi.bale.ai/bot${cleanToken}/sendDocument`, {
       method: 'POST',
       body: form,
     });
-    const data = (await resp.json()) as { ok?: boolean; description?: string };
-    if (!resp.ok || data.ok === false) {
-      throw new Error(data.description || `خطا در ارسال سند به ربات بله (${resp.status})`);
-    }
-    return data;
+    return parseBaleApiResponse(resp, 'خطا در ارسال فایل بکاپ به ربات بله');
   }
 
-  const resp = await fetch(`https://tapi.bale.bot/bot${cleanToken}/sendMessage`, {
+  const resp = await fetch(`https://tapi.bale.ai/bot${cleanToken}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -362,11 +386,7 @@ export async function sendBaleNotification(
       text: textOrCaption,
     }),
   });
-  const data = (await resp.json()) as { ok?: boolean; description?: string };
-  if (!resp.ok || data.ok === false) {
-    throw new Error(data.description || `خطا در ارسال پیام تست به ربات بله (${resp.status})`);
-  }
-  return data;
+  return parseBaleApiResponse(resp, 'خطا در ارسال پیام به ربات بله');
 }
 
 export async function createBackupSnapshot(params: {
@@ -374,6 +394,7 @@ export async function createBackupSnapshot(params: {
   triggerType: 'manual' | 'scheduled';
   destination?: string;
   dispatchRemote?: boolean;
+  scheduleOverride?: Partial<BackupScheduleConfig>;
 }): Promise<{ item: BackupHistoryItem; content: string; dispatchReport: string[] }> {
   fs.mkdirSync(BACKUP_DIR, { recursive: true });
   const { jsonString, sqlString } = await generateFullBackupPayload();
@@ -391,46 +412,63 @@ export async function createBackupSnapshot(params: {
   let destLabel = params.destination || `ذخیره و دانلود محلی (${params.format.toUpperCase()})`;
 
   if (params.dispatchRemote) {
-    const cfg = await getSetting<BackupScheduleConfig>(
+    const savedCfg = await getSetting<BackupScheduleConfig>(
       'backup_schedule_config',
       DEFAULT_BACKUP_SCHEDULE_CONFIG
     );
+    const cfg: BackupScheduleConfig = {
+      ...DEFAULT_BACKUP_SCHEDULE_CONFIG,
+      ...savedCfg,
+      ...(params.scheduleOverride || {}),
+    };
     const destParts: string[] = ['دیسک سرور (data/backups)'];
 
     const effectiveSmtpUser = (cfg.smtpUser || process.env.SMTP_USER || '').trim();
     const effectiveSmtpPass = (cfg.smtpPass || process.env.SMTP_PASS || '').trim();
     const effectiveSmtpTarget = (cfg.smtpTargetEmail || effectiveSmtpUser).trim();
 
-    if (cfg.smtpEnabled && effectiveSmtpUser && effectiveSmtpPass && effectiveSmtpTarget) {
-      try {
-        await sendSmtpBackupEmail(
-          cfg,
-          `Skill 98 Auto Backup (${nowFa})`,
-          `فایل پشتیبان کامل دیتابیس اسکیل ۹۸ پیوست است.\nتاریخ: ${nowFa}\nفایل: ${filename}`,
-          { filename, content }
-        );
-        destParts.push(`ایمیل (${effectiveSmtpTarget})`);
-        dispatchReport.push('ایمیل با موفقیت ارسال شد.');
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        dispatchReport.push(`خطای ایمیل: ${msg}`);
+    if (cfg.smtpEnabled) {
+      if (!effectiveSmtpUser || !effectiveSmtpPass || !effectiveSmtpTarget) {
+        dispatchReport.push('خطای ایمیل: تنظیمات SMTP (نام کاربری، رمز برنامه یا ایمیل مقصد) ناقص است.');
+      } else {
+        try {
+          await sendSmtpBackupEmail(
+            cfg,
+            `Skill 98 Auto Backup (${nowFa})`,
+            `فایل پشتیبان کامل دیتابیس اسکیل ۹۸ پیوست است.\nتاریخ: ${nowFa}\nفایل: ${filename}`,
+            { filename, content }
+          );
+          destParts.push(`ایمیل (${effectiveSmtpTarget})`);
+          dispatchReport.push('ایمیل با موفقیت ارسال شد.');
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          dispatchReport.push(`خطای ایمیل: ${msg}`);
+        }
       }
     }
 
-    if (cfg.baleEnabled && cfg.baleBotToken && cfg.baleChatId) {
-      try {
-        await sendBaleNotification(
-          cfg.baleBotToken,
-          cfg.baleChatId,
-          `بکاپ خودکار دیتابیس اسکیل ۹۸\nزمان: ${nowFa}`,
-          { filename, content: Buffer.from(content, 'utf-8') }
-        );
-        destParts.push('پیام‌رسان بله');
-        dispatchReport.push('فایل بکاپ به ربات بله ارسال شد.');
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        dispatchReport.push(`خطای بله: ${msg}`);
+    if (cfg.baleEnabled) {
+      if (!cfg.baleBotToken?.trim() || !cfg.baleChatId?.trim()) {
+        dispatchReport.push('خطای بله: توکن ربات بله یا شناسه چت (Chat ID) وارد نشده است.');
+      } else {
+        try {
+          await sendBaleNotification(
+            cfg.baleBotToken,
+            cfg.baleChatId,
+            `بکاپ خودکار دیتابیس اسکیل ۹۸\nزمان: ${nowFa}`,
+            { filename, content: Buffer.from(content, 'utf-8') }
+          );
+          destParts.push('پیام‌رسان بله');
+          dispatchReport.push('فایل بکاپ به ربات بله ارسال شد.');
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          dispatchReport.push(`خطای بله: ${msg}`);
+        }
       }
+    }
+
+    if (!cfg.smtpEnabled && !cfg.baleEnabled) {
+      dispatchReport.push('هیچ مقصد ارسال خارجی (ایمیل یا بله) فعال نیست؛ بکاپ فقط روی سرور ذخیره شد.');
     }
 
     destLabel = destParts.join(' + ');

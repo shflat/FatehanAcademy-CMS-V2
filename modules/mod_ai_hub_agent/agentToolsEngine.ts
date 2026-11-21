@@ -167,25 +167,46 @@ export async function dispatchAgentBotBridgeAlert(params: {
     }>('SELECT * FROM mod_bot_channels WHERE enabled = 1');
 
     for (const bot of bots) {
-      const token = decryptSecret(bot.bot_token_enc);
+      const rawToken = String(decryptSecret(bot.bot_token_enc) || '').trim();
+      const safeBotToken = rawToken.replace(/^bot/i, '').replace(/[^\w:-]/g, '');
+      const safeEitaaToken = rawToken.replace(/[^\w:-]/g, '');
       const text = `🤖 [ایجنت ۲۴/۷] ${params.title}\n${params.message}`;
       let status: 'sent' | 'failed' = 'sent';
       let errMsg = '';
       try {
-        const url =
-          bot.platform === 'bale'
-            ? `https://tapi.bale.ai/bot${token}/sendMessage`
-            : bot.platform === 'eitaa'
-            ? `https://eitaayar.ir/api/${token}/sendMessage`
-            : `https://api.telegram.org/bot${token}/sendMessage`;
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: bot.chat_id, text }),
-        });
-        if (!resp.ok) {
+        let resp: Response;
+        if (bot.platform === 'eitaa') {
+          const url = `https://eitaayar.ir/api/${safeEitaaToken}/sendMessage`;
+          const body = new URLSearchParams({
+            chat_id: String(bot.chat_id || '').trim(),
+            text,
+          });
+          resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
+            body: body.toString(),
+          });
+        } else {
+          const url =
+            bot.platform === 'bale'
+              ? `https://tapi.bale.ai/bot${safeBotToken}/sendMessage`
+              : `https://api.telegram.org/bot${safeBotToken}/sendMessage`;
+          resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: String(bot.chat_id || '').trim(), text }),
+          });
+        }
+        const rawResp = await resp.text().catch(() => '');
+        let parsed: { ok?: boolean; description?: string } = {};
+        try {
+          parsed = rawResp ? JSON.parse(rawResp) : {};
+        } catch {
+          // non-json response
+        }
+        if (!resp.ok || parsed.ok === false) {
           status = 'failed';
-          errMsg = `HTTP ${resp.status}`;
+          errMsg = parsed.description || `HTTP ${resp.status}`;
         } else {
           sentCount += 1;
         }
@@ -202,7 +223,7 @@ export async function dispatchAgentBotBridgeAlert(params: {
         errorMessage: errMsg,
         messagePreview: text.slice(0, 120),
       });
-      details.push(`${bot.platform}(${bot.title_fa}): ${status}`);
+      details.push(`${bot.platform}(${bot.title_fa}): ${status}${errMsg ? ` - ${errMsg}` : ''}`);
     }
   } catch {
     // mod_bot_channels might not exist yet if mod_bots_webhooks was never initialized
@@ -210,11 +231,79 @@ export async function dispatchAgentBotBridgeAlert(params: {
   return { sentCount, details };
 }
 
+async function generateLiveChatAiReply(params: {
+  addressee: string;
+  isGuest: boolean;
+  messageText: string;
+  existingMessages: { sender_role?: string; message_text?: string }[];
+}): Promise<{ reply?: string; error?: string }> {
+  try {
+    const [skills, products] = await Promise.all([
+      dbQuery<{ title_fa: string; skill_markdown: string }>(
+        'SELECT title_fa, skill_markdown FROM mod_ai_agent_skills WHERE enabled = 1 LIMIT 6'
+      ).catch(() => []),
+      dbQuery<{ title: string; category: string; price: number }>(
+        "SELECT title, category, price FROM products WHERE status = 'published' ORDER BY featured DESC LIMIT 12"
+      ).catch(() => []),
+    ]);
+
+    const skillContext = skills
+      .map((s) => `• ${s.title_fa}: ${String(s.skill_markdown || '').slice(0, 260)}`)
+      .join('\n');
+    const catalogContext = products
+      .map(
+        (p) =>
+          `- ${p.title} (${p.category} · ${
+            Number(p.price) === 0 ? 'رایگان' : `${Number(p.price).toLocaleString('fa-IR')} تومان`
+          })`
+      )
+      .join('\n');
+
+    const recentHistory = params.existingMessages
+      .slice(-8)
+      .map(
+        (m) =>
+          `${m.sender_role === 'visitor' ? 'کاربر' : 'پشتیبان'}: ${String(m.message_text || '').slice(0, 300)}`
+      )
+      .join('\n');
+
+    const systemPrompt = [
+      `شما دستیار هوشمند ۲۴/۷ پشتیبانی سایت «اسکیل ۹۸» هستید.`,
+      `مخاطب فعلی: ${params.addressee} (${params.isGuest ? 'کاربر مهمان' : 'کاربر واردشده به حساب'}).`,
+      `پاسخ را کوتاه، دقیق، محترمانه و کاملاً به زبان فارسی روان بنویسید.`,
+      catalogContext ? `فهرست برخی محصولات و اسکیل‌های موجود در فروشگاه:\n${catalogContext}` : '',
+      skillContext ? `دستورالعمل‌ها و مهارت‌های پشتیبانی:\n${skillContext}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    const userPrompt = recentHistory
+      ? `تاریخچه کوتاه گفتگو:\n${recentHistory}\n\nپیام جدید کاربر:\n${params.messageText}`
+      : params.messageText;
+
+    const res = await generateTextViaSlot({
+      slot: 'agent_core',
+      systemPrompt,
+      userPrompt,
+    });
+    return { reply: res.text || undefined };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    await writeSystemLog({
+      level: 'error',
+      category: 'system',
+      title: 'خطای اتصال دستیار هوشمند ۲۴/۷ در چت آنلاین',
+      detail: errMsg,
+      sqlOrEndpoint: 'LIVE_CHAT_AGENT_24_7 (agent_core)',
+    }).catch(() => {});
+    return { error: errMsg };
+  }
+}
+
 /**
  * Live Chat AI Agent Hook:
- * - For guests: politely suggests inline mobile OTP verification for Urgent priority.
- * - For logged-in users: detects & saves their Full Name via `update_visitor_user_profile`,
- *   or gently asks for their name if still missing, and replies naturally using learned SKILL.md rules.
+ * - In autonomous_24_7 mode (or with liveChatAutoReply): answers both guests and logged-in users using live AI + store catalog + SKILL.md rules.
+ * - For logged-in users: detects & saves their Full Name via `update_visitor_user_profile`, or gently asks for their name if still missing.
  */
 export async function handleLiveChatAgentAutomation(params: {
   sessionId: string;
@@ -239,6 +328,31 @@ export async function handleLiveChatAgentAutomation(params: {
   );
 
   if (isGuest) {
+    if (settings.liveChatAutoReply && settings.agentMode === 'autonomous_24_7') {
+      const aiAttempt = await generateLiveChatAiReply({
+        addressee: 'کاربر گرامی',
+        isGuest: true,
+        messageText: params.messageText,
+        existingMessages: params.existingMessages,
+      });
+      if (aiAttempt.reply) {
+        const suffix = !alreadyPromptedGuest
+          ? '\n\n💡 برای ثبت درخواست با «اولویت فوری» می‌توانید شماره موبایل خود را در بالای همین پنجره تایید کنید.'
+          : '';
+        return { agentReply: `${aiAttempt.reply}${suffix}` };
+      }
+      if (!alreadyPromptedGuest) {
+        return {
+          agentReply:
+            'سلام و خوش آمدید! پیام شما با موفقیت ثبت شد و برای اپراتور پشتیبانی ارسال گردید. برای دریافت پاسخ با «اولویت فوری»، شماره موبایل خود را در بالای همین پنجره وارد کنید.',
+        };
+      }
+      return {
+        agentReply:
+          'پیام شما در صف پشتیبانی ثبت شد. همکاران ما در کوتاه‌ترین زمان پاسخ شما را ارسال خواهند کرد.',
+      };
+    }
+
     if (!alreadyPromptedGuest) {
       return {
         agentReply:
@@ -277,29 +391,34 @@ export async function handleLiveChatAgentAutomation(params: {
         };
       }
     }
-
-    if (needsName && !agentAskedForName) {
-      return {
-        agentReply:
-          'ممنون از ورود شما! درخواستتان با اولویت فوری ثبت شد. برای تکمیل حساب کاربری و خطاب بهتر شما، ممکن است نام شریفتان را بفرمایید؟',
-      };
-    }
   }
 
   if (settings.agentMode === 'autonomous_24_7' && settings.liveChatAutoReply) {
-    try {
-      const addressee = needsName ? 'کاربر گرامی' : `${currentName} عزیز`;
-      const res = await generateTextViaSlot({
-        slot: 'agent_core',
-        systemPrompt: `شما دستیار هوشمند ۲۴/۷ پشتیبانی فروشگاه هستید. کاربر وارد حساب شده و نام او «${addressee}» است. کوتاه، محترمانه و کاربردی به فارسی پاسخ بده.`,
-        userPrompt: params.messageText,
-      });
-      if (res.text) {
-        return { agentReply: res.text };
-      }
-    } catch {
-      // Silent fallback if no AI key configured yet
+    const addressee = needsName ? 'کاربر گرامی' : `${currentName} عزیز`;
+    const aiAttempt = await generateLiveChatAiReply({
+      addressee,
+      isGuest: false,
+      messageText: params.messageText,
+      existingMessages: params.existingMessages,
+    });
+    if (aiAttempt.reply) {
+      const askNameSuffix =
+        settings.autoProfileCompletion && needsName && !agentAskedForName
+          ? '\n\n(برای تکمیل پروفایل و خطاب بهتر، خوشحال می‌شوم نام شریفتان را هم بفرمایید.)'
+          : '';
+      return { agentReply: `${aiAttempt.reply}${askNameSuffix}` };
     }
+    return {
+      agentReply:
+        'پیام شما با اولویت فوری ثبت شد. به دلیل عدم اتصال موقت موتور هوش مصنوعی، پیامتان مستقیماً برای اپراتور انسانی ارسال گردید و به‌زودی پاسخ دریافت می‌کنید.',
+    };
+  }
+
+  if (settings.autoProfileCompletion && needsName && !agentAskedForName) {
+    return {
+      agentReply:
+        'ممنون از ورود شما! درخواستتان با اولویت فوری ثبت شد. برای تکمیل حساب کاربری و خطاب بهتر شما، ممکن است نام شریفتان را بفرمایید؟',
+    };
   }
 
   return {};

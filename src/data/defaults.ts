@@ -254,6 +254,7 @@ export const DEFAULT_PAYMENT_DISPLAY_CONFIG: PaymentDisplayConfig = {
 };
 
 export const DEFAULT_SMS_GATEWAY_SETTINGS: SmsGatewaySettings = {
+  enabled: true,
   provider: 'melipayamak',
   apiMethod: 'sendbybasenumber2',
   username: '',
@@ -261,6 +262,7 @@ export const DEFAULT_SMS_GATEWAY_SETTINGS: SmsGatewaySettings = {
   senderLine: '50004000000',
   sandboxMode: true,
   otpPatternCode: '137991',
+  eventRouting: {},
 };
 
 export const INITIAL_SMS_TRIGGER_RULES: SmsTriggerRule[] = [

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bot, Plus, Send, Webhook } from 'lucide-react';
+import { Bot, Loader2, Plus, Send, Webhook } from 'lucide-react';
 import { apiJson } from '../../src/core/apiClient';
 
 interface BotItem {
@@ -33,6 +33,9 @@ export const BotsWebhooksPanel: React.FC<{
   const [whTitle, setWhTitle] = useState('');
   const [whUrl, setWhUrl] = useState('');
   const [whSecret, setWhSecret] = useState('');
+  const [savingBot, setSavingBot] = useState(false);
+  const [savingWh, setSavingWh] = useState(false);
+  const [testingId, setTestingId] = useState<string>('');
 
   const loadAll = async () => {
     const { ok, data } = await apiJson<{ bots?: BotItem[]; webhooks?: WebhookItem[] }>(
@@ -50,47 +53,62 @@ export const BotsWebhooksPanel: React.FC<{
 
   const handleSaveBot = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { ok, data } = await apiJson<{ error?: string }>('/api/v1/modules/bots-webhooks/bot', {
-      method: 'POST',
-      body: JSON.stringify({ platform, titleFa: botTitle, botToken, chatId }),
-    });
-    if (!ok) {
-      onNotice?.('error', data.error || 'خطا در ثبت کانال ربات');
-      return;
+    setSavingBot(true);
+    try {
+      const { ok, data } = await apiJson<{ error?: string }>('/api/v1/modules/bots-webhooks/bot', {
+        method: 'POST',
+        body: JSON.stringify({ platform, titleFa: botTitle, botToken, chatId }),
+      });
+      if (!ok) {
+        onNotice?.('error', data.error || 'خطا در ثبت کانال ربات');
+        return;
+      }
+      setBotTitle('');
+      setBotToken('');
+      setChatId('');
+      onNotice?.('success', 'ربات با رمزنگاری AES-256-GCM ذخیره شد (توکن خام هرگز نمایش داده نمی‌شود).');
+      await loadAll();
+    } finally {
+      setSavingBot(false);
     }
-    setBotTitle('');
-    setBotToken('');
-    setChatId('');
-    onNotice?.('success', 'ربات با رمزنگاری AES-256-GCM ذخیره شد (توکن خام هرگز نمایش داده نمی‌شود).');
-    void loadAll();
   };
 
   const handleSaveWebhook = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { ok, data } = await apiJson<{ error?: string }>('/api/v1/modules/bots-webhooks/webhook', {
-      method: 'POST',
-      body: JSON.stringify({ titleFa: whTitle, targetUrl: whUrl, secret: whSecret }),
-    });
-    if (!ok) {
-      onNotice?.('error', data.error || 'خطا در ثبت وب‌هوک');
-      return;
+    setSavingWh(true);
+    try {
+      const { ok, data } = await apiJson<{ error?: string }>('/api/v1/modules/bots-webhooks/webhook', {
+        method: 'POST',
+        body: JSON.stringify({ titleFa: whTitle, targetUrl: whUrl, secret: whSecret }),
+      });
+      if (!ok) {
+        onNotice?.('error', data.error || 'خطا در ثبت وب‌هوک');
+        return;
+      }
+      setWhTitle('');
+      setWhUrl('');
+      setWhSecret('');
+      onNotice?.('success', 'وب‌هوک خروجی با امضای HMAC-SHA256 ثبت شد.');
+      await loadAll();
+    } finally {
+      setSavingWh(false);
     }
-    setWhTitle('');
-    setWhUrl('');
-    setWhSecret('');
-    onNotice?.('success', 'وب‌هوک خروجی با امضای HMAC-SHA256 ثبت شد.');
-    void loadAll();
   };
 
   const handleTest = async (kind: 'bot' | 'webhook', id: string) => {
-    const { ok, data } = await apiJson<{ dispatched?: boolean; errorMessage?: string }>(
-      `/api/v1/modules/bots-webhooks/${kind}/${encodeURIComponent(id)}/test`,
-      { method: 'POST' }
-    );
-    if (ok && data.dispatched) {
-      onNotice?.('success', 'ارسال آزمایشی با موفقیت انجام و در لاگ یکپارچه ثبت شد.');
-    } else {
-      onNotice?.('error', `نتیجه تست در لاگ یکپارچه ثبت شد (${data.errorMessage || 'خطای اتصال'})`);
+    setTestingId(`${kind}:${id}`);
+    try {
+      const { ok, data } = await apiJson<{ dispatched?: boolean; errorMessage?: string }>(
+        `/api/v1/modules/bots-webhooks/${kind}/${encodeURIComponent(id)}/test`,
+        { method: 'POST' }
+      );
+      if (ok && data.dispatched) {
+        onNotice?.('success', 'ارسال آزمایشی با موفقیت انجام و در لاگ یکپارچه ثبت شد.');
+      } else {
+        onNotice?.('error', `خطا در ارسال آزمایشی (${data.errorMessage || 'خطای اتصال'})`);
+      }
+    } finally {
+      setTestingId('');
     }
   };
 
@@ -140,7 +158,11 @@ export const BotsWebhooksPanel: React.FC<{
             required
             value={botToken}
             onChange={(e) => setBotToken(e.target.value)}
-            placeholder="Bot Token (ذخیره رمزنگاری‌شده AES-256-GCM)"
+            placeholder={
+              platform === 'eitaa'
+                ? 'توکن ایتایار (مثال: bot12345:xxxx-xxxx)'
+                : 'Bot Token (مثال: 194829148:AAH...)'
+            }
             className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 text-xs font-mono"
           />
           <input
@@ -149,14 +171,20 @@ export const BotsWebhooksPanel: React.FC<{
             required
             value={chatId}
             onChange={(e) => setChatId(e.target.value)}
-            placeholder="Chat ID / Channel ID"
+            placeholder={
+              platform === 'eitaa'
+                ? 'شناسه کانال/گروه در ایتایار (عدد یا آیدی بدون @)'
+                : 'Chat ID / Channel ID'
+            }
             className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 text-xs font-mono"
           />
           <button
             type="submit"
-            className="w-full py-2 rounded-xl bg-emerald-600 text-white text-xs font-extrabold flex items-center justify-center gap-1 cursor-pointer"
+            disabled={savingBot}
+            className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
           >
-            <Plus className="w-4 h-4" /> ثبت ربات امن
+            {savingBot ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            <span>{savingBot ? 'در حال ثبت...' : 'ثبت ربات امن'}</span>
           </button>
 
           <div className="space-y-2 pt-2">
@@ -172,10 +200,16 @@ export const BotsWebhooksPanel: React.FC<{
                 </div>
                 <button
                   type="button"
+                  disabled={testingId === `bot:${b.id}`}
                   onClick={() => void handleTest('bot', b.id)}
-                  className="px-2.5 py-1 rounded-lg bg-[#1D4ED8] text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-[#1D4ED8] hover:bg-blue-700 text-white text-[11px] font-bold flex items-center gap-1 cursor-pointer disabled:opacity-60"
                 >
-                  <Send className="w-3 h-3" /> تست
+                  {testingId === `bot:${b.id}` ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Send className="w-3 h-3" />
+                  )}
+                  <span>{testingId === `bot:${b.id}` ? 'ارسال...' : 'تست'}</span>
                 </button>
               </div>
             ))}

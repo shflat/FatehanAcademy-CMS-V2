@@ -7,8 +7,10 @@ import {
   Database,
   Globe,
   Image as ImageIcon,
+  Loader2,
   MessageSquare,
   Palette,
+  Save,
   Settings,
   Shield,
   ShieldCheck,
@@ -75,6 +77,7 @@ interface UnifiedSettingsHubPanelProps {
   paymentDisplayConfig: PaymentDisplayConfig;
   accentButtonClass: string;
   onUpdateThemeConfig: (next: ThemeConfig) => void;
+  onSaveThemeNow?: (next?: ThemeConfig, successText?: string) => Promise<void>;
   onUpdateAiConfig: (next: AiEngineConfig) => void;
   onUpdateOtpConfig: (next: OtpSecurityConfig) => void;
   onUpdateRoles: (next: CmsRoleDefinition[]) => void;
@@ -103,6 +106,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
   paymentDisplayConfig,
   accentButtonClass,
   onUpdateThemeConfig,
+  onSaveThemeNow,
   onUpdateAiConfig,
   onUpdateOtpConfig,
   onUpdateRoles,
@@ -114,16 +118,32 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
   onNotice,
 }) => {
   const [activeTab, setActiveTab] = useState<UnifiedSettingsTabId>(initialTab);
-  const [siteDescription, setSiteDescription] = useState(
-    'پلتفرم ماژولار مدیریت محتوا، فروش اسکیل‌های هوش مصنوعی و فروشگاه اینترنتی بومی ایران'
-  );
   const [uploadingAsset, setUploadingAsset] = useState<'logo' | 'favicon' | null>(null);
-  const [badgePickerSlot, setBadgePickerSlot] = useState<'enamad' | 'license2' | null>(null);
+  const [savingSection, setSavingSection] = useState<'general' | 'badges' | 'theme' | null>(null);
+  const [badgePickerSlot, setBadgePickerSlot] = useState<'enamad' | 'license2' | 'logo' | 'favicon' | null>(null);
   const [localUploadedMedia, setLocalUploadedMedia] = useState<MediaAssetItem[]>([]);
   const combinedMediaItems = [
     ...localUploadedMedia,
     ...mediaItems.filter((m) => !localUploadedMedia.some((l) => l.id === m.id)),
   ];
+
+  const handleSaveThemeSection = async (
+    sectionKey: 'general' | 'badges' | 'theme',
+    nextTheme: ThemeConfig,
+    successText: string
+  ) => {
+    setSavingSection(sectionKey);
+    try {
+      onUpdateThemeConfig(nextTheme);
+      if (onSaveThemeNow) {
+        await onSaveThemeNow(nextTheme, successText);
+      } else {
+        onNotice('success', successText);
+      }
+    } finally {
+      setSavingSection(null);
+    }
+  };
 
   const trustBadges: FooterTrustBadgesConfig = {
     ...(DEFAULT_THEME_CONFIG.footerTrustBadges as FooterTrustBadgesConfig),
@@ -205,7 +225,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
     { id: 'shipping', label: 'حمل‌ونقل و ارسال', icon: Truck },
     { id: 'calendar', label: 'تقویم شمسی و جغرافیا', icon: Calendar },
     { id: 'gateways', label: 'درگاه‌های پرداخت (۱۶)', icon: CreditCard },
-    { id: 'sms', label: 'درگاه‌های پیامکی (۱۲) و OTP', icon: MessageSquare },
+    { id: 'sms', label: 'درگاه‌های پیامکی (۱۲) و بله', icon: MessageSquare },
     { id: 'ai', label: 'هوش مصنوعی و سئو', icon: Bot },
     { id: 'security', label: 'کاربران، نقش‌ها و نشست‌ها', icon: Shield },
     { id: 'backup', label: 'دیتابیس SQL و بکاپ', icon: Database },
@@ -257,9 +277,37 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
       {activeTab === 'general' && (
         <div className="space-y-6">
           <div className="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 space-y-5 shadow-xs">
-            <h3 className="text-sm font-extrabold text-stone-900 dark:text-white border-b border-stone-200 dark:border-stone-800 pb-3">
-              تنظیمات عمومی سایت (نام، توضیحات، لوگو و فاوآیکون)
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-stone-900 dark:text-white">
+                  تنظیمات عمومی سایت (نام، توضیحات، لوگو و فاوآیکون)
+                </h3>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                  نام برند، توضیحات سئو، لوگو و فاوآیکون سایت را ویرایش کرده و با دکمه ذخیره در دیتابیس ثبت کنید.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={savingSection === 'general'}
+                onClick={() =>
+                  void handleSaveThemeSection(
+                    'general',
+                    themeConfig,
+                    'تنظیمات عمومی، لوگو و فاوآیکون سایت با موفقیت ذخیره و اعمال شد.'
+                  )
+                }
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shrink-0 shadow-xs"
+              >
+                {savingSection === 'general' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {savingSection === 'general' ? 'در حال ذخیره...' : 'ذخیره تنظیمات عمومی و لوگو'}
+                </span>
+              </button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div>
@@ -295,14 +343,23 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                 </label>
                 <input
                   type="text"
-                  value={siteDescription}
-                  onChange={(e) => setSiteDescription(e.target.value)}
+                  value={
+                    themeConfig.siteDescription ??
+                    themeConfig.footerDescription ??
+                    'پلتفرم ماژولار مدیریت محتوا، فروش اسکیل‌های هوش مصنوعی و فروشگاه اینترنتی بومی ایران'
+                  }
+                  onChange={(e) =>
+                    onUpdateThemeConfig({
+                      ...themeConfig,
+                      siteDescription: e.target.value,
+                    })
+                  }
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
                 />
               </div>
 
-              {/* Direct Logo Uploader */}
-              <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 flex items-center justify-between gap-3">
+              {/* Direct Logo Uploader + Gallery Picker */}
+              <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-12 h-12 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 flex items-center justify-center overflow-hidden p-1.5 shrink-0">
                     <img
@@ -315,25 +372,35 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                     <div className="text-xs font-extrabold text-stone-900 dark:text-white">
                       لوگوی اصلی هدر و فوتر
                     </div>
-                    <div className="text-[10px] font-mono text-stone-500 truncate" dir="ltr">
+                    <div className="text-[10px] font-mono text-stone-500 truncate max-w-[200px]" dir="ltr">
                       {themeConfig.logoUrl || '/logo-skill98.svg'}
                     </div>
                   </div>
                 </div>
-                <label className="px-3 py-2 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-950 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0">
-                  <UploadCloud className="w-3.5 h-3.5" />
-                  <span>{uploadingAsset === 'logo' ? 'آپلود...' : 'آپلود لوگو'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => void handleUploadBrandAsset('logo', e.target.files)}
-                  />
-                </label>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setBadgePickerSlot('logo')}
+                    className="px-2.5 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>گالری</span>
+                  </button>
+                  <label className="px-3 py-2 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-950 text-[11px] font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0">
+                    <UploadCloud className="w-3.5 h-3.5" />
+                    <span>{uploadingAsset === 'logo' ? 'آپلود...' : 'آپلود لوگو'}</span>
+                    <input
+                      type="file"
+                      accept="image/*,.svg"
+                      className="hidden"
+                      onChange={(e) => void handleUploadBrandAsset('logo', e.target.files)}
+                    />
+                  </label>
+                </div>
               </div>
 
-              {/* Direct Favicon Uploader */}
-              <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 flex items-center justify-between gap-3">
+              {/* Direct Favicon Uploader + Gallery Picker */}
+              <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-12 h-12 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 flex items-center justify-center overflow-hidden p-2 shrink-0">
                     <img
@@ -346,21 +413,31 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                     <div className="text-xs font-extrabold text-stone-900 dark:text-white">
                       آیکون تب مرورگر (Favicon)
                     </div>
-                    <div className="text-[10px] font-mono text-stone-500 truncate" dir="ltr">
+                    <div className="text-[10px] font-mono text-stone-500 truncate max-w-[200px]" dir="ltr">
                       {themeConfig.faviconUrl || '/logo-skill98-emblem.svg'}
                     </div>
                   </div>
                 </div>
-                <label className="px-3 py-2 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-950 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0">
-                  <UploadCloud className="w-3.5 h-3.5" />
-                  <span>{uploadingAsset === 'favicon' ? 'آپلود...' : 'آپلود فاوآیکون'}</span>
-                  <input
-                    type="file"
-                    accept="image/*,.ico"
-                    className="hidden"
-                    onChange={(e) => void handleUploadBrandAsset('favicon', e.target.files)}
-                  />
-                </label>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setBadgePickerSlot('favicon')}
+                    className="px-2.5 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5" />
+                    <span>گالری</span>
+                  </button>
+                  <label className="px-3 py-2 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-950 text-[11px] font-extrabold flex items-center gap-1.5 cursor-pointer shrink-0">
+                    <UploadCloud className="w-3.5 h-3.5" />
+                    <span>{uploadingAsset === 'favicon' ? 'آپلود...' : 'آپلود فاوآیکون'}</span>
+                    <input
+                      type="file"
+                      accept="image/*,.ico,.svg"
+                      className="hidden"
+                      onChange={(e) => void handleUploadBrandAsset('favicon', e.target.files)}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -445,15 +522,16 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                       </span>
                       <button
                         type="button"
-                        disabled={isActive}
+                        disabled={isActive || savingSection === 'theme'}
                         onClick={() => {
-                          onUpdateThemeConfig({
+                          const nextTheme: ThemeConfig = {
                             ...themeConfig,
                             activeThemeId: themeItem.id as RegisteredThemeId,
-                          });
-                          onNotice(
-                            'success',
-                            `پوسته فعال سایت به «${themeItem.nameFa}» تغییر یافت و ذخیره شد.`
+                          };
+                          void handleSaveThemeSection(
+                            'theme',
+                            nextTheme,
+                            `پوسته فعال سایت به «${themeItem.nameFa}» تغییر یافت و در دیتابیس ذخیره شد.`
                           );
                         }}
                         className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-colors cursor-pointer ${
@@ -485,6 +563,27 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                   </p>
                 </div>
               </div>
+              <button
+                type="button"
+                disabled={savingSection === 'badges'}
+                onClick={() =>
+                  void handleSaveThemeSection(
+                    'badges',
+                    themeConfig,
+                    'تنظیمات مجوزها و نمادهای اعتماد فوتر با موفقیت ذخیره شد.'
+                  )
+                }
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shrink-0"
+              >
+                {savingSection === 'badges' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {savingSection === 'badges' ? 'در حال ذخیره...' : 'ذخیره نمادهای اعتماد فوتر'}
+                </span>
+              </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 text-xs">
@@ -684,6 +783,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
 
           <AiSessionsThemePanel
             mode="super_theme"
+            hideBrandIdentityCard
             aiConfig={aiConfig}
             otpConfig={otpConfig}
             sessions={sessions}
@@ -693,6 +793,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
             onUpdateOtpConfig={onUpdateOtpConfig}
             onRevokeSession={onRevokeSession}
             onUpdateTheme={onUpdateThemeConfig}
+            onSaveThemeNow={onSaveThemeNow}
             onGoToSms={() => setActiveTab('sms')}
             onRefreshFromServer={onRefreshFromServer}
             onNotice={onNotice}
@@ -806,10 +907,16 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
         onSelect={(sel) => {
           if (badgePickerSlot === 'enamad') {
             updateTrustBadges({ enamadImageUrl: sel.url, enamadMode: 'image' });
-            onNotice('success', 'تصویر نماد اعتماد (اینماد) در فوتر به‌روزرسانی شد.');
+            onNotice('success', 'تصویر نماد اعتماد (اینماد) انتخاب شد؛ برای ثبت نهایی دکمه ذخیره را بزنید.');
           } else if (badgePickerSlot === 'license2') {
             updateTrustBadges({ secondBadgeImageUrl: sel.url, secondBadgeMode: 'image' });
-            onNotice('success', 'تصویر مجوز دوم در فوتر به‌روزرسانی شد.');
+            onNotice('success', 'تصویر مجوز دوم انتخاب شد؛ برای ثبت نهایی دکمه ذخیره را بزنید.');
+          } else if (badgePickerSlot === 'logo') {
+            onUpdateThemeConfig({ ...themeConfig, logoUrl: sel.url });
+            onNotice('success', 'لوگوی سایت از گالری انتخاب شد.');
+          } else if (badgePickerSlot === 'favicon') {
+            onUpdateThemeConfig({ ...themeConfig, faviconUrl: sel.url });
+            onNotice('success', 'فاوآیکون سایت از گالری انتخاب شد.');
           }
           setBadgePickerSlot(null);
         }}

@@ -10,6 +10,7 @@ import {
   Upload,
   Play,
   ShieldAlert,
+  Loader2,
 } from 'lucide-react';
 import type { BackupHistoryItem, BackupScheduleConfig } from '../../../core/types';
 import { apiFetch, apiJson } from '../../../core/apiClient';
@@ -79,6 +80,14 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
   const [restoreFilename, setRestoreFilename] = useState<string>('');
   const [isRestoring, setIsRestoring] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [lastCreatedBackup, setLastCreatedBackup] = useState<{
+    item: BackupHistoryItem;
+    dispatchReport: string[];
+    hasRemoteError: boolean;
+  } | null>(null);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [isTestingBale, setIsTestingBale] = useState(false);
+  const [isTestingSmtp, setIsTestingSmtp] = useState(false);
   const [isTestingDbHealth, setIsTestingDbHealth] = useState(false);
   const [dbHealthReport, setDbHealthReport] = useState<{
     ok: boolean;
@@ -227,9 +236,13 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
         dispatchReport?: string[];
       }>('/api/admin/backup/create', {
         method: 'POST',
-        body: JSON.stringify({ format, dispatchRemote }),
+        body: JSON.stringify({
+          format,
+          dispatchRemote,
+          scheduleConfig: dispatchRemote ? scheduleCfg : undefined,
+        }),
       });
-      if (!ok) throw new Error(data.error);
+      if (!ok) throw new Error(data.error || 'خطا در تهیه نسخه پشتیبان');
 
       if (data.content && data.item?.filename) {
         const blob = new Blob([data.content], {
@@ -246,14 +259,29 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
       }
 
       await loadDbAndBackups();
-      const extra =
-        Array.isArray(data.dispatchReport) && data.dispatchReport.length > 0
-          ? ` (${data.dispatchReport.join(' · ')})`
-          : '';
-      onNotice(
-        'success',
-        `نسخه پشتیبان ${data.item?.filename || ''} با موفقیت ایجاد شد.${extra}`
+      const reportList = Array.isArray(data.dispatchReport) ? data.dispatchReport : [];
+      const extra = reportList.length > 0 ? ` (${reportList.join(' · ')})` : '';
+      const hasRemoteError = reportList.some(
+        (line) => line.includes('خطای') || line.includes('هیچ مقصد')
       );
+      if (data.item) {
+        setLastCreatedBackup({
+          item: data.item,
+          dispatchReport: reportList,
+          hasRemoteError: Boolean(dispatchRemote && hasRemoteError),
+        });
+      }
+      if (dispatchRemote && hasRemoteError) {
+        onNotice(
+          'error',
+          `فایل بکاپ ${data.item?.filename || ''} روی سرور ساخته شد اما در ارسال خارجی خطا رخ داد:${extra}`
+        );
+      } else {
+        onNotice(
+          'success',
+          `نسخه پشتیبان ${data.item?.filename || ''} با موفقیت ایجاد شد.${extra}`
+        );
+      }
     } catch (err) {
       onNotice(
         'error',
@@ -330,22 +358,29 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
   };
 
   const handleSaveSchedule = async () => {
+    setIsSavingSchedule(true);
     try {
-      const { ok } = await apiJson('/api/admin/backup/settings', {
+      const { ok, data } = await apiJson<{ error?: string }>('/api/admin/backup/settings', {
         method: 'POST',
         body: JSON.stringify(scheduleCfg),
       });
-      if (!ok) throw new Error();
+      if (!ok) throw new Error(data.error || 'خطا در ذخیره تنظیمات');
       onNotice(
         'success',
         'تنظیمات بکاپ روزانه، فرمت خروجی، ایمیل SMTP و ربات بله در دیتابیس ذخیره شد.'
       );
-    } catch {
-      onNotice('error', 'خطا در ذخیره تنظیمات زمان‌بندی بکاپ');
+    } catch (err) {
+      onNotice(
+        'error',
+        err instanceof Error ? err.message : 'خطا در ذخیره تنظیمات زمان‌بندی بکاپ'
+      );
+    } finally {
+      setIsSavingSchedule(false);
     }
   };
 
   const handleTestBale = async () => {
+    setIsTestingBale(true);
     try {
       const { ok, data } = await apiJson<{ error?: string; message?: string }>(
         '/api/admin/backup/test-bale',
@@ -361,10 +396,13 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
       onNotice('success', data.message || 'پیام تست به ربات بله ارسال شد.');
     } catch (err) {
       onNotice('error', err instanceof Error ? err.message : 'خطا در ارسال به بله');
+    } finally {
+      setIsTestingBale(false);
     }
   };
 
   const handleTestSmtp = async () => {
+    setIsTestingSmtp(true);
     try {
       const { ok, data } = await apiJson<{ error?: string; message?: string }>(
         '/api/admin/backup/test-smtp',
@@ -380,6 +418,8 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
         'error',
         err instanceof Error ? err.message : 'خطا در تست ایمیل SMTP'
       );
+    } finally {
+      setIsTestingSmtp(false);
     }
   };
 
@@ -438,9 +478,9 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
               type="button"
               disabled={isBackingUp}
               onClick={() => void handleCreateBackup('sql', false)}
-              className="px-3.5 py-2.5 rounded-xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2.5 rounded-xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
             >
-              <Download className="w-4 h-4" />
+              {isBackingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>دانلود بکاپ SQL (PostgreSQL)</span>
             </button>
 
@@ -448,9 +488,9 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
               type="button"
               disabled={isBackingUp}
               onClick={() => void handleCreateBackup('json', false)}
-              className="px-3.5 py-2.5 rounded-xl border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2.5 rounded-xl border border-stone-300 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-extrabold flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
             >
-              <Download className="w-4 h-4 text-emerald-600" />
+              {isBackingUp ? <Loader2 className="w-4 h-4 animate-spin text-emerald-600" /> : <Download className="w-4 h-4 text-emerald-600" />}
               <span>دانلود بکاپ JSON</span>
             </button>
 
@@ -463,13 +503,48 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
                   true
                 )
               }
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
             >
-              <Server className="w-4 h-4" />
-              <span>بکاپ فوری + ارسال به ایمیل/بله</span>
+              {isBackingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : <Server className="w-4 h-4" />}
+              <span>{isBackingUp ? 'در حال بکاپ و ارسال...' : 'بکاپ فوری + ارسال به ایمیل/بله'}</span>
             </button>
           </div>
         </div>
+
+        {lastCreatedBackup && (
+          <div
+            className={`p-3.5 rounded-xl border text-xs flex flex-wrap items-center justify-between gap-3 ${
+              lastCreatedBackup.hasRemoteError
+                ? 'border-amber-500/40 bg-amber-50/70 dark:bg-amber-950/25 text-amber-900 dark:text-amber-200'
+                : 'border-emerald-500/35 bg-emerald-50/70 dark:bg-emerald-950/25 text-emerald-900 dark:text-emerald-200'
+            }`}
+          >
+            <div className="space-y-0.5 min-w-0">
+              <div className="font-extrabold flex flex-wrap items-center gap-2">
+                <span>آخرین نسخه پشتیبان ایجادشده:</span>
+                <span className="font-mono" dir="ltr">
+                  {lastCreatedBackup.item.filename}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-black/10 text-[11px] smooth-nums">
+                  {Math.max(1, Math.round(lastCreatedBackup.item.sizeBytes / 1024)).toLocaleString('fa-IR')} KB
+                </span>
+              </div>
+              {lastCreatedBackup.dispatchReport.length > 0 && (
+                <div className="text-[11px] opacity-90">
+                  {lastCreatedBackup.dispatchReport.join(' · ')}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleDownloadHistoryItem(lastCreatedBackup.item)}
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>دانلود مستقیم فایل پشتیبان</span>
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-stone-200 dark:border-stone-800">
           <div className="flex flex-wrap items-center gap-2">
@@ -560,10 +635,12 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
 
               <button
                 type="button"
-                onClick={handleSaveSchedule}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold cursor-pointer"
+                disabled={isSavingSchedule}
+                onClick={() => void handleSaveSchedule()}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
               >
-                ذخیره تنظیمات پشتیبان‌گیری
+                {isSavingSchedule && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{isSavingSchedule ? 'در حال ذخیره...' : 'ذخیره تنظیمات پشتیبان‌گیری'}</span>
               </button>
             </div>
 
@@ -654,10 +731,12 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
                 </label>
                 <button
                   type="button"
-                  onClick={handleTestSmtp}
-                  className="px-3 py-1.5 rounded-lg border border-blue-400 text-[#1D4ED8] dark:text-sky-300 text-xs font-bold cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                  disabled={isTestingSmtp}
+                  onClick={() => void handleTestSmtp()}
+                  className="px-3 py-1.5 rounded-lg border border-blue-400 text-[#1D4ED8] dark:text-sky-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 disabled:opacity-60"
                 >
-                  تست ارسال ایمیل
+                  {isTestingSmtp && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isTestingSmtp ? 'در حال ارسال...' : 'تست ارسال ایمیل'}</span>
                 </button>
               </div>
 
@@ -742,10 +821,12 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
                 </label>
                 <button
                   type="button"
-                  onClick={handleTestBale}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer"
+                  disabled={isTestingBale}
+                  onClick={() => void handleTestBale()}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                 >
-                  تست ارسال به بله
+                  {isTestingBale && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isTestingBale ? 'در حال ارسال به بله...' : 'تست ارسال به بله'}</span>
                 </button>
               </div>
 

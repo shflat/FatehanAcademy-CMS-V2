@@ -132,6 +132,7 @@ export async function getAllSmsTriggers(): Promise<SmsTriggerRule[]> {
     sendMode: r.send_mode === 'pattern_code' ? 'pattern_code' : 'custom_text',
     patternCode: String(r.pattern_code || ''),
     messageTemplate: String(r.message_template || ''),
+    providerOverride: (String(r.provider_override || 'default') || 'default') as SmsTriggerRule['providerOverride'],
     enabled: Boolean(r.enabled),
     priorityOrder: Number(r.priority_order || 1),
   }));
@@ -142,8 +143,8 @@ export async function saveAllSmsTriggers(rules: SmsTriggerRule[]): Promise<void>
   for (let i = 0; i < rules.length; i++) {
     const trg = rules[i];
     await dbExec(
-      `INSERT INTO sms_triggers (id, title, event_key, section_label, send_mode, pattern_code, message_template, enabled, priority_order)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      `INSERT INTO sms_triggers (id, title, event_key, section_label, send_mode, pattern_code, message_template, provider_override, enabled, priority_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [
         trg.id,
         trg.title,
@@ -152,6 +153,7 @@ export async function saveAllSmsTriggers(rules: SmsTriggerRule[]): Promise<void>
         trg.sendMode,
         trg.patternCode || '',
         trg.messageTemplate,
+        trg.providerOverride || 'default',
         trg.enabled ? 1 : 0,
         i + 1,
       ]

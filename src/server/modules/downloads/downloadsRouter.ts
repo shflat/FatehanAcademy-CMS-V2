@@ -85,7 +85,8 @@ async function loadAllProducts(): Promise<SkillProduct[]> {
 async function resolveUserEntitledProductIds(
   phone: string,
   role: string,
-  allProducts: SkillProduct[]
+  allProducts: SkillProduct[],
+  includeImplicitFreeAndAdmin = false
 ): Promise<{
   entitledIds: Set<string>;
   purchasedOrderMap: Map<string, { orderId: string; createdAtLabel: string; status: string }>;
@@ -96,10 +97,12 @@ async function resolveUserEntitledProductIds(
     { orderId: string; createdAtLabel: string; status: string }
   >();
 
-  // 1. Free products & Admin full access
-  for (const prod of allProducts) {
-    if (prod.price === 0 || role === 'admin' || role === 'super_admin') {
-      entitledIds.add(prod.id);
+  // 1. Implicit free catalog items & Admin bypass ONLY for direct download token verification
+  if (includeImplicitFreeAndAdmin) {
+    for (const prod of allProducts) {
+      if (prod.price === 0 || role === 'admin' || role === 'super_admin') {
+        entitledIds.add(prod.id);
+      }
     }
   }
 
@@ -247,7 +250,8 @@ export function createProtectedDownloadsRouter(): express.Router {
       const { entitledIds, purchasedOrderMap } = await resolveUserEntitledProductIds(
         caller.phone,
         caller.role,
-        allProducts
+        allProducts,
+        false
       );
 
       const items = allProducts
@@ -310,7 +314,8 @@ export function createProtectedDownloadsRouter(): express.Router {
       const { entitledIds } = await resolveUserEntitledProductIds(
         caller.phone,
         caller.role,
-        allProducts
+        allProducts,
+        true
       );
       if (!entitledIds.has(product.id)) {
         res.status(403).json({

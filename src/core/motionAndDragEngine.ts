@@ -69,6 +69,46 @@ function hasAnyOpenBlockingModal(): boolean {
   return false;
 }
 
+function isVerticallyScrollableElement(el: HTMLElement): boolean {
+  if (el === document.body || el === document.documentElement) return false;
+  const style = window.getComputedStyle(el);
+  const oy = style.overflowY;
+  if (oy !== 'auto' && oy !== 'scroll' && oy !== 'overlay') return false;
+  return el.scrollHeight > el.clientHeight + 1;
+}
+
+function findClosestOpenBlockingModal(startNode: EventTarget | null): HTMLElement | null {
+  let cur: HTMLElement | null =
+    startNode instanceof HTMLElement
+      ? startNode
+      : startNode instanceof Node
+      ? startNode.parentElement
+      : null;
+  while (cur && cur !== document.body && cur !== document.documentElement) {
+    if (isBlockingModalNode(cur)) return cur;
+    cur = cur.parentElement;
+  }
+  return null;
+}
+
+function findScrollableAncestorInside(
+  startNode: EventTarget | null,
+  boundaryEl: HTMLElement | null
+): HTMLElement | null {
+  let cur: HTMLElement | null =
+    startNode instanceof HTMLElement
+      ? startNode
+      : startNode instanceof Node
+      ? startNode.parentElement
+      : null;
+  while (cur && cur !== document.body && cur !== document.documentElement) {
+    if (isVerticallyScrollableElement(cur)) return cur;
+    if (cur === boundaryEl) break;
+    cur = cur.parentElement;
+  }
+  return null;
+}
+
 /**
  * 1. Lenis + GSAP Ticker Smooth Scroll Initializer
  */
@@ -83,12 +123,13 @@ export function initSmoothScroll(): {
     prevent: (node) => {
       if (isGlobalModalScrollLocked) return true;
       if (!node || typeof window === 'undefined') return false;
-      if (node.closest('[data-lenis-prevent], [role="dialog"], [aria-modal="true"]')) {
+      if (node.closest('[data-lenis-prevent], [data-lenis-prevent-wheel], [role="dialog"], [aria-modal="true"]')) {
         return true;
       }
       let cur: HTMLElement | null = node;
       while (cur && cur !== document.body && cur !== document.documentElement) {
         if (isBlockingModalNode(cur)) return true;
+        if (isVerticallyScrollableElement(cur)) return true;
         cur = cur.parentElement;
       }
       return false;
@@ -129,7 +170,8 @@ export function resumeSmoothScroll(): void {
 
 /**
  * Automatically locks page/Lenis background scroll whenever any modal/dialog overlay is open
- * and restores it cleanly when all modals close.
+ * and strictly prevents wheel/touch scroll leaking to the underlying page while allowing
+ * smooth native scrolling inside the active modal's scrollable containers.
  */
 export function installGlobalModalScrollLock(): () => void {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -139,7 +181,59 @@ export function installGlobalModalScrollLock(): () => void {
   let prevBodyOverflow = '';
   let prevHtmlOverflow = '';
   let prevHtmlOverscroll = '';
+  let prevBodyOverscroll = '';
   let rafId: number | null = null;
+  let lastTouchY: number | null = null;
+
+  const onWindowWheel = (e: WheelEvent) => {
+    if (!isGlobalModalScrollLocked) return;
+    const modalRoot = findClosestOpenBlockingModal(e.target);
+    if (!modalRoot) {
+      e.preventDefault();
+      return;
+    }
+    const scrollable = findScrollableAncestorInside(e.target, modalRoot);
+    if (!scrollable) {
+      e.preventDefault();
+      return;
+    }
+    const atTop = scrollable.scrollTop <= 0;
+    const atBottom =
+      scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
+    if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+      e.preventDefault();
+    }
+  };
+
+  const onWindowTouchStart = (e: TouchEvent) => {
+    if (!isGlobalModalScrollLocked) return;
+    lastTouchY = e.touches[0]?.clientY ?? null;
+  };
+
+  const onWindowTouchMove = (e: TouchEvent) => {
+    if (!isGlobalModalScrollLocked) return;
+    const modalRoot = findClosestOpenBlockingModal(e.target);
+    if (!modalRoot) {
+      e.preventDefault();
+      return;
+    }
+    const scrollable = findScrollableAncestorInside(e.target, modalRoot);
+    if (!scrollable) {
+      e.preventDefault();
+      return;
+    }
+    const curY = e.touches[0]?.clientY ?? null;
+    if (curY !== null && lastTouchY !== null) {
+      const deltaY = lastTouchY - curY; // positive = scrolling down
+      const atTop = scrollable.scrollTop <= 0;
+      const atBottom =
+        scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
+      if ((deltaY < 0 && atTop) || (deltaY > 0 && atBottom)) {
+        e.preventDefault();
+      }
+    }
+    lastTouchY = curY;
+  };
 
   const applyLockState = () => {
     rafId = null;
@@ -151,15 +245,18 @@ export function installGlobalModalScrollLock(): () => void {
       prevBodyOverflow = document.body.style.overflow;
       prevHtmlOverflow = document.documentElement.style.overflow;
       prevHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+      prevBodyOverscroll = document.body.style.overscrollBehavior;
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
       document.documentElement.style.overscrollBehavior = 'none';
+      document.body.style.overscrollBehavior = 'none';
       activeLenisInstance?.stop();
     } else {
       isGlobalModalScrollLocked = false;
       document.body.style.overflow = prevBodyOverflow;
       document.documentElement.style.overflow = prevHtmlOverflow;
       document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+      document.body.style.overscrollBehavior = prevBodyOverscroll;
       activeLenisInstance?.start();
     }
   };
@@ -171,6 +268,10 @@ export function installGlobalModalScrollLock(): () => void {
 
   applyLockState();
 
+  window.addEventListener('wheel', onWindowWheel, { passive: false, capture: true });
+  window.addEventListener('touchstart', onWindowTouchStart, { passive: true, capture: true });
+  window.addEventListener('touchmove', onWindowTouchMove, { passive: false, capture: true });
+
   const observer = new MutationObserver(scheduleSync);
   observer.observe(document.body, {
     childList: true,
@@ -181,6 +282,9 @@ export function installGlobalModalScrollLock(): () => void {
 
   return () => {
     observer.disconnect();
+    window.removeEventListener('wheel', onWindowWheel, { capture: true });
+    window.removeEventListener('touchstart', onWindowTouchStart, { capture: true });
+    window.removeEventListener('touchmove', onWindowTouchMove, { capture: true });
     if (rafId !== null) {
       window.cancelAnimationFrame(rafId);
     }
@@ -189,6 +293,7 @@ export function installGlobalModalScrollLock(): () => void {
       document.body.style.overflow = prevBodyOverflow;
       document.documentElement.style.overflow = prevHtmlOverflow;
       document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+      document.body.style.overscrollBehavior = prevBodyOverscroll;
       activeLenisInstance?.start();
     }
   };

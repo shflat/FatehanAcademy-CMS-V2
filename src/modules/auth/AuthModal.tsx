@@ -118,7 +118,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-3.5">
+        <form onSubmit={onSubmit} autoComplete="off" className="space-y-3.5">
           {authStep === 'phone' && (
             <div className="space-y-1.5">
               <label className="block text-xs font-extrabold text-stone-700 dark:text-stone-300">
@@ -126,6 +126,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </label>
               <input
                 type="tel"
+                name="skill98_auth_mobile_input"
+                autoComplete="off"
                 dir="ltr"
                 required
                 autoFocus
@@ -165,6 +167,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </label>
                 <input
                   type="text"
+                  name="skill98_auth_fullname_input"
+                  autoComplete="off"
                   required
                   autoFocus
                   value={fullNameInput}
@@ -198,6 +202,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
               <input
                 type={authStep === 'master_code' ? 'password' : 'text'}
+                name="skill98_auth_code_input"
+                autoComplete="one-time-code"
                 inputMode={authStep === 'master_code' ? 'text' : 'numeric'}
                 dir="ltr"
                 required

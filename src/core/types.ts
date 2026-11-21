@@ -232,6 +232,7 @@ export interface ThemeConfig {
   footerQuoteTitle?: string;
   footerQuoteSubtitle?: string;
   footerDescription?: string;
+  siteDescription?: string;
   footerTrustBadges?: FooterTrustBadgesConfig;
   topAnnouncementText?: string;
   showTopAnnouncement?: boolean;
@@ -407,7 +408,11 @@ export type SmsProviderId =
   | 'smsir'
   | 'ghasedak'
   | 'magfa'
-  | 'farapayamak';
+  | 'farapayamak'
+  | 'bale'
+  | 'eitaa';
+
+export type BaleSendMode = 'auto' | 'safir_otp' | 'bot_api';
 
 export interface SmsProviderCredential {
   provider: SmsProviderId;
@@ -417,10 +422,20 @@ export interface SmsProviderCredential {
   senderLine: string;
   otpPatternCode: string;
   apiMethod?: 'sendbybasenumber2' | 'sendbybasenumber' | 'rest_baseservicenumber';
+  domain?: string;
+  patternVarName?: string;
+  baleMode?: BaleSendMode;
+  baleClientId?: string;
+  baleClientSecret?: string;
+  baleBotToken?: string;
+  baleChatId?: string;
+  eitaaToken?: string;
+  eitaaChatId?: string;
   sandboxMode: boolean;
 }
 
 export interface SmsGatewaySettings {
+  enabled?: boolean;
   provider: SmsProviderId;
   apiMethod?: 'sendbybasenumber2' | 'sendbybasenumber' | 'rest_baseservicenumber';
   username: string;
@@ -429,6 +444,7 @@ export interface SmsGatewaySettings {
   sandboxMode: boolean;
   otpPatternCode: string;
   providersMap?: Partial<Record<SmsProviderId, SmsProviderCredential>>;
+  eventRouting?: Partial<Record<SmsTriggerEventKey, SmsProviderId | 'default'>>;
 }
 
 export interface SiteModuleRegistryItem {
@@ -516,6 +532,7 @@ export interface SmsTriggerRule {
   sendMode: 'custom_text' | 'pattern_code';
   patternCode: string;
   messageTemplate: string;
+  providerOverride?: SmsProviderId | 'default';
   enabled: boolean;
   priorityOrder: number;
 }

@@ -28,7 +28,7 @@ export interface AiHubRuntimeSettings {
 }
 
 export const DEFAULT_AI_HUB_SETTINGS: AiHubRuntimeSettings = {
-  agentMode: 'light',
+  agentMode: 'autonomous_24_7',
   liveChatAutoReply: true,
   autoProfileCompletion: true,
   botBridgeEnabled: false,
@@ -119,12 +119,12 @@ export async function ensureAiHubSchema(): Promise<void> {
   }[] = [
     { slot: 'text_seo', provider: 'gemini', baseUrl: '', model: 'gemini-4-hydrogen' },
     { slot: 'image_visual', provider: 'gemini', baseUrl: '', model: 'gemini-3.1-flash-lite-image' },
-    { slot: 'agent_core', provider: 'gemini', baseUrl: '', model: 'gemini-4-neon' },
+    { slot: 'agent_core', provider: 'gemini', baseUrl: '', model: 'gemini-4-hydrogen' },
   ];
 
   for (const s of defaultSlots) {
-    const existing = await dbQuery<{ slot_key: string }>(
-      'SELECT slot_key FROM mod_ai_provider_configs WHERE slot_key = $1 LIMIT 1',
+    const existing = await dbQuery<{ slot_key: string; provider_kind: string; model_name: string }>(
+      'SELECT slot_key, provider_kind, model_name FROM mod_ai_provider_configs WHERE slot_key = $1 LIMIT 1',
       [s.slot]
     );
     if (existing.length === 0) {
@@ -133,6 +133,14 @@ export async function ensureAiHubSchema(): Promise<void> {
          (slot_key, provider_kind, base_url, model_name, api_key_enc, enabled, extra_json, updated_by, updated_at)
          VALUES ($1, $2, $3, $4, '', 1, '{}', 'system', $5)`,
         [s.slot, s.provider, s.baseUrl, s.model, nowIso]
+      );
+    } else if (
+      existing[0].provider_kind === 'gemini' &&
+      /^(gemini-1\.5|gemini-2\.0|gemini-pro\b)/i.test(String(existing[0].model_name || ''))
+    ) {
+      await dbExec(
+        'UPDATE mod_ai_provider_configs SET model_name = $1, updated_at = $2 WHERE slot_key = $3',
+        [s.model, nowIso, s.slot]
       );
     }
   }

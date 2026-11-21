@@ -114,16 +114,52 @@ export function createAdminGatewaysSmsRouter(): express.Router {
     requirePermission('canManageGateways'),
     async (req, res) => {
       try {
-        const cleanPhone = normalizeIranPhone(String(req.body?.phone || ''));
-        if (!/^09\d{9}$/.test(cleanPhone)) {
-          res.status(400).json({ error: 'شماره موبایل گیرنده معتبر نیست.' });
+        const providerOverride = req.body?.providerOverride
+          ? (String(req.body.providerOverride) as SmsGatewaySettings['provider'])
+          : undefined;
+        const baleChatIdOverride = req.body?.baleChatId
+          ? String(req.body.baleChatId).trim()
+          : undefined;
+        const rawPhone = String(req.body?.phone || '').trim();
+        const cleanPhone = rawPhone ? normalizeIranPhone(rawPhone) : '';
+
+        const isBaleTest = providerOverride === 'bale';
+        const isEitaaTest = providerOverride === 'eitaa';
+        if (!isBaleTest && !isEitaaTest && !/^09\d{9}$/.test(cleanPhone)) {
+          res.status(400).json({ error: 'شماره موبایل گیرنده معتبر نیست (مثلاً 09123456789).' });
           return;
         }
+        if (isBaleTest && !cleanPhone && !baleChatIdOverride && !req.body?.credentialsOverride?.baleChatId) {
+          res.status(400).json({
+            error: 'برای تست پیام‌رسان بله، شماره موبایل (برای سفیر OTP) یا شناسه چت (chat_id برای ربات) را وارد کنید.',
+          });
+          return;
+        }
+        if (isEitaaTest && !baleChatIdOverride && !req.body?.credentialsOverride?.eitaaChatId) {
+          res.status(400).json({
+            error: 'برای تست پیام‌رسان ایتا (ایتایار)، وارد کردن شناسه کانال یا گروه (chat_id) الزامی است.',
+          });
+          return;
+        }
+        if (cleanPhone && !/^09\d{9}$/.test(cleanPhone)) {
+          res.status(400).json({ error: 'فرمت شماره موبایل واردشده معتبر نیست.' });
+          return;
+        }
+
         const eventKey = req.body?.eventKey || undefined;
         const customMessage = req.body?.customMessage
           ? String(req.body.customMessage)
           : undefined;
         const patternCode = req.body?.patternCode ? String(req.body.patternCode) : undefined;
+        const testOtpCode = req.body?.testCode ? String(req.body.testCode).trim() : '54321';
+        const credentialsOverride =
+          req.body?.credentialsOverride && typeof req.body.credentialsOverride === 'object'
+            ? req.body.credentialsOverride
+            : undefined;
+        const baleTestChannel =
+          req.body?.baleTestChannel === 'bot_api' || req.body?.baleTestChannel === 'safir_otp'
+            ? (req.body.baleTestChannel as 'bot_api' | 'safir_otp')
+            : undefined;
 
         const result = await dispatchEventSms({
           eventKey,
@@ -135,16 +171,20 @@ export function createAdminGatewaysSmsRouter(): express.Router {
             ref_id: 'REF-882910',
             skill_title: 'اسکیل تست سامانه',
             status: 'تکمیل شده',
-            code: '54321',
+            code: testOtpCode,
           },
           customMessageOverride: customMessage,
           patternCodeOverride: patternCode,
+          providerOverride,
+          credentialsOverride,
+          baleChatIdOverride,
+          baleTestChannel,
         });
 
         if (!result.dispatched) {
           res.status(502).json({
             ok: false,
-            error: result.errorMessage || 'خطا در ارسال پیامک از طریق وب‌سرویس',
+            error: result.errorMessage || 'خطا در ارسال پیام از طریق وب‌سرویس',
             ...result,
           });
           return;
@@ -153,7 +193,7 @@ export function createAdminGatewaysSmsRouter(): express.Router {
         res.json({ ok: true, ...result });
       } catch (error) {
         res.status(500).json({
-          error: error instanceof Error ? error.message : 'خطا در ارسال پیامک تست',
+          error: error instanceof Error ? error.message : 'خطا در ارسال پیام تست',
         });
       }
     }

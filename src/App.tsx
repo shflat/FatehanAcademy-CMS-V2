@@ -51,9 +51,11 @@ import type {
 import {
   apiFetch,
   apiJson,
+  emitGlobalToast,
   readStoredSession,
   writeStoredSession,
 } from './core/apiClient';
+import { GlobalActivityOverlay } from './components/GlobalActivityOverlay';
 import {
   initSmoothScroll,
   installGlobalModalScrollLock,
@@ -225,10 +227,7 @@ export default function App() {
     DEFAULT_OTP_SECURITY_CONFIG
   );
 
-  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([
-    'skill-gsap-motion-mastery',
-    'skill-lenis-barba-transitions',
-  ]);
+  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
 
   // Storefront filters & Modals
@@ -257,11 +256,18 @@ export default function App() {
   const [checkoutSuccessBanner, setCheckoutSuccessBanner] = useState<
     string | null
   >(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3800);
+  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'success') => {
+    emitGlobalToast(type, msg);
+  };
+
+  const openFreshAuthModal = () => {
+    setPhoneInput('');
+    setFullNameInput('');
+    setOtpInput('');
+    setAuthStep('phone');
+    setSimulatedSmsCodeBanner(null);
+    setIsAuthModalOpen(true);
   };
 
   // Sync live <meta name="robots"> from CMS SEO Crawl Visibility setting (default OFF -> noindex, nofollow)
@@ -476,7 +482,10 @@ export default function App() {
     const timer = setTimeout(() => {
       void apiFetch('/api/cms/state/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Silent-Activity': '1',
+        },
         signal: controller.signal,
         body: JSON.stringify({
           products: localProducts,
@@ -512,6 +521,48 @@ export default function App() {
     cmsRoles,
     cmsSessions,
   ]);
+
+  const handleSaveThemeNow = async (
+    nextThemeOverride?: ThemeConfig,
+    successText?: string
+  ) => {
+    const effectiveTheme = nextThemeOverride || themeConfig;
+    if (nextThemeOverride) {
+      skipNextCmsSyncRef.current = true;
+      setThemeConfig(nextThemeOverride);
+    }
+    try {
+      const res = await apiFetch('/api/cms/state/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          products: localProducts,
+          articles,
+          coupons,
+          mediaItems,
+          gateways,
+          themeConfig: effectiveTheme,
+          aiConfig,
+          otpConfig,
+          roles: cmsRoles,
+          sessions: cmsSessions,
+        }),
+      });
+      if (!res.ok) {
+        const errData = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(errData.error || 'خطا در ذخیره تنظیمات در سرور');
+      }
+      emitGlobalToast(
+        'success',
+        successText || 'تنظیمات عمومی، لوگو و پوسته با موفقیت ذخیره و اعمال شد.'
+      );
+    } catch (err) {
+      emitGlobalToast(
+        'error',
+        err instanceof Error ? err.message : 'خطا در ذخیره تنظیمات سایت'
+      );
+    }
+  };
 
   // 2F. Sync active session & per-phone claimed skills/orders in localStorage
   useEffect(() => {
@@ -1224,7 +1275,7 @@ export default function App() {
       } else {
         if (userRole === 'guest') {
           setPendingActionAfterAuth({ type: 'claim_skill', skill: item });
-          setIsAuthModalOpen(true);
+          openFreshAuthModal();
           showToast(
             'برای ثبت دائمی این فایل در سوابق شما، لطفاً شماره همراه خود را وارد و تایید نمایید.'
           );
@@ -1638,7 +1689,16 @@ export default function App() {
     setLoggedInRoleId('role_customer');
     setLoggedInName(null);
     setLoggedInPhone('');
+    setPhoneInput('');
+    setFullNameInput('');
+    setOtpInput('');
+    setAuthStep('phone');
     setSimulatedSmsCodeBanner(null);
+    setPendingActionAfterAuth(null);
+    setClaimedSkillIds([]);
+    setBookmarkedIds([]);
+    setOrders([]);
+    setDashboardSelectedSkillId(undefined);
     if (activeTab === 'dashboard' || activeTab === 'admin') {
       navigateWithTransition('store');
     }
@@ -1727,7 +1787,7 @@ export default function App() {
 
     if (userRole === 'guest') {
       setPendingActionAfterAuth({ type: 'checkout' });
-      setIsAuthModalOpen(true);
+      openFreshAuthModal();
       showToast(
         'برای ثبت سفارش و ماندگاری سوابق خرید، لطفاً ابتدا با شماره موبایل و کد تایید وارد شوید.'
       );
@@ -2195,7 +2255,7 @@ export default function App() {
             navigateWithTransition(canAccessAdmin ? 'admin' : 'dashboard');
             return;
           }
-          setIsAuthModalOpen(true);
+          openFreshAuthModal();
         }}
         onLogout={() => void handleLogout()}
         onOpenCart={() => setIsCartOpen(true)}
@@ -2210,13 +2270,8 @@ export default function App() {
         onResetDraggedElements={handleResetDraggedElements}
       />
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-20 left-6 z-50 max-w-md px-4 py-3 rounded-xl border border-stone-700 bg-stone-900 text-white shadow-xl text-xs flex items-center gap-2.5">
-          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span className="smooth-nums">{toastMessage}</span>
-        </div>
-      )}
+      {/* Global Activity Spinner & Transient Floating Toast Overlay */}
+      <GlobalActivityOverlay />
 
       {/* Checkout Confirmation Banner */}
       {checkoutSuccessBanner && (
@@ -2342,7 +2397,7 @@ export default function App() {
             accentButtonClass={accentStyles.button}
             accentTextClass={accentStyles.text}
             onNavigateTab={navigateWithTransition}
-            onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            onOpenAuthModal={openFreshAuthModal}
             onCancelOrder={(orderId) =>
               handleUpdateOrderStatus(orderId, 'cancelled')
             }
@@ -2391,6 +2446,7 @@ export default function App() {
             onSeedCatalog={handleSeedCatalog}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onUpdateTheme={setThemeConfig}
+            onSaveThemeNow={handleSaveThemeNow}
             onOpenDynamicPage={handleOpenDynamicPage}
             onDownloadStarterZip={handleDownloadStarterZip}
           />
@@ -2490,6 +2546,8 @@ export default function App() {
         onClose={() => {
           setIsAuthModalOpen(false);
           setAuthStep('phone');
+          setPhoneInput('');
+          setFullNameInput('');
           setOtpInput('');
           setSimulatedSmsCodeBanner(null);
           setPendingActionAfterAuth(null);
@@ -2547,7 +2605,7 @@ export default function App() {
             navigateWithTransition(canAccessAdmin ? 'admin' : 'dashboard');
             return;
           }
-          setIsAuthModalOpen(true);
+          openFreshAuthModal();
         }}
         onOpenCart={() => setIsCartOpen(true)}
       />

@@ -100,10 +100,26 @@ export function createAdminDbBackupRouter(): express.Router {
       try {
         const format = req.body?.format === 'sql' ? 'sql' : 'json';
         const dispatchRemote = Boolean(req.body?.dispatchRemote);
+        const scheduleOverride =
+          req.body?.scheduleConfig && typeof req.body.scheduleConfig === 'object'
+            ? (req.body.scheduleConfig as Partial<BackupScheduleConfig>)
+            : undefined;
+        if (scheduleOverride) {
+          const existingCfg = await getSetting<BackupScheduleConfig>(
+            'backup_schedule_config',
+            DEFAULT_BACKUP_SCHEDULE_CONFIG
+          );
+          await setSetting('backup_schedule_config', {
+            ...DEFAULT_BACKUP_SCHEDULE_CONFIG,
+            ...existingCfg,
+            ...scheduleOverride,
+          });
+        }
         const snapshot = await createBackupSnapshot({
           format,
           triggerType: 'manual',
           dispatchRemote,
+          scheduleOverride,
         });
         res.json({
           ok: true,
@@ -214,7 +230,7 @@ export function createAdminDbBackupRouter(): express.Router {
           category: 'backup',
           title: 'تست موفق ارسال پیام به ربات بله',
           detail: `پیام تست به شناسه چت ${baleChatId} ارسال شد.`,
-          sqlOrEndpoint: 'POST https://tapi.bale.bot/bot***/sendMessage',
+          sqlOrEndpoint: 'POST https://tapi.bale.ai/bot***/sendMessage',
           payload: resp,
         });
         res.json({ ok: true, message: 'پیام تست با موفقیت به ربات بله ارسال شد.' });

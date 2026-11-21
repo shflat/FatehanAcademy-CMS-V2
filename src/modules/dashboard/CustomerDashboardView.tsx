@@ -114,14 +114,16 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
   onOpenFullArticle,
   onRevokeSession,
 }) => {
-  const [subTab, setSubTab] = useState<DashboardSubTab>('my_skills');
+  const [subTab, setSubTab] = useState<DashboardSubTab>(() =>
+    initialSelectedSkillId ? 'my_skills' : 'my_downloads'
+  );
   const [activeReaderSkill, setActiveReaderSkill] = useState<SkillProduct | null>(() =>
     initialSelectedSkillId
       ? products.find((p) => p.id === initialSelectedSkillId) || null
       : null
   );
   const [skillSearchQuery, setSkillSearchQuery] = useState('');
-  const [skillFilter, setSkillFilter] = useState<'unlocked' | 'all' | 'Claude' | 'ChatGPT' | 'Codex'>('all');
+  const [skillFilter, setSkillFilter] = useState<'all' | 'Claude' | 'ChatGPT' | 'Codex'>('all');
   const [copiedSkillId, setCopiedSkillId] = useState<string | null>(null);
   const [downloadedNotice, setDownloadedNotice] = useState<string | null>(null);
   const [customNotesBySkill, setCustomNotesBySkill] = useState<Record<string, string>>({});
@@ -155,31 +157,36 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
       })
       .catch(() => {});
 
-    if (userUid) {
-      void apiJson<{ ok?: boolean; activeSubscription?: UserSubscriptionRecord | null }>(
-        '/api/v1/modules/subscriptions/my-status'
-      )
-        .then(({ ok, data }) => {
-          if (ok) setActiveSubscription(data.activeSubscription || null);
-        })
-        .catch(() => {});
-
-      void apiJson<{ ok?: boolean; items?: SmartCrmRecommendation[] }>(
-        '/api/v1/modules/smart-crm/my-recommendations'
-      )
-        .then(({ ok, data }) => {
-          if (ok && Array.isArray(data.items)) setCrmRecs(data.items);
-        })
-        .catch(() => {});
-
-      void apiJson<{ ok?: boolean; items?: ProtectedLibraryProduct[] }>(
-        '/api/v1/downloads/my-library'
-      )
-        .then(({ ok, data }) => {
-          if (ok && Array.isArray(data.items)) setProtectedLibrary(data.items);
-        })
-        .catch(() => {});
+    if (!userUid) {
+      setActiveSubscription(null);
+      setCrmRecs([]);
+      setProtectedLibrary([]);
+      return;
     }
+
+    void apiJson<{ ok?: boolean; activeSubscription?: UserSubscriptionRecord | null }>(
+      '/api/v1/modules/subscriptions/my-status'
+    )
+      .then(({ ok, data }) => {
+        if (ok) setActiveSubscription(data.activeSubscription || null);
+      })
+      .catch(() => {});
+
+    void apiJson<{ ok?: boolean; items?: SmartCrmRecommendation[] }>(
+      '/api/v1/modules/smart-crm/my-recommendations'
+    )
+      .then(({ ok, data }) => {
+        if (ok && Array.isArray(data.items)) setCrmRecs(data.items);
+      })
+      .catch(() => {});
+
+    void apiJson<{ ok?: boolean; items?: ProtectedLibraryProduct[] }>(
+      '/api/v1/downloads/my-library'
+    )
+      .then(({ ok, data }) => {
+        if (ok && Array.isArray(data.items)) setProtectedLibrary(data.items);
+      })
+      .catch(() => {});
   }, [userUid, orders.length]);
 
   const totalProtectedDownloadFiles = useMemo(
@@ -298,22 +305,54 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
     ];
   }, [sessions, userPhone, userDisplayName]);
 
-  const isSkillUnlocked = (skill: SkillProduct | null): boolean => {
-    if (!skill) return false;
-    if (skill.price === 0) return true;
-    if (claimedSkillIds.includes(skill.id)) return true;
-    if (userRole === 'admin' || userRole === 'super_admin') return true;
+  const completedOrders = useMemo(
+    () => userOrders.filter((o) => o.status === 'paid' || o.status === 'completed'),
+    [userOrders]
+  );
+
+  // Strictly owned skills: explicitly claimed, paid/completed order, server protectedLibrary, or active VIP subscription
+  const ownedSkillIds = useMemo(() => {
+    const ids = new Set<string>(claimedSkillIds);
+    for (const libItem of protectedLibrary) {
+      ids.add(libItem.productId);
+    }
+    for (const ord of completedOrders) {
+      const summary = String(ord.itemsSummary || '');
+      for (const prod of products) {
+        if (
+          summary.includes(prod.title) ||
+          summary.includes(prod.id) ||
+          summary.includes(prod.slug)
+        ) {
+          ids.add(prod.id);
+        }
+      }
+    }
     if (activeSubscription && activeSubscription.status === 'active') {
       const cats = activeSubscription.coveredCategories || ['all'];
-      if (cats.includes('all') || cats.includes(skill.category)) return true;
+      for (const prod of products) {
+        if (cats.includes('all') || cats.includes(prod.category)) {
+          ids.add(prod.id);
+        }
+      }
     }
+    return ids;
+  }, [claimedSkillIds, protectedLibrary, completedOrders, products, activeSubscription]);
+
+  const isSkillUnlocked = (skill: SkillProduct | null): boolean => {
+    if (!skill) return false;
+    if (ownedSkillIds.has(skill.id)) return true;
+    if (skill.price === 0) return true;
+    if (userRole === 'admin' || userRole === 'super_admin') return true;
     return false;
   };
 
-  const unlockedCount = useMemo(
-    () => products.filter((p) => isSkillUnlocked(p)).length,
-    [products, claimedSkillIds, userRole, activeSubscription]
+  const ownedSkills = useMemo(
+    () => products.filter((p) => ownedSkillIds.has(p.id)),
+    [products, ownedSkillIds]
   );
+
+  const unlockedCount = ownedSkills.length;
 
   const bookmarkedProducts = useMemo(
     () => products.filter((p) => bookmarkedIds.includes(p.id)),
@@ -332,8 +371,7 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
   );
 
   const filteredSkills = useMemo(() => {
-    return products.filter((item) => {
-      if (skillFilter === 'unlocked' && !isSkillUnlocked(item)) return false;
+    return ownedSkills.filter((item) => {
       if (
         (skillFilter === 'Claude' || skillFilter === 'ChatGPT' || skillFilter === 'Codex') &&
         item.category !== skillFilter
@@ -351,12 +389,7 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
       }
       return true;
     });
-  }, [products, skillFilter, skillSearchQuery, claimedSkillIds, userRole]);
-
-  const completedOrders = useMemo(
-    () => userOrders.filter((o) => o.status === 'paid' || o.status === 'completed'),
-    [userOrders]
-  );
+  }, [ownedSkills, skillFilter, skillSearchQuery]);
 
   const totalSpent = useMemo(
     () => completedOrders.reduce((acc, o) => acc + o.totalAmount, 0),
@@ -468,10 +501,10 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-stone-100 dark:border-stone-800/80">
           <button
             type="button"
-            onClick={() => setSubTab('my_skills')}
+            onClick={() => setSubTab('my_downloads')}
             className="text-right p-4 rounded-2xl bg-stone-50/80 dark:bg-stone-950/70 hover:bg-stone-100/80 dark:hover:bg-stone-800/60 transition-colors cursor-pointer"
           >
-            <div className="text-[11px] font-bold text-stone-500">اسکیل‌های آماده دانلود</div>
+            <div className="text-[11px] font-bold text-stone-500">اسکیل‌ها و فایل‌های من</div>
             <div className="text-2xl font-black text-stone-900 dark:text-white smooth-nums mt-1">
               {unlockedCount.toLocaleString('fa-IR')}
             </div>
@@ -539,7 +572,7 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
                 : 'دانلودهای خریداری‌شده',
             icon: FileArchive,
           },
-          { id: 'my_skills', label: 'کتابخانه اسکیل‌ها', icon: Layers },
+          { id: 'my_skills', label: 'اسکیل‌های من', icon: Layers },
           ...(enabledModulesMap.mod_subscriptions !== false
             ? [
                 {
@@ -891,73 +924,92 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
         </div>
       )}
 
-      {/* TAB 1: Pinterest-Style Visual Masonry Board for Skills */}
+      {/* TAB 1: User's Owned/Claimed Skills Library */}
       {subTab === 'my_skills' && (
         <div className="space-y-6">
-          {/* Clean Search & Filter Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-stone-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={skillSearchQuery}
-                onChange={(e) => setSkillSearchQuery(e.target.value)}
-                placeholder="جستجو در اسکیل‌ها و کتابخانه‌ها (مثلاً Claude, MCP, GSAP, Three.js...)"
-                className="w-full pr-10 pl-4 py-2.5 text-xs rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-900 dark:text-white focus:outline-none focus:border-[#1D4ED8]"
-              />
-            </div>
-
-            {/* Mobile: Native Select Filter (Zero Horizontal Scroll) */}
-            <div className="sm:hidden relative">
-              <select
-                value={skillFilter}
-                onChange={(e) =>
-                  setSkillFilter(
-                    e.target.value as 'all' | 'unlocked' | 'Claude' | 'ChatGPT' | 'Codex'
-                  )
-                }
-                aria-label="فیلتر کتابخانه اسکیل‌ها"
-                className="w-full h-10 appearance-none pr-3 pl-8 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-xs font-bold text-stone-800 dark:text-stone-100 focus:outline-none focus:border-[#1D4ED8]"
+          {ownedSkills.length === 0 ? (
+            <div className="rounded-3xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-10 text-center space-y-4">
+              <Layers className="w-10 h-10 text-stone-300 mx-auto" />
+              <div className="space-y-1">
+                <h3 className="text-sm font-black text-stone-900 dark:text-white">
+                  هنوز اسکیلی در حساب کاربری شما اضافه یا خریداری نشده است
+                </h3>
+                <p className="text-xs text-stone-500">
+                  برای مشاهده کاتالوگ کامل، دریافت اسکیل‌های رایگان یا خرید بسته‌های تخصصی به بخش فروشگاه سایت مراجعه کنید.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onNavigateTab('store')}
+                className={`px-5 py-2.5 text-xs font-extrabold rounded-xl cursor-pointer ${accentButtonClass}`}
               >
-                <option value="all">همه اسکیل‌ها</option>
-                <option value="unlocked">بازشده در حساب من</option>
-                <option value="Claude">Claude & MCP</option>
-                <option value="ChatGPT">ChatGPT & Cursor</option>
-                <option value="Codex">JS & Full-Stack</option>
-              </select>
-              <ChevronDown className="w-4 h-4 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                مرور فروشگاه اسکیل‌ها
+              </button>
             </div>
+          ) : (
+            <>
+              {/* Clean Search & Filter Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-4 h-4 text-stone-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={skillSearchQuery}
+                    onChange={(e) => setSkillSearchQuery(e.target.value)}
+                    placeholder="جستجو در اسکیل‌های خریداری‌شده و دریافت‌شده..."
+                    className="w-full pr-10 pl-4 py-2.5 text-xs rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-stone-900 dark:text-white focus:outline-none focus:border-[#1D4ED8]"
+                  />
+                </div>
 
-            {/* Desktop/Tablet: Wrapped Filter Buttons (Zero Horizontal Scroll) */}
-            <div className="hidden sm:flex flex-wrap items-center gap-1.5">
-              {(
-                [
-                  { id: 'all', label: 'همه' },
-                  { id: 'unlocked', label: 'بازشده در حساب من' },
-                  { id: 'Claude', label: 'Claude & MCP' },
-                  { id: 'ChatGPT', label: 'ChatGPT & Cursor' },
-                  { id: 'Codex', label: 'JS & Full-Stack' },
-                ] as const
-              ).map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setSkillFilter(f.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap cursor-pointer transition-colors ${
-                    skillFilter === f.id
-                      ? 'bg-[#1D4ED8] text-white'
-                      : 'bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-300'
-                  }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
+                {/* Mobile: Native Select Filter */}
+                <div className="sm:hidden relative">
+                  <select
+                    value={skillFilter}
+                    onChange={(e) =>
+                      setSkillFilter(
+                        e.target.value as 'all' | 'Claude' | 'ChatGPT' | 'Codex'
+                      )
+                    }
+                    aria-label="فیلتر اسکیل‌های من"
+                    className="w-full h-10 appearance-none pr-3 pl-8 rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 text-xs font-bold text-stone-800 dark:text-stone-100 focus:outline-none focus:border-[#1D4ED8]"
+                  >
+                    <option value="all">همه اسکیل‌های من</option>
+                    <option value="Claude">Claude & MCP</option>
+                    <option value="ChatGPT">ChatGPT & Cursor</option>
+                    <option value="Codex">JS & Full-Stack</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
 
-          {/* Pinterest Visual Masonry Grid */}
-          <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
-            {filteredSkills.map((item) => {
+                {/* Desktop/Tablet: Wrapped Filter Buttons */}
+                <div className="hidden sm:flex flex-wrap items-center gap-1.5">
+                  {(
+                    [
+                      { id: 'all', label: 'همه اسکیل‌های من' },
+                      { id: 'Claude', label: 'Claude & MCP' },
+                      { id: 'ChatGPT', label: 'ChatGPT & Cursor' },
+                      { id: 'Codex', label: 'JS & Full-Stack' },
+                    ] as const
+                  ).map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setSkillFilter(f.id)}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap cursor-pointer transition-colors ${
+                        skillFilter === f.id
+                          ? 'bg-[#1D4ED8] text-white'
+                          : 'bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-600 dark:text-stone-300'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pinterest Visual Masonry Grid */}
+              <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
+                {filteredSkills.map((item) => {
               const unlocked = isSkillUnlocked(item);
               const isBookmarked = bookmarkedIds.includes(item.id);
               return (
@@ -1058,7 +1110,9 @@ export const CustomerDashboardView: React.FC<CustomerDashboardViewProps> = ({
                 </article>
               );
             })}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

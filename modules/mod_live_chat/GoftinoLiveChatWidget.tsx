@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { MessageCircle, Paperclip, Send, ShieldCheck, X, Zap } from 'lucide-react';
-import { apiJson } from '../../src/core/apiClient';
+import { Loader2, MessageCircle, Paperclip, Send, ShieldCheck, X, Zap } from 'lucide-react';
+import { apiJson, emitGlobalToast } from '../../src/core/apiClient';
 import type { UserRoleType } from '../../src/core/types';
 import { ChatInlineOtpCard } from './ChatInlineOtpCard';
 
@@ -175,6 +175,8 @@ export const GoftinoLiveChatWidget: React.FC<{
         setMessageInput('');
         setAttachmentUrl('');
         setAttachmentName('');
+      } else {
+        emitGlobalToast('error', (data as { error?: string })?.error || 'خطا در ارسال پیام پشتیبانی');
       }
     } finally {
       setSending(false);
@@ -218,8 +220,15 @@ export const GoftinoLiveChatWidget: React.FC<{
           </span>
         </button>
       ) : (
-        <div className="w-[340px] sm:w-[380px] rounded-2xl border border-stone-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-2xl overflow-hidden flex flex-col">
-          <div className="px-4 py-3 bg-gradient-to-l from-[#1E3A8A] to-[#1D4ED8] text-white flex items-center justify-between">
+        <div
+          data-lenis-prevent
+          data-lenis-prevent-wheel
+          data-lenis-prevent-touch
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          className="w-[340px] sm:w-[390px] max-w-[calc(100vw-24px)] max-h-[82dvh] rounded-2xl border border-stone-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-2xl overflow-hidden flex flex-col overscroll-contain"
+        >
+          <div className="px-4 py-3 bg-gradient-to-l from-[#1E3A8A] to-[#1D4ED8] text-white flex items-center justify-between shrink-0">
             <div className="space-y-0.5">
               <div className="flex items-center gap-1.5 text-xs font-extrabold">
                 <ShieldCheck className="w-4 h-4 text-amber-300" />
@@ -233,8 +242,8 @@ export const GoftinoLiveChatWidget: React.FC<{
                 />
                 <span>
                   {operatorOnline
-                    ? 'اپراتور آنلاین • همگام‌سازی زنده بومی'
-                    : 'خارج از ساعت اداری • ثبت تیکت فوری'}
+                    ? 'دستیار هوشمند ۲۴/۷ و اپراتور آنلاین'
+                    : 'خارج از ساعت اداری • پاسخگویی هوشمند ۲۴/۷'}
                 </span>
               </div>
             </div>
@@ -248,23 +257,25 @@ export const GoftinoLiveChatWidget: React.FC<{
           </div>
 
           {!isAuthenticated ? (
-            <ChatInlineOtpCard
-              sessionId={sessionId}
-              onVerifiedLogin={(role, phone, displayName, roleId, token) => {
-                setVisitorPhone(phone);
-                if (displayName) setVisitorName(displayName);
-                setRequestUrgent(true);
-                onInlineLoginSuccess?.(role, phone, displayName, roleId, token);
-              }}
-              onSessionLinked={(linkedMsgs) => {
-                if (Array.isArray(linkedMsgs)) {
-                  setMessages(linkedMsgs as ChatMessageRecord[]);
-                }
-                setRequestUrgent(true);
-              }}
-            />
+            <div className="shrink-0">
+              <ChatInlineOtpCard
+                sessionId={sessionId}
+                onVerifiedLogin={(role, phone, displayName, roleId, token) => {
+                  setVisitorPhone(phone);
+                  if (displayName) setVisitorName(displayName);
+                  setRequestUrgent(true);
+                  onInlineLoginSuccess?.(role, phone, displayName, roleId, token);
+                }}
+                onSessionLinked={(linkedMsgs) => {
+                  if (Array.isArray(linkedMsgs)) {
+                    setMessages(linkedMsgs as ChatMessageRecord[]);
+                  }
+                  setRequestUrgent(true);
+                }}
+              />
+            </div>
           ) : (
-            <div className="px-3 py-1.5 bg-emerald-50/80 dark:bg-emerald-950/30 border-b border-emerald-200/70 dark:border-emerald-900 flex items-center justify-between gap-2 text-[11px]">
+            <div className="px-3 py-1.5 bg-emerald-50/80 dark:bg-emerald-950/30 border-b border-emerald-200/70 dark:border-emerald-900 flex items-center justify-between gap-2 text-[11px] shrink-0">
               <span className="font-bold text-emerald-800 dark:text-emerald-300 truncate">
                 {loggedInName || visitorName} ({loggedInPhone})
               </span>
@@ -285,11 +296,16 @@ export const GoftinoLiveChatWidget: React.FC<{
 
           <div
             ref={listRef}
-            className="h-64 overflow-y-auto p-3.5 space-y-2.5 bg-stone-50/60 dark:bg-slate-950/60"
+            data-lenis-prevent
+            data-lenis-prevent-wheel
+            data-lenis-prevent-touch
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+            className="flex-1 min-h-[220px] max-h-[340px] overflow-y-auto overscroll-contain touch-pan-y p-3.5 space-y-2.5 bg-stone-50/60 dark:bg-slate-950/60"
           >
             {messages.length === 0 ? (
               <div className="text-center text-xs text-stone-400 py-10">
-                سلام! سوال یا درخواست خود را بنویسید تا اپراتور به صورت زنده پاسخ دهد.
+                سلام! سوال یا درخواست خود را بنویسید تا دستیار هوشمند ۲۴/۷ یا اپراتور به صورت زنده پاسخ دهد.
               </div>
             ) : (
               messages.map((m) => {
@@ -307,7 +323,9 @@ export const GoftinoLiveChatWidget: React.FC<{
                       }`}
                     >
                       <div className="text-[10px] font-extrabold opacity-75">{m.sender_name}</div>
-                      {m.message_text && <p className="leading-relaxed">{m.message_text}</p>}
+                      {m.message_text && (
+                        <p className="leading-relaxed whitespace-pre-wrap break-words">{m.message_text}</p>
+                      )}
                       {m.attachment_url && (
                         <a
                           href={m.attachment_url}
@@ -324,11 +342,17 @@ export const GoftinoLiveChatWidget: React.FC<{
                 );
               })
             )}
+            {sending && (
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#1D4ED8] dark:text-sky-400 px-2 py-1">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>در حال ارسال و دریافت پاسخ دستیار هوشمند...</span>
+              </div>
+            )}
           </div>
 
           <form
             onSubmit={(e) => void handleSendMessage(e)}
-            className="p-2.5 border-t border-stone-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1.5"
+            className="p-2.5 border-t border-stone-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1.5 shrink-0"
           >
             {attachmentName && (
               <div className="text-[10px] font-bold text-emerald-600 flex items-center justify-between px-2">

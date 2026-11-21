@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarCheck, Lock, Plus } from 'lucide-react';
-import { apiJson } from '../../src/core/apiClient';
+import { CalendarCheck, Download, Loader2, Lock, Plus } from 'lucide-react';
+import { apiFetch, apiJson } from '../../src/core/apiClient';
 
 interface BookingSlotRow {
   id: string;
@@ -99,21 +99,52 @@ export const SolarBookingAutoBackupPanel: React.FC<{
     }
   };
 
+  const handleDownloadArchive = async (archiveId: string, archiveName: string) => {
+    try {
+      const resp = await apiFetch(
+        `/api/v1/modules/auto-backup/download/${encodeURIComponent(archiveId)}`
+      );
+      if (!resp.ok) {
+        onNotice?.('error', 'فایل پشتیبان رمزنگاری‌شده روی سرور یافت نشد.');
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = archiveName || 'skill98-backup.zip.enc';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      onNotice?.('success', `دانلود فایل پشتیبان «${archiveName}» آغاز شد.`);
+    } catch {
+      onNotice?.('error', 'خطا در دانلود فایل پشتیبان رمزنگاری‌شده');
+    }
+  };
+
   const handleRunEncryptedBackup = async () => {
     setBusy(true);
     try {
       const { ok, data } = await apiJson<{
+        createdId?: string;
         archiveName?: string;
         archives?: EncryptedArchiveRow[];
+        error?: string;
       }>('/api/v1/modules/auto-backup/run-encrypted', {
         method: 'POST',
         body: JSON.stringify({
           cronConfig: { enabled: true, cronExpression, s3OrWebhookUrl: s3WebhookUrl },
         }),
       });
-      if (ok) {
-        if (data.archives) setArchives(data.archives);
-        onNotice?.('success', `بکاپ کامل رمزنگاری‌شده (${data.archiveName}) تولید شد.`);
+      if (!ok) {
+        onNotice?.('error', data.error || 'خطا در تولید بکاپ رمزنگاری‌شده');
+        return;
+      }
+      if (data.archives) setArchives(data.archives);
+      onNotice?.('success', `بکاپ کامل رمزنگاری‌شده (${data.archiveName}) تولید شد و آماده دانلود است.`);
+      if (data.createdId && data.archiveName) {
+        await handleDownloadArchive(data.createdId, data.archiveName);
       }
     } finally {
       setBusy(false);
@@ -249,9 +280,10 @@ export const SolarBookingAutoBackupPanel: React.FC<{
           type="button"
           disabled={busy}
           onClick={() => void handleRunEncryptedBackup()}
-          className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-extrabold cursor-pointer"
+          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
         >
-          {busy ? 'در حال رمزنگاری AES-256...' : '+ تولید فوری بکاپ رمزنگاری‌شده ZIP.ENC'}
+          {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          <span>{busy ? 'در حال رمزنگاری AES-256...' : '+ تولید فوری بکاپ رمزنگاری‌شده ZIP.ENC'}</span>
         </button>
       </div>
 
@@ -286,13 +318,23 @@ export const SolarBookingAutoBackupPanel: React.FC<{
               </div>
               <div className="text-[11px] text-stone-500">{a.includes_summary}</div>
             </div>
-            <div className="text-left space-y-0.5">
-              <div className="text-[10px] font-mono text-emerald-600" dir="ltr">
-                SHA256: {a.checksum_sha256.slice(0, 20)}...
+            <div className="flex items-center gap-3">
+              <div className="text-left space-y-0.5">
+                <div className="text-[10px] font-mono text-emerald-600" dir="ltr">
+                  SHA256: {a.checksum_sha256.slice(0, 20)}...
+                </div>
+                <div className="text-[10px] text-stone-400">
+                  {a.created_at_fa} • {(Number(a.size_bytes) / 1024).toFixed(1)} KB
+                </div>
               </div>
-              <div className="text-[10px] text-stone-400">
-                {a.created_at_fa} • {(Number(a.size_bytes) / 1024).toFixed(1)} KB
-              </div>
+              <button
+                type="button"
+                onClick={() => void handleDownloadArchive(a.id, a.archive_name)}
+                className="px-3 py-1.5 rounded-lg bg-[#1D4ED8] hover:bg-blue-700 text-white text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>دانلود</span>
+              </button>
             </div>
           </div>
         ))}

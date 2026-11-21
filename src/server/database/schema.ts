@@ -130,6 +130,7 @@ async function createSchema(): Promise<void> {
       send_mode TEXT NOT NULL DEFAULT 'custom_text',
       pattern_code TEXT,
       message_template TEXT NOT NULL,
+      provider_override TEXT DEFAULT 'default',
       enabled INTEGER NOT NULL DEFAULT 1,
       priority_order INTEGER NOT NULL DEFAULT 1
     )`,
@@ -337,6 +338,19 @@ async function createSchema(): Promise<void> {
     } catch {
       // Ignore if column exists
     }
+  }
+
+  try {
+    if (activeEngine === 'postgresql') {
+      await dbExec(`ALTER TABLE sms_triggers ADD COLUMN IF NOT EXISTS provider_override TEXT DEFAULT 'default'`);
+    } else {
+      const info = await dbQuery<{ name: string }>('PRAGMA table_info(sms_triggers)');
+      if (!info.some((r) => r.name === 'provider_override')) {
+        await dbExec(`ALTER TABLE sms_triggers ADD COLUMN provider_override TEXT DEFAULT 'default'`);
+      }
+    }
+  } catch {
+    // Ignore if column exists
   }
 }
 

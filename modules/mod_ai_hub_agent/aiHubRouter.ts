@@ -13,7 +13,10 @@ import {
   type AiSlotKey,
   type AiSlotRow,
 } from './aiHubSchema.js';
-import { generateImagePromptAndAsset } from './aiProviderGateway.js';
+import {
+  generateImagePromptAndAsset,
+  testAiSlotConnection,
+} from './aiProviderGateway.js';
 import { registerSuperAdminAgentRoutes } from './aiAgentSubRouter.js';
 
 const ALLOWED_SLOTS: AiSlotKey[] = ['text_seo', 'image_visual', 'agent_core'];
@@ -144,6 +147,48 @@ export function createAiHubAgentRouter(): express.Router {
       });
     } catch (err) {
       res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'Save slot error' });
+    }
+  });
+
+  // Live Connection Test for any AI slot (text_seo, image_visual, agent_core) or custom provider probe
+  router.post('/api/v1/modules/ai-hub/slots/test', requireAdmin, async (req, res) => {
+    try {
+      await ensureAiHubSchema();
+      const b = (req.body || {}) as {
+        slotKey?: string;
+        providerKind?: 'gemini' | 'openai_compatible' | 'ollama' | 'openai' | 'claude' | 'custom_openai';
+        baseUrl?: string;
+        modelName?: string;
+        apiKey?: string;
+      };
+      const slotKey = String(b.slotKey || 'text_seo') as AiSlotKey | 'custom_probe';
+      if (slotKey !== 'custom_probe' && !ALLOWED_SLOTS.includes(slotKey)) {
+        res.status(400).json({ ok: false, error: 'اسلات انتخابی برای تست معتبر نیست.' });
+        return;
+      }
+      if (slotKey === 'agent_core' && req.authUser?.role !== 'super_admin') {
+        res.status(403).json({
+          ok: false,
+          error: 'تست اتصال هسته ایجنت ۲۴/۷ فقط برای سوپر ادمین مجاز است.',
+        });
+        return;
+      }
+
+      const result = await testAiSlotConnection({
+        slotKey,
+        providerKind: b.providerKind,
+        baseUrl: b.baseUrl,
+        modelName: b.modelName,
+        apiKey: b.apiKey,
+      });
+
+      res.status(result.ok ? 200 : 400).json(result);
+    } catch (err) {
+      res.status(500).json({
+        ok: false,
+        connected: false,
+        error: err instanceof Error ? err.message : 'خطا در تست اتصال هوش مصنوعی',
+      });
     }
   });
 

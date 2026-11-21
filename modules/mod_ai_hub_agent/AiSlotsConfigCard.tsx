@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { Bot, Image as ImageIcon, KeyRound, Lock, Save, Sparkles } from 'lucide-react';
+import {
+  Activity,
+  Bot,
+  CheckCircle2,
+  Image as ImageIcon,
+  KeyRound,
+  Loader2,
+  Lock,
+  Save,
+  Sparkles,
+  XCircle,
+} from 'lucide-react';
 import { apiJson } from '../../src/core/apiClient';
 
 export interface AiSlotItem {
@@ -11,6 +22,13 @@ export interface AiSlotItem {
   hasApiKey: boolean;
   enabled: boolean;
   superAdminOnly: boolean;
+}
+
+interface SlotTestStatus {
+  connected: boolean;
+  latencyMs?: number;
+  message: string;
+  hint?: string;
 }
 
 const SLOT_META: Record<
@@ -51,6 +69,8 @@ export const AiSlotsConfigCard: React.FC<{
     return map;
   });
   const [savingSlot, setSavingSlot] = useState<string>('');
+  const [testingSlot, setTestingSlot] = useState<string>('');
+  const [testResults, setTestResults] = useState<Record<string, SlotTestStatus>>({});
 
   const getDraft = (slot: AiSlotItem) =>
     drafts[slot.slotKey] || { ...slot, apiKeyInput: slot.apiKeyMasked || '' };
@@ -96,6 +116,47 @@ export const AiSlotsConfigCard: React.FC<{
     }
   };
 
+  const handleTestSlot = async (slot: AiSlotItem) => {
+    const d = getDraft(slot);
+    setTestingSlot(slot.slotKey);
+    try {
+      const { ok, data } = await apiJson<{
+        ok?: boolean;
+        connected?: boolean;
+        latencyMs?: number;
+        message?: string;
+        error?: string;
+        hint?: string;
+      }>('/api/v1/modules/ai-hub/slots/test', {
+        method: 'POST',
+        body: JSON.stringify({
+          slotKey: d.slotKey,
+          providerKind: d.providerKind,
+          baseUrl: d.baseUrl,
+          modelName: d.modelName,
+          apiKey: d.apiKeyInput,
+        }),
+      });
+      const connected = Boolean(ok && data.connected);
+      const msg =
+        data.message ||
+        data.error ||
+        (connected ? 'اتصال با موفقیت تایید شد.' : 'اتصال برقرار نشد.');
+      setTestResults((prev) => ({
+        ...prev,
+        [slot.slotKey]: {
+          connected,
+          latencyMs: data.latencyMs,
+          message: msg,
+          hint: data.hint,
+        },
+      }));
+      onNotice?.(connected ? 'success' : 'error', msg);
+    } finally {
+      setTestingSlot('');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -103,6 +164,7 @@ export const AiSlotsConfigCard: React.FC<{
           const meta = SLOT_META[slot.slotKey];
           const d = getDraft(slot);
           const locked = slot.superAdminOnly && !isSuperAdmin;
+          const testRes = testResults[slot.slotKey];
 
           return (
             <div
@@ -165,7 +227,11 @@ export const AiSlotsConfigCard: React.FC<{
                       dir="ltr"
                       value={d.modelName}
                       onChange={(e) => updateField(slot, { modelName: e.target.value })}
-                      placeholder="gemini-4-hydrogen"
+                      placeholder={
+                        slot.slotKey === 'image_visual'
+                          ? 'gemini-3.1-flash-lite-image'
+                          : 'gemini-4-hydrogen'
+                      }
                       className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 font-mono text-left"
                     />
                   </div>
@@ -214,7 +280,39 @@ export const AiSlotsConfigCard: React.FC<{
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-1">
+                  {testRes && (
+                    <div
+                      className={`p-2.5 rounded-xl border text-[11px] space-y-1 ${
+                        testRes.connected
+                          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+                          : 'border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2 font-extrabold">
+                        <span className="inline-flex items-center gap-1">
+                          {testRes.connected ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          ) : (
+                            <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                          )}
+                          <span>{testRes.connected ? 'اتصال برقرار است' : 'عدم اتصال'}</span>
+                        </span>
+                        {typeof testRes.latencyMs === 'number' && (
+                          <span className="font-mono text-[10px] opacity-80" dir="ltr">
+                            {testRes.latencyMs}ms
+                          </span>
+                        )}
+                      </div>
+                      <p className="leading-relaxed">{testRes.message}</p>
+                      {testRes.hint && (
+                        <p className="text-[10px] opacity-85 border-t border-current/15 pt-1">
+                          💡 {testRes.hint}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                     <label className="inline-flex items-center gap-2 text-[11px] font-bold text-stone-600 dark:text-stone-300 cursor-pointer">
                       <input
                         type="checkbox"
@@ -223,15 +321,34 @@ export const AiSlotsConfigCard: React.FC<{
                       />
                       <span>اسلات فعال است</span>
                     </label>
-                    <button
-                      type="button"
-                      disabled={savingSlot === slot.slotKey}
-                      onClick={() => void handleSaveSlot(slot)}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#1D4ED8] hover:bg-blue-700 text-white text-[11px] font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>{savingSlot === slot.slotKey ? 'در حال ذخیره...' : 'ذخیره امن'}</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={testingSlot === slot.slotKey || savingSlot === slot.slotKey}
+                        onClick={() => void handleTestSlot(slot)}
+                        className="px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {testingSlot === slot.slotKey ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Activity className="w-3.5 h-3.5" />
+                        )}
+                        <span>{testingSlot === slot.slotKey ? 'در حال تست...' : 'تست اتصال'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingSlot === slot.slotKey}
+                        onClick={() => void handleSaveSlot(slot)}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#1D4ED8] hover:bg-blue-700 text-white text-[11px] font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {savingSlot === slot.slotKey ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        <span>{savingSlot === slot.slotKey ? 'در حال ذخیره...' : 'ذخیره امن'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

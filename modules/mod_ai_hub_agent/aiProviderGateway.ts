@@ -22,8 +22,12 @@ export async function getSlotConfig(slotKey: AiSlotKey): Promise<AiSlotRow | nul
   return rows[0] || null;
 }
 
+function resolveServerGeminiKey(): string {
+  return (process.env.GEMINI_API_KEY || '').trim() || getEnvConfig().geminiApiKey || '';
+}
+
 function buildGeminiClient(customApiKey?: string): GoogleGenAI {
-  const resolvedKey = (customApiKey || '').trim() || getEnvConfig().geminiApiKey || '';
+  const resolvedKey = (customApiKey || '').trim() || resolveServerGeminiKey();
   return new GoogleGenAI({
     apiKey: resolvedKey || undefined,
     httpOptions: {
@@ -32,6 +36,31 @@ function buildGeminiClient(customApiKey?: string): GoogleGenAI {
       },
     },
   });
+}
+
+function formatGeminiErrorFa(err: unknown, model: string): { error: string; hint?: string } {
+  const raw = err instanceof Error ? err.message : String(err || 'خطای نامشخص');
+  if (/API_KEY_INVALID|PERMISSION_DENIED|403|401|API key not valid/i.test(raw)) {
+    return {
+      error: `کلید API جمنای نامعتبر یا بدون مجوز است (${raw.slice(0, 140)}).`,
+      hint: 'لطفاً کلید API معتبر را در تنظیمات همین اسلات ذخیره کنید یا در متغیر محیطی GEMINI_API_KEY سرور بررسی نمایید.',
+    };
+  }
+  if (/NOT_FOUND|404|is not found|not supported/i.test(raw)) {
+    return {
+      error: `مدل انتخابی «${model}» در API یافت نشد یا منسوخ شده است.`,
+      hint: 'از مدل‌های فعال مانند gemini-4-hydrogen (متن و چت ۲۴/۷) یا gemini-3.1-flash-lite-image (تصویر) استفاده کنید.',
+    };
+  }
+  if (/RESOURCE_EXHAUSTED|429|quota/i.test(raw)) {
+    return {
+      error: `سقف درخواست (Quota / 429) برای مدل «${model}» پر شده یا این مدل نیازمند کلید API دارای صورتحساب است.`,
+      hint: 'برای استفاده با کلید رایگان، مدل gemini-4-hydrogen را انتخاب کرده و دوباره تست کنید.',
+    };
+  }
+  return {
+    error: `خطا در ارتباط با سرویس هوش مصنوعی: ${raw.slice(0, 200)}`,
+  };
 }
 
 async function callOpenAiCompatibleText(params: {
@@ -104,10 +133,12 @@ export async function generateTextViaSlot(params: {
   jsonMode?: boolean;
 }): Promise<SlotGenerationResult> {
   const cfg = await getSlotConfig(params.slot);
+  if (cfg && !cfg.enabled) {
+    throw new Error(`اسلات هوش مصنوعی «${params.slot}» در تنظیمات غیرفعال است.`);
+  }
   const provider = cfg?.provider_kind || 'gemini';
   const model =
-    cfg?.model_name ||
-    (params.slot === 'agent_core' ? 'gemini-4-neon' : 'gemini-4-hydrogen');
+    (cfg?.model_name || '').trim() || 'gemini-4-hydrogen';
   const apiKey = cfg?.api_key_enc ? decryptSecret(cfg.api_key_enc) : '';
 
   if (provider === 'openai_compatible' && cfg?.base_url) {
@@ -132,9 +163,11 @@ export async function generateTextViaSlot(params: {
     return { text, providerUsed: 'ollama', modelUsed: model };
   }
 
-  const effectiveGeminiKey = apiKey || getEnvConfig().geminiApiKey || '';
+  const effectiveGeminiKey = apiKey || resolveServerGeminiKey();
   if (!effectiveGeminiKey) {
-    throw new Error('کلید API برای این اسلات تنظیم نشده است. از بخش تنظیمات AI Hub کلید را وارد کنید.');
+    throw new Error(
+      'کلید API برای این اسلات تنظیم نشده است. لطفاً کلید API را در تب «تنظیمات هوش مصنوعی» ذخیره کنید یا متغیر GEMINI_API_KEY سرور را مقداردهی نمایید.'
+    );
   }
 
   const ai = buildGeminiClient(effectiveGeminiKey);
@@ -151,6 +184,279 @@ export async function generateTextViaSlot(params: {
     providerUsed: 'gemini',
     modelUsed: model,
   };
+}
+
+export interface AiConnectionTestResult {
+  ok: boolean;
+  connected: boolean;
+  slotKey: string;
+  providerUsed: string;
+  modelUsed: string;
+  latencyMs: number;
+  sampleReply?: string;
+  message: string;
+  error?: string;
+  hint?: string;
+}
+
+export async function testAiSlotConnection(params: {
+  slotKey: AiSlotKey | 'custom_probe';
+  providerKind?: 'gemini' | 'openai_compatible' | 'ollama' | 'openai' | 'claude' | 'custom_openai';
+  baseUrl?: string;
+  modelName?: string;
+  apiKey?: string;
+}): Promise<AiConnectionTestResult> {
+  const startedAt = Date.now();
+  const savedCfg =
+    params.slotKey !== 'custom_probe' ? await getSlotConfig(params.slotKey) : null;
+
+  const rawProvider = params.providerKind || savedCfg?.provider_kind || 'gemini';
+  const normalizedProvider =
+    rawProvider === 'openai' || rawProvider === 'custom_openai'
+      ? 'openai_compatible'
+      : rawProvider;
+
+  const model =
+    (params.modelName || savedCfg?.model_name || '').trim() ||
+    (params.slotKey === 'image_visual' ? 'gemini-3.1-flash-lite-image' : 'gemini-4-hydrogen');
+
+  const rawBaseUrl =
+    (params.baseUrl ?? savedCfg?.base_url ?? '').trim() ||
+    (rawProvider === 'openai'
+      ? 'https://api.openai.com/v1'
+      : normalizedProvider === 'ollama'
+      ? 'http://127.0.0.1:11434'
+      : '');
+
+  const isMasked =
+    typeof params.apiKey === 'string' &&
+    (params.apiKey.includes('••••') || params.apiKey.includes('****'));
+  const savedKey = savedCfg?.api_key_enc ? decryptSecret(savedCfg.api_key_enc) : '';
+  const explicitKey =
+    typeof params.apiKey === 'string' && params.apiKey.trim() && !isMasked
+      ? params.apiKey.trim()
+      : '';
+  const effectiveKey = explicitKey || savedKey;
+
+  try {
+    if (normalizedProvider === 'ollama') {
+      const root = rawBaseUrl.replace(/\/+$/, '');
+      const resp = await fetch(`${root}/api/tags`, { method: 'GET' });
+      const latencyMs = Math.max(1, Date.now() - startedAt);
+      if (!resp.ok) {
+        return {
+          ok: false,
+          connected: false,
+          slotKey: params.slotKey,
+          providerUsed: 'ollama',
+          modelUsed: model,
+          latencyMs,
+          message: `اتصال به سرور Ollama (${root}) ناموفق بود (HTTP ${resp.status}).`,
+          error: `Ollama HTTP ${resp.status}`,
+          hint: 'مطمئن شوید سرویس Ollama روی آدرس پایه واردشده در حال اجراست.',
+        };
+      }
+      const tagsData = (await resp.json().catch(() => ({}))) as {
+        models?: { name?: string }[];
+      };
+      const installed = (tagsData.models || []).map((m) => String(m.name || ''));
+      const hasModel = installed.some((n) => n === model || n.startsWith(`${model}:`));
+      return {
+        ok: true,
+        connected: true,
+        slotKey: params.slotKey,
+        providerUsed: 'ollama',
+        modelUsed: model,
+        latencyMs,
+        sampleReply: hasModel
+          ? `مدل ${model} نصب و آماده است`
+          : `سرور متصل شد (${installed.length} مدل نصب‌شده)`,
+        message: hasModel
+          ? `اتصال به Ollama برقرار است و مدل «${model}» در ${latencyMs}ms تایید شد.`
+          : `سرور Ollama در ${latencyMs}ms متصل شد اما مدل «${model}» در لیست نصب‌شده‌ها یافت نشد (${installed.slice(0, 4).join(', ') || 'خالی'}).`,
+      };
+    }
+
+    if (normalizedProvider === 'claude') {
+      const claudeKey = effectiveKey || (process.env.ANTHROPIC_API_KEY || '').trim();
+      if (!claudeKey) {
+        return {
+          ok: false,
+          connected: false,
+          slotKey: params.slotKey,
+          providerUsed: 'claude',
+          modelUsed: model,
+          latencyMs: Math.max(1, Date.now() - startedAt),
+          message: 'کلید API سرویس Anthropic Claude تنظیم نشده است.',
+          error: 'MISSING_CLAUDE_API_KEY',
+          hint: 'کلید ANTHROPIC_API_KEY را در سرور یا تنظیمات اسلات OpenAI-Compatible وارد کنید.',
+        };
+      }
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 12,
+          messages: [{ role: 'user', content: 'Reply with OK' }],
+        }),
+      });
+      const latencyMs = Math.max(1, Date.now() - startedAt);
+      const data = (await resp.json().catch(() => ({}))) as {
+        content?: { text?: string }[];
+        error?: { message?: string };
+      };
+      if (!resp.ok) {
+        return {
+          ok: false,
+          connected: false,
+          slotKey: params.slotKey,
+          providerUsed: 'claude',
+          modelUsed: model,
+          latencyMs,
+          message: data.error?.message || `خطا در اتصال به Claude (HTTP ${resp.status})`,
+          error: data.error?.message || `HTTP ${resp.status}`,
+        };
+      }
+      const reply = String(data.content?.[0]?.text || 'OK').trim();
+      return {
+        ok: true,
+        connected: true,
+        slotKey: params.slotKey,
+        providerUsed: 'claude',
+        modelUsed: model,
+        latencyMs,
+        sampleReply: reply,
+        message: `اتصال به Anthropic Claude (${model}) در ${latencyMs}ms برقرار و تایید شد.`,
+      };
+    }
+
+    if (normalizedProvider === 'openai_compatible') {
+      if (!rawBaseUrl) {
+        return {
+          ok: false,
+          connected: false,
+          slotKey: params.slotKey,
+          providerUsed: 'openai_compatible',
+          modelUsed: model,
+          latencyMs: Math.max(1, Date.now() - startedAt),
+          message: 'آدرس پایه (Base URL) برای ارائه‌دهنده OpenAI-Compatible وارد نشده است.',
+          error: 'MISSING_BASE_URL',
+          hint: 'مثال: https://api.openai.com/v1 یا آدرس سرویس OpenRouter / Groq / Ava',
+        };
+      }
+      const openAiKey = effectiveKey || (process.env.OPENAI_API_KEY || '').trim();
+      const root = rawBaseUrl.replace(/\/+$/, '');
+      if (params.slotKey === 'image_visual') {
+        const resp = await fetch(`${root}/models`, {
+          method: 'GET',
+          headers: openAiKey ? { Authorization: `Bearer ${openAiKey}` } : {},
+        });
+        const latencyMs = Math.max(1, Date.now() - startedAt);
+        if (!resp.ok) {
+          return {
+            ok: false,
+            connected: false,
+            slotKey: params.slotKey,
+            providerUsed: 'openai_compatible',
+            modelUsed: model,
+            latencyMs,
+            message: `تست اتصال به سرویس تصویر (${root}) ناموفق بود (HTTP ${resp.status}).`,
+            error: `HTTP ${resp.status}`,
+          };
+        }
+        return {
+          ok: true,
+          connected: true,
+          slotKey: params.slotKey,
+          providerUsed: 'openai_compatible',
+          modelUsed: model,
+          latencyMs,
+          sampleReply: 'Models endpoint reachable',
+          message: `اتصال به سرویس تصویرساز OpenAI-Compatible در ${latencyMs}ms با موفقیت تایید شد.`,
+        };
+      }
+      const sampleReply = await callOpenAiCompatibleText({
+        baseUrl: root,
+        apiKey: openAiKey,
+        model,
+        systemPrompt: 'Reply concisely with OK.',
+        userPrompt: 'Ping',
+      });
+      const latencyMs = Math.max(1, Date.now() - startedAt);
+      return {
+        ok: true,
+        connected: true,
+        slotKey: params.slotKey,
+        providerUsed: 'openai_compatible',
+        modelUsed: model,
+        latencyMs,
+        sampleReply: sampleReply.slice(0, 60) || 'OK',
+        message: `اتصال به سرویس OpenAI-Compatible (${model}) در ${latencyMs}ms با موفقیت تایید شد.`,
+      };
+    }
+
+    // Google Gemini live test
+    const effectiveGeminiKey = effectiveKey || resolveServerGeminiKey();
+    if (!effectiveGeminiKey) {
+      return {
+        ok: false,
+        connected: false,
+        slotKey: params.slotKey,
+        providerUsed: 'gemini',
+        modelUsed: model,
+        latencyMs: Math.max(1, Date.now() - startedAt),
+        message: 'کلید API جمنای (Gemini) تنظیم نشده است.',
+        error: 'MISSING_GEMINI_API_KEY',
+        hint: 'کلید اختصاصی API را در همین کارت وارد و ذخیره کنید یا در متغیر محیطی GEMINI_API_KEY سرور تنظیم نمایید.',
+      };
+    }
+
+    const ai = buildGeminiClient(effectiveGeminiKey);
+    const probeModel =
+      params.slotKey === 'image_visual' && /image/i.test(model)
+        ? 'gemini-4-hydrogen'
+        : model;
+    const response = await ai.models.generateContent({
+      model: probeModel,
+      contents: 'Reply with a single word: OK',
+    });
+    const latencyMs = Math.max(1, Date.now() - startedAt);
+    const sampleReply = String(response.text || 'OK').trim().slice(0, 60);
+    return {
+      ok: true,
+      connected: true,
+      slotKey: params.slotKey,
+      providerUsed: 'gemini',
+      modelUsed: model,
+      latencyMs,
+      sampleReply,
+      message: `اتصال به Google Gemini (${model}) در ${latencyMs}ms با موفقیت برقرار و تایید شد.`,
+    };
+  } catch (err) {
+    const latencyMs = Math.max(1, Date.now() - startedAt);
+    const formatted =
+      normalizedProvider === 'gemini'
+        ? formatGeminiErrorFa(err, model)
+        : {
+            error: err instanceof Error ? err.message : 'خطای ارتباط با سرور هوش مصنوعی',
+          };
+    return {
+      ok: false,
+      connected: false,
+      slotKey: params.slotKey,
+      providerUsed: normalizedProvider,
+      modelUsed: model,
+      latencyMs,
+      message: formatted.error,
+      error: formatted.error,
+      hint: formatted.hint,
+    };
+  }
 }
 
 export interface ImageStudioResult {

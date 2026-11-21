@@ -157,28 +157,59 @@ export function createBotsWebhooksRouter() {
         return;
       }
       const token = decryptSecret(bot.bot_token_enc);
+      const safeBotToken = String(token || '')
+        .trim()
+        .replace(/^bot/i, '')
+        .replace(/[^\w:-]/g, '');
+      const safeEitaaToken = String(token || '')
+        .trim()
+        .replace(/[^\w:-]/g, '');
       const testText = `پیام آزمایشی از سامانه مدیریت محتوا (${bot.title_fa})`;
       let endpoint = '';
       if (bot.platform === 'bale') {
-        endpoint = `https://tapi.bale.ai/bot${encodeURIComponent(token)}/sendMessage`;
+        endpoint = `https://tapi.bale.ai/bot${safeBotToken}/sendMessage`;
       } else if (bot.platform === 'telegram') {
-        endpoint = `https://api.telegram.org/bot${encodeURIComponent(token)}/sendMessage`;
+        endpoint = `https://api.telegram.org/bot${safeBotToken}/sendMessage`;
       } else {
-        endpoint = `https://eitaayar.ir/api/${encodeURIComponent(token)}/sendMessage`;
+        endpoint = `https://eitaayar.ir/api/${safeEitaaToken}/sendMessage`;
       }
 
       let okSent = false;
       let httpStatus = 0;
       let errMsg: string | undefined;
       try {
-        const resp = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: bot.chat_id, text: testText }),
-        });
+        const resp =
+          bot.platform === 'eitaa'
+            ? await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
+                },
+                body: new URLSearchParams({
+                  chat_id: String(bot.chat_id || '').trim(),
+                  text: testText,
+                }).toString(),
+              })
+            : await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: String(bot.chat_id || '').trim(),
+                  text: testText,
+                }),
+              });
         httpStatus = resp.status;
-        okSent = resp.ok;
-        if (!resp.ok) errMsg = `HTTP ${resp.status}`;
+        const rawText = await resp.text().catch(() => '');
+        let parsed: { ok?: boolean; description?: string; error?: string } = {};
+        try {
+          parsed = rawText ? JSON.parse(rawText) : {};
+        } catch {
+          // ignore non-json
+        }
+        okSent = resp.ok && parsed.ok !== false;
+        if (!okSent) {
+          errMsg = parsed.description || parsed.error || rawText.slice(0, 180) || `HTTP ${resp.status}`;
+        }
       } catch (err) {
         errMsg = err instanceof Error ? err.message : 'خطای ارتباط شبکه';
       }

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import {
+  Activity,
   Bot,
+  CheckCircle2,
+  Loader2,
   Mic,
   MicOff,
   Radio,
@@ -8,6 +11,7 @@ import {
   ShieldAlert,
   Sparkles,
   Wrench,
+  XCircle,
 } from 'lucide-react';
 import { apiJson } from '../../src/core/apiClient';
 import { AiScheduledTasksCard, type AgentTaskItem } from './AiScheduledTasksCard';
@@ -55,6 +59,43 @@ export const AiCommandCenterCard: React.FC<{
   const [sending, setSending] = useState(false);
   const [listening, setListening] = useState(false);
   const [testingBridge, setTestingBridge] = useState(false);
+  const [testingAgent, setTestingAgent] = useState(false);
+  const [agentConnStatus, setAgentConnStatus] = useState<{
+    connected: boolean;
+    latencyMs?: number;
+    message: string;
+    hint?: string;
+  } | null>(null);
+
+  const handleTestAgent247 = async () => {
+    setTestingAgent(true);
+    try {
+      const { ok, data } = await apiJson<{
+        connected?: boolean;
+        latencyMs?: number;
+        message?: string;
+        error?: string;
+        hint?: string;
+      }>('/api/v1/modules/ai-hub/slots/test', {
+        method: 'POST',
+        body: JSON.stringify({ slotKey: 'agent_core' }),
+      });
+      const connected = Boolean(ok && data.connected);
+      const msg =
+        data.message ||
+        data.error ||
+        (connected ? 'اتصال هسته هوش مصنوعی ۲۴/۷ برقرار است.' : 'هسته هوش مصنوعی ۲۴/۷ متصل نیست.');
+      setAgentConnStatus({
+        connected,
+        latencyMs: data.latencyMs,
+        message: msg,
+        hint: data.hint,
+      });
+      onNotice?.(connected ? 'success' : 'error', msg);
+    } finally {
+      setTestingAgent(false);
+    }
+  };
 
   const handleToggleSettings = async (patch: Record<string, unknown>) => {
     const { ok, data } = await apiJson<{ ok?: boolean; error?: string }>(
@@ -187,6 +228,48 @@ export const AiCommandCenterCard: React.FC<{
               حالت پیشرفته ۲۴/۷
             </button>
           </div>
+          <div className="pt-1 flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              disabled={testingAgent}
+              onClick={() => void handleTestAgent247()}
+              className="px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[11px] font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              {testingAgent ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Activity className="w-3.5 h-3.5" />
+              )}
+              <span>{testingAgent ? 'در حال بررسی اتصال...' : 'تست اتصال هسته هوش مصنوعی ۲۴/۷'}</span>
+            </button>
+          </div>
+          {agentConnStatus && (
+            <div
+              className={`p-2.5 rounded-xl border text-[11px] space-y-0.5 ${
+                agentConnStatus.connected
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
+                  : 'border-rose-500/30 bg-rose-500/10 text-rose-800 dark:text-rose-200'
+              }`}
+            >
+              <div className="flex items-center justify-between font-extrabold">
+                <span className="inline-flex items-center gap-1">
+                  {agentConnStatus.connected ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                  )}
+                  <span>{agentConnStatus.connected ? 'متصل و آماده پاسخگویی' : 'عدم اتصال'}</span>
+                </span>
+                {typeof agentConnStatus.latencyMs === 'number' && (
+                  <span className="font-mono text-[10px]" dir="ltr">
+                    {agentConnStatus.latencyMs}ms
+                  </span>
+                )}
+              </div>
+              <p className="leading-relaxed">{agentConnStatus.message}</p>
+              {agentConnStatus.hint && <p className="text-[10px] opacity-85">💡 {agentConnStatus.hint}</p>}
+            </div>
+          )}
         </div>
 
         <div className="p-4 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/50 space-y-2 text-xs">
@@ -248,7 +331,12 @@ export const AiCommandCenterCard: React.FC<{
           </span>
         </div>
 
-        <div className="h-60 overflow-y-auto p-4 space-y-2.5 bg-stone-50/50 dark:bg-stone-950/60">
+        <div
+          data-lenis-prevent
+          data-lenis-prevent-wheel
+          onWheel={(e) => e.stopPropagation()}
+          className="h-60 overflow-y-auto overscroll-contain p-4 space-y-2.5 bg-stone-50/50 dark:bg-stone-950/60"
+        >
           {conversations.length === 0 ? (
             <div className="text-center text-xs text-stone-400 py-14">
               فرمان متنی یا صوتی خود را وارد کنید (مثلاً: «گزارش پیام‌های فوری و پیشنهاد سئو را در صف تایید ثبت کن»).

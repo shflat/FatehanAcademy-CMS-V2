@@ -26,7 +26,7 @@ export function createModAutoBackupRouter(): express.Router {
   router.get(
     '/api/v1/modules/auto-backup/archives',
     requireAuth,
-    requirePermission('super_admin'),
+    requirePermission('canManageBackups'),
     async (_req: AuthenticatedRequest, res) => {
       try {
         const archives = await dbQuery<Record<string, unknown>>(
@@ -56,7 +56,7 @@ export function createModAutoBackupRouter(): express.Router {
   router.post(
     '/api/v1/modules/auto-backup/run-encrypted',
     requireAuth,
-    requirePermission('super_admin'),
+    requirePermission('canManageBackups'),
     async (req: AuthenticatedRequest, res) => {
       try {
         const b = req.body || {};
@@ -144,9 +144,48 @@ export function createModAutoBackupRouter(): express.Router {
         const archives = await dbQuery<Record<string, unknown>>(
           'SELECT * FROM mod_auto_backup_archives ORDER BY created_at DESC LIMIT 40'
         );
-        res.json({ ok: true, createdId: id, archiveName, checksumSha256, archives });
+        res.json({
+          ok: true,
+          createdId: id,
+          archiveName,
+          sizeBytes: encryptedBuf.byteLength,
+          downloadUrl: `/api/v1/modules/auto-backup/download/${encodeURIComponent(id)}`,
+          checksumSha256,
+          archives,
+        });
       } catch (err) {
         res.status(500).json({ error: err instanceof Error ? err.message : 'خطا در تولید بکاپ رمزنگاری‌شده' });
+      }
+    }
+  );
+
+  // Download an encrypted backup archive from BACKUP_DIR
+  router.get(
+    '/api/v1/modules/auto-backup/download/:id',
+    requireAuth,
+    requirePermission('canManageBackups'),
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const archiveId = String(req.params.id || '').trim();
+        const rows = await dbQuery<{ archive_name: string }>(
+          'SELECT archive_name FROM mod_auto_backup_archives WHERE id = $1 LIMIT 1',
+          [archiveId]
+        );
+        const archiveName = path.basename(String(rows[0]?.archive_name || ''));
+        if (!archiveName) {
+          res.status(404).json({ error: 'آرشیو پشتیبان مورد نظر یافت نشد.' });
+          return;
+        }
+        const filePath = path.join(BACKUP_DIR, archiveName);
+        if (!fs.existsSync(filePath)) {
+          res.status(404).json({ error: 'فایل فیزیکی پشتیبان روی سرور یافت نشد.' });
+          return;
+        }
+        res.setHeader('Content-Disposition', `attachment; filename="${archiveName}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.sendFile(filePath);
+      } catch (err) {
+        res.status(500).json({ error: err instanceof Error ? err.message : 'خطا در دانلود آرشیو بکاپ' });
       }
     }
   );

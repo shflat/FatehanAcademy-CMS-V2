@@ -31,7 +31,7 @@ import type {
   SkillProduct,
   ThemeConfig,
 } from '../../core/types';
-import { apiJson } from '../../core/apiClient';
+import { apiJson, emitGlobalToast } from '../../core/apiClient';
 import {
   canUserUseAiSeo,
   resolveEffectivePermissions,
@@ -135,6 +135,7 @@ interface AdminCmsViewProps {
   onRevokeSession: (sessionId: string) => void;
   onUpdateOtpConfig: (next: OtpSecurityConfig) => void;
   onUpdateTheme: (next: ThemeConfig) => void;
+  onSaveThemeNow?: (next?: ThemeConfig, successText?: string) => Promise<void>;
   onOpenDynamicPage?: (page: CmsDynamicPage) => void;
   onDownloadStarterZip?: () => Promise<void>;
 }
@@ -244,6 +245,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
   onRevokeSession,
   onUpdateOtpConfig,
   onUpdateTheme,
+  onSaveThemeNow,
   onOpenDynamicPage,
 }) => {
   const [section, setSection] = useState<AdminSection>('dashboard');
@@ -337,6 +339,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
   );
 
   const showNotice = useCallback((type: 'success' | 'error', text: string) => {
+    emitGlobalToast(type, text);
     if (noticeTimerRef.current) {
       clearTimeout(noticeTimerRef.current);
     }
@@ -1197,6 +1200,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
               }
               accentButtonClass={accentButtonClass}
               onUpdateThemeConfig={onUpdateTheme}
+              onSaveThemeNow={onSaveThemeNow}
               onUpdateAiConfig={onUpdateAiConfig}
               onUpdateOtpConfig={onUpdateOtpConfig}
               onUpdateRoles={onUpdateRoles}
@@ -1285,6 +1289,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
               onRevokeSession={onRevokeSession}
               onUpdateOtpConfig={onUpdateOtpConfig}
               onUpdateTheme={onUpdateTheme}
+              onSaveThemeNow={onSaveThemeNow}
               onGoToSms={() => handleSelectSection('settings_hub:sms')}
               onRefreshFromServer={onRefreshFromServer}
               onNotice={showNotice}
