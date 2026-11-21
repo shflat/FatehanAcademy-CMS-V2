@@ -155,3 +155,14 @@
 - [x] **P11-V27.6 (Logged-In Exclusive Urgent Priority + Inline OTP Login Inside Chat + `update_visitor_user_profile` Tool):** محدودسازی سرورساید اولویت «فوری» به کاربران لاگین‌شده، فرم ورود/ثبت‌نام درون‌خطی موبایل و OTP داخل پنجره چت بدون رفرش (`ChatInlineOtpCard.tsx`, `/api/v1/modules/live-chat/link-session`) و تکمیل خودکار نام کاربر در جدول `users` توسط ابزار بک‌اند `update_visitor_user_profile` ایجنت (`Done - v2.7.0`)
 - [x] **P11-V27.7 (Governance Audit Gate v2.7.0):** کامپایل، لینت TypeScript، اجرای هر ۵ ایجنت حاکمیتی، ریستارت سرور توسعه و تست زنده HTTP (رمزنگاری کلید، خطای ۴۰۳ ادمین عادی، چت و تکمیل پروفایل، پرامپت تصویر) (`Done - v2.7.0`)
 
+---
+
+## PHASE 13: v2.8.0 — AUTONOMOUS AGENT TOOLS, MEMORY, VOICE SLOT 4, BALE BRIDGE & BULLETPROOF BACKUP
+- [x] **13.1.1 Bulletproof Schema-Tolerant JSON & SQL Backup/Restore** (PostgreSQL + SQLite, zero silent errors, exact restored rows/tables count, HTTP 422 on 0-row failure).
+- [x] **13.1.2 Add AI Hub Slot 4 (`voice_audio`) & GapGPT Whisper STT** (`gapgpt/whisper-1`, AES-256-GCM key, replace broken browser Web Speech API with `MediaRecorder` + `/api/v1/modules/ai-hub/agent/transcribe`).
+- [ ] **13.2.1 Per-User & Per-Role Agent Memory DB Tables + Always-On `SKILL.md` Injection** (separate memory/history for `super_admin`, `admin`, `customer`, `guest` with zero cross-user leakage).
+- [ ] **13.2.2 Real Multi-Step Tool-Calling Engine (8 CMS Tools)** (`inspect_site_capabilities`, `search_site_catalog`, `read_system_logs`, `save_learned_skill`, `trigger_chat_otp_box`, `update_visitor_user_profile`, `create_or_submit_user_request`, `create_site_form`).
+- [ ] **13.2.3 Interactive Storefront Live Chat Inline OTP Box** (`uiAction: 'OPEN_INLINE_OTP'` renders/expands mobile + OTP signup directly inside chat).
+- [ ] **13.3.1 24/7 Agent ↔ Bale Bot Proactive Alert & Approval Bridge** (push alerts to Super Admin Bale `chat_id` for new requests, successful/failed orders, critical `system_logs` errors, and sensitive action approvals).
+- [ ] **13.3.2 Fix Bale Safir OTP OAuth2 Flow (`HTTP 401`)** (separate Bot API token from Safir `client_id`/`client_secret` OAuth2 token exchange).
+

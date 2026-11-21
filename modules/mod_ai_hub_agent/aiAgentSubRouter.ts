@@ -7,7 +7,10 @@ import {
   requireStrictSuperAdmin,
   saveAiHubSettings,
 } from './aiHubSchema.js';
-import { generateTextViaSlot } from './aiProviderGateway.js';
+import {
+  generateTextViaSlot,
+  transcribeAudioViaVoiceSlot,
+} from './aiProviderGateway.js';
 import {
   dispatchAgentBotBridgeAlert,
   queueAgentApproval,
@@ -246,6 +249,102 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
         res.json({ ok: true, ...result });
       } catch (err) {
         res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'Bot bridge error' });
+      }
+    }
+  );
+
+  // Super Admin ONLY: Voice-to-Text via Slot 4 (voice_audio / GapGPT Whisper STT)
+  router.post(
+    '/api/v1/modules/ai-hub/agent/transcribe',
+    requireStrictSuperAdmin,
+    express.raw({
+      type: ['audio/*', 'application/octet-stream', 'multipart/form-data'],
+      limit: '25mb',
+    }),
+    async (req, res) => {
+      try {
+        await ensureAiHubSchema();
+        const contentType = String(req.headers['content-type'] || '').toLowerCase();
+        let audioBuffer: Buffer | null = null;
+        let mimeType = 'audio/webm';
+        let filename = 'voice_command.webm';
+        let language = 'fa';
+
+        if (contentType.includes('multipart/form-data') && Buffer.isBuffer(req.body)) {
+          const parsedForm = await new Response(new Uint8Array(req.body), {
+            headers: { 'content-type': String(req.headers['content-type'] || '') },
+          }).formData();
+          const fileEntry = parsedForm.get('file') || parsedForm.get('audio');
+          const langEntry = parsedForm.get('language');
+          if (typeof langEntry === 'string' && langEntry.trim()) {
+            language = langEntry.trim().slice(0, 12);
+          }
+          if (fileEntry && typeof fileEntry !== 'string') {
+            const arrBuf = await fileEntry.arrayBuffer();
+            audioBuffer = Buffer.from(arrBuf);
+            mimeType = fileEntry.type || mimeType;
+            filename = fileEntry.name || filename;
+          }
+        } else if (contentType.includes('application/json') && req.body && typeof req.body === 'object') {
+          const b = req.body as {
+            audioBase64?: string;
+            mimeType?: string;
+            filename?: string;
+            language?: string;
+          };
+          const rawB64 = String(b.audioBase64 || '').trim();
+          if (rawB64) {
+            const dataUrlMatch = rawB64.match(/^data:([^;]+);base64,(.+)$/i);
+            const pureB64 = dataUrlMatch ? dataUrlMatch[2] : rawB64;
+            if (dataUrlMatch?.[1]) mimeType = dataUrlMatch[1];
+            audioBuffer = Buffer.from(pureB64, 'base64');
+          }
+          if (b.mimeType) mimeType = String(b.mimeType);
+          if (b.filename) filename = String(b.filename);
+          if (b.language) language = String(b.language).trim().slice(0, 12) || 'fa';
+        } else if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+          audioBuffer = req.body;
+          mimeType = contentType.split(';')[0] || 'audio/webm';
+        }
+
+        if (!audioBuffer || audioBuffer.length === 0) {
+          res.status(400).json({
+            ok: false,
+            error: 'فایل صوتی ارسال نشده یا خالی است.',
+          });
+          return;
+        }
+
+        const maxBytes = 20 * 1024 * 1024;
+        if (audioBuffer.length > maxBytes) {
+          res.status(413).json({
+            ok: false,
+            error: 'حجم فایل صوتی بیش از حد مجاز (۲۰ مگابایت) است.',
+          });
+          return;
+        }
+
+        const result = await transcribeAudioViaVoiceSlot({
+          audioBuffer,
+          mimeType,
+          filename,
+          language,
+        });
+
+        res.json({
+          ok: true,
+          ...result,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'خطا در تبدیل ویس به متن';
+        await writeSystemLog({
+          level: 'error',
+          category: 'system',
+          title: 'خطا در سرویس تبدیل ویس به متن (Slot 4 STT)',
+          detail: msg,
+          sqlOrEndpoint: 'POST /api/v1/modules/ai-hub/agent/transcribe',
+        });
+        res.status(400).json({ ok: false, error: msg });
       }
     }
   );

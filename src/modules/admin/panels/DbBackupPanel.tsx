@@ -79,6 +79,16 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
   const [restoreContent, setRestoreContent] = useState<string>('');
   const [restoreFilename, setRestoreFilename] = useState<string>('');
   const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreReport, setRestoreReport] = useState<{
+    ok: boolean;
+    status: number;
+    restoredTables: number;
+    restoredRows: number;
+    attemptedRows: number;
+    errors: string[];
+    errorCount: number;
+    message: string;
+  } | null>(null);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [lastCreatedBackup, setLastCreatedBackup] = useState<{
     item: BackupHistoryItem;
@@ -327,31 +337,70 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
       return;
     }
     setIsRestoring(true);
+    setRestoreReport(null);
     try {
-      const format = restoreFilename.endsWith('.sql') ? 'sql' : 'json';
-      const { ok, data } = await apiJson<{
+      const format = restoreFilename.toLowerCase().endsWith('.sql') ? 'sql' : 'json';
+      const { ok, status, data } = await apiJson<{
+        ok?: boolean;
         error?: string;
         restoredRows?: number;
+        restoredTables?: number;
+        restoredTableNames?: string[];
+        attemptedRows?: number;
+        errors?: string[];
+        errorCount?: number;
       }>('/api/admin/backup/restore', {
         method: 'POST',
         body: JSON.stringify({ content: restoreContent, format }),
       });
-      if (!ok) throw new Error(data.error || 'خطای بازگردانی بکاپ');
-      onNotice(
-        'success',
-        `بازگردانی موفق انجام شد! ${Number(
-          data.restoredRows || 0
-        ).toLocaleString('fa-IR')} رکورد در جداول ثبت شد.`
-      );
+
+      const restoredRows = Number(data.restoredRows || 0);
+      const restoredTables = Number(data.restoredTables || 0);
+      const attemptedRows = Number(data.attemptedRows || 0);
+      const errorsList = Array.isArray(data.errors) ? data.errors : [];
+      const errorCount = Number(data.errorCount || errorsList.length || 0);
+
+      if (!ok) {
+        const errMsg =
+          data.error ||
+          (errorsList[0] ? `خطای بازیابی: ${errorsList[0]}` : 'خطای بازگردانی بکاپ');
+        setRestoreReport({
+          ok: false,
+          status,
+          restoredTables,
+          restoredRows,
+          attemptedRows,
+          errors: errorsList,
+          errorCount,
+          message: errMsg,
+        });
+        onNotice('error', errMsg);
+        return;
+      }
+
+      const successMsg =
+        errorCount > 0
+          ? `بازگردانی انجام شد: ${restoredRows.toLocaleString('fa-IR')} رکورد در ${restoredTables.toLocaleString('fa-IR')} جدول بازیابی شد (${errorCount.toLocaleString('fa-IR')} خطای جزئی).`
+          : `بازگردانی موفق انجام شد! ${restoredRows.toLocaleString('fa-IR')} رکورد در ${restoredTables.toLocaleString('fa-IR')} جدول بازیابی و ثبت شد.`;
+
+      setRestoreReport({
+        ok: true,
+        status,
+        restoredTables,
+        restoredRows,
+        attemptedRows,
+        errors: errorsList,
+        errorCount,
+        message: successMsg,
+      });
+      onNotice('success', successMsg);
       setRestoreContent('');
       setRestoreFilename('');
       await loadDbAndBackups();
       onDataRestored?.();
     } catch (err) {
-      onNotice(
-        'error',
-        err instanceof Error ? err.message : 'خطا در بازیابی اطلاعات'
-      );
+      const errMsg = err instanceof Error ? err.message : 'خطا در بازیابی اطلاعات';
+      onNotice('error', errMsg);
     } finally {
       setIsRestoring(false);
     }
@@ -906,6 +955,34 @@ export const DbBackupPanel: React.FC<DbBackupPanelProps> = ({
                   : 'اجرای بازگردانی و ثبت در سامانه'}
               </button>
             </div>
+
+            {restoreReport && (
+              <div
+                className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+                  restoreReport.ok && restoreReport.errorCount === 0
+                    ? 'border-emerald-500/35 bg-emerald-50/70 dark:bg-emerald-950/25 text-emerald-900 dark:text-emerald-200'
+                    : restoreReport.ok
+                    ? 'border-amber-500/40 bg-amber-50/70 dark:bg-amber-950/25 text-amber-900 dark:text-amber-200'
+                    : 'border-rose-500/40 bg-rose-50/70 dark:bg-rose-950/25 text-rose-900 dark:text-rose-200'
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 font-extrabold">
+                  <span>{restoreReport.message}</span>
+                  <span className="px-2 py-0.5 rounded bg-black/10 text-[11px] smooth-nums">
+                    {restoreReport.restoredTables.toLocaleString('fa-IR')} جدول ·{' '}
+                    {restoreReport.restoredRows.toLocaleString('fa-IR')} رکورد
+                    {!restoreReport.ok ? ` (HTTP ${restoreReport.status})` : ''}
+                  </span>
+                </div>
+                {restoreReport.errors.length > 0 && (
+                  <ul className="list-disc pr-4 space-y-1 text-[11px] font-mono opacity-90 max-h-36 overflow-y-auto" dir="ltr">
+                    {restoreReport.errors.slice(0, 10).map((errLine, idx) => (
+                      <li key={idx}>{errLine}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
 
           {/* History Table */}

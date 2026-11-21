@@ -50,6 +50,8 @@ export {
 } from './catalogOrdersRepo.js';
 
 export {
+  type BackupRestoreResult,
+  BackupRestoreError,
   getDatabaseStatus,
   runDatabaseReadWriteHealthTest,
   executeReadOnlySql,

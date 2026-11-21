@@ -7,6 +7,7 @@ import {
   syncPermissionsToDbAndFile,
 } from '../../core/permissionsEngine.js';
 import {
+  BackupRestoreError,
   createBackupSnapshot,
   executeReadOnlySql,
   getBackupFileById,
@@ -177,6 +178,14 @@ export function createAdminDbBackupRouter(): express.Router {
         await syncPermissionsToDbAndFile();
         res.json({ ok: true, ...result });
       } catch (error) {
+        if (error instanceof BackupRestoreError) {
+          res.status(error.statusCode).json({
+            ok: false,
+            error: error.message,
+            ...error.details,
+          });
+          return;
+        }
         await writeSystemLog({
           level: 'error',
           category: 'backup',
@@ -185,6 +194,7 @@ export function createAdminDbBackupRouter(): express.Router {
           sqlOrEndpoint: 'POST /api/admin/backup/restore',
         });
         res.status(400).json({
+          ok: false,
           error: error instanceof Error ? error.message : 'خطا در بازیابی فایل',
         });
       }

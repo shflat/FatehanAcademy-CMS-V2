@@ -97,7 +97,7 @@ export const AiHubAgentPanel: React.FC<{
   const pendingCount = approvals.filter((a) => a.status === 'pending').length;
 
   const tabs: { id: HubTab; label: string; icon: React.ReactNode; superOnly?: boolean; badge?: number }[] = [
-    { id: 'slots', label: '۳ اسلات موتور هوش مصنوعی', icon: <Sliders className="w-3.5 h-3.5" /> },
+    { id: 'slots', label: '۴ اسلات موتور هوش مصنوعی', icon: <Sliders className="w-3.5 h-3.5" /> },
     { id: 'studio', label: 'استودیو پرامپت و تصویر', icon: <ImageIcon className="w-3.5 h-3.5" /> },
     { id: 'command', label: 'مرکز فرماندهی ۲۴/۷ و ویس', icon: <Bot className="w-3.5 h-3.5" />, superOnly: true },
     { id: 'skills', label: 'حافظه SKILL.md', icon: <BookOpen className="w-3.5 h-3.5" />, superOnly: true },
@@ -128,7 +128,7 @@ export const AiHubAgentPanel: React.FC<{
               </span>
             </div>
             <p className="text-xs text-stone-500 mt-0.5">
-              مسیریابی ۳ اسلات مجزا (Gemini / OpenAI-Compatible / Ollama)، رمزنگاری AES-256-GCM، حافظه SKILL.md و ایجنت چت هوشمند
+              مسیریابی ۴ اسلات مجزا (متن/سئو، تصویر، ایجنت ۲۴/۷ و صوت/ویس Whisper)، رمزنگاری AES-256-GCM، حافظه SKILL.md و ایجنت چت هوشمند
             </p>
           </div>
         </div>

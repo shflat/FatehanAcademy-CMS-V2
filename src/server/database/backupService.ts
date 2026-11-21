@@ -186,12 +186,28 @@ export async function executeReadOnlySql(rawSql: string) {
   };
 }
 
-function escapeSqlLiteral(val: unknown): string {
+function escapeSqlLiteral(val: unknown, engine: SqlEngineKind): string {
   if (val === null || val === undefined) return 'NULL';
-  if (typeof val === 'number' || typeof val === 'bigint') return String(val);
-  if (typeof val === 'boolean') return val ? '1' : '0';
+  if (typeof val === 'number') return Number.isFinite(val) ? String(val) : 'NULL';
+  if (typeof val === 'bigint') return String(val);
+  if (typeof val === 'boolean') {
+    return engine === 'postgresql' ? (val ? 'TRUE' : 'FALSE') : val ? '1' : '0';
+  }
+  if (val instanceof Date) {
+    return `'${val.toISOString().replace(/'/g, "''")}'`;
+  }
+  if (typeof val === 'object') {
+    return `'${JSON.stringify(val).replace(/'/g, "''")}'`;
+  }
   const str = String(val).replace(/'/g, "''");
   return `'${str}'`;
+}
+
+function quoteIdent(name: string): string {
+  if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+    throw new Error(`شناسه نامعتبر در دیتابیس: ${name}`);
+  }
+  return `"${name}"`;
 }
 
 async function discoverAllDatabaseTables(): Promise<string[]> {
@@ -227,6 +243,24 @@ async function discoverAllDatabaseTables(): Promise<string[]> {
   }
 }
 
+async function getActualTableColumns(tableName: string): Promise<string[]> {
+  if (!/^[a-zA-Z0-9_]+$/.test(tableName)) return [];
+  const activeEngine = getActiveEngine();
+  if (activeEngine === 'postgresql') {
+    const rows = await dbQuery<{ column_name: string }>(
+      `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position ASC`,
+      [tableName]
+    );
+    return rows
+      .map((r) => String(r.column_name || ''))
+      .filter((c) => /^[a-zA-Z0-9_]+$/.test(c));
+  }
+  const rows = await dbQuery<{ name: string }>(`PRAGMA table_info(${quoteIdent(tableName)})`);
+  return rows
+    .map((r) => String(r.name || ''))
+    .filter((c) => /^[a-zA-Z0-9_]+$/.test(c));
+}
+
 export async function generateFullBackupPayload(): Promise<{
   tables: Record<string, Record<string, unknown>[]>;
   jsonString: string;
@@ -237,7 +271,9 @@ export async function generateFullBackupPayload(): Promise<{
   const tableNames = await discoverAllDatabaseTables();
 
   for (const tName of tableNames) {
-    exportedTables[tName] = await dbQuery<Record<string, unknown>>(`SELECT * FROM ${tName}`);
+    exportedTables[tName] = await dbQuery<Record<string, unknown>>(
+      `SELECT * FROM ${quoteIdent(tName)}`
+    );
   }
 
   const envelope = {
@@ -245,7 +281,7 @@ export async function generateFullBackupPayload(): Promise<{
       service: 'skill98-platform',
       engine: activeEngine,
       exportedAt: new Date().toISOString(),
-      version: '2.6',
+      version: '2.8',
       tablesCount: tableNames.length,
     },
     tables: exportedTables,
@@ -254,20 +290,25 @@ export async function generateFullBackupPayload(): Promise<{
   const jsonString = JSON.stringify(envelope, null, 2);
 
   const sqlLines: string[] = [
-    `-- Skill 98 Full Relational SQL Backup`,
+    `-- Skill 98 Full Relational SQL Backup (PostgreSQL & SQLite Compatible)`,
     `-- Exported At: ${envelope.meta.exportedAt} (Engine: ${activeEngine})`,
     `BEGIN;`,
   ];
 
+  // Emit TRUNCATE statements upfront so PostgreSQL CASCADE clears cleanly before inserts
+  for (const tName of tableNames) {
+    sqlLines.push(`TRUNCATE TABLE ${quoteIdent(tName)} RESTART IDENTITY CASCADE;`);
+  }
+
   for (const tName of tableNames) {
     const rows = exportedTables[tName] || [];
     sqlLines.push(`\n-- Table: ${tName} (${rows.length} rows)`);
-    sqlLines.push(`DELETE FROM ${tName};`);
     for (const row of rows) {
-      const cols = Object.keys(row);
+      const cols = Object.keys(row).filter((c) => /^[a-zA-Z0-9_]+$/.test(c));
       if (cols.length === 0) continue;
-      const vals = cols.map((c) => escapeSqlLiteral(row[c]));
-      sqlLines.push(`INSERT INTO ${tName} (${cols.join(', ')}) VALUES (${vals.join(', ')});`);
+      const quotedCols = cols.map((c) => quoteIdent(c)).join(', ');
+      const vals = cols.map((c) => escapeSqlLiteral(row[c], activeEngine));
+      sqlLines.push(`INSERT INTO ${quoteIdent(tName)} (${quotedCols}) VALUES (${vals.join(', ')});`);
     }
   }
   sqlLines.push(`COMMIT;`);
@@ -549,73 +590,393 @@ export async function getBackupFileById(
   };
 }
 
-export async function restoreBackupFromContent(rawContent: string, formatHint?: 'json' | 'sql') {
+export interface BackupRestoreResult {
+  format: 'json' | 'sql';
+  engine: SqlEngineKind;
+  restoredTables: number;
+  restoredTableNames: string[];
+  restoredRows: number;
+  attemptedRows: number;
+  errors: string[];
+  errorCount: number;
+}
+
+export class BackupRestoreError extends Error {
+  statusCode: number;
+  details: BackupRestoreResult;
+
+  constructor(statusCode: number, message: string, details: BackupRestoreResult) {
+    super(message);
+    this.name = 'BackupRestoreError';
+    this.statusCode = statusCode;
+    this.details = details;
+  }
+}
+
+function normalizeRestoreParamValue(val: unknown): unknown {
+  if (val === undefined || val === null) return null;
+  if (val instanceof Date) return val.toISOString();
+  if (typeof val === 'object') return JSON.stringify(val);
+  return val;
+}
+
+/**
+ * Quote-aware SQL statement splitter that preserves semicolons and newlines
+ * inside single-quoted string literals and double-quoted identifiers.
+ */
+function splitSqlStatements(rawSql: string): string[] {
+  const statements: string[] = [];
+  let current = '';
+  let inSingle = false;
+  let inDouble = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < rawSql.length; i++) {
+    const ch = rawSql[i];
+    const next = rawSql[i + 1] || '';
+
+    if (inLineComment) {
+      if (ch === '\n') {
+        inLineComment = false;
+        current += '\n';
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (ch === '*' && next === '/') {
+        inBlockComment = false;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble) {
+      if (ch === '-' && next === '-') {
+        inLineComment = true;
+        i += 1;
+        continue;
+      }
+      if (ch === '/' && next === '*') {
+        inBlockComment = true;
+        i += 1;
+        continue;
+      }
+    }
+
+    if (ch === "'" && !inDouble) {
+      current += ch;
+      if (inSingle && next === "'") {
+        current += next;
+        i += 1;
+      } else {
+        inSingle = !inSingle;
+      }
+      continue;
+    }
+
+    if (ch === '"' && !inSingle) {
+      current += ch;
+      if (inDouble && next === '"') {
+        current += next;
+        i += 1;
+      } else {
+        inDouble = !inDouble;
+      }
+      continue;
+    }
+
+    if (ch === ';' && !inSingle && !inDouble) {
+      const trimmedStmt = current.trim();
+      if (trimmedStmt) {
+        statements.push(trimmedStmt);
+      }
+      current = '';
+      continue;
+    }
+
+    current += ch;
+  }
+
+  const tail = current.trim();
+  if (tail) {
+    statements.push(tail);
+  }
+
+  return statements.filter((s) => !/^(BEGIN|COMMIT|END|ROLLBACK)(\s+TRANSACTION)?$/i.test(s));
+}
+
+async function clearTargetTable(tableName: string, engine: SqlEngineKind): Promise<void> {
+  const quoted = quoteIdent(tableName);
+  if (engine === 'postgresql') {
+    await dbExec(`TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE`);
+  } else {
+    await dbExec(`DELETE FROM ${quoted}`);
+  }
+}
+
+export async function restoreBackupFromContent(
+  rawContent: string,
+  formatHint?: 'json' | 'sql'
+): Promise<BackupRestoreResult> {
   const trimmed = String(rawContent || '').trim();
   if (!trimmed) {
     throw new Error('فایل پشتیبان خالی است.');
   }
 
-  const detectedFormat: 'json' | 'sql' = formatHint || (trimmed.startsWith('{') ? 'json' : 'sql');
+  const activeEngine = getActiveEngine();
+  const detectedFormat: 'json' | 'sql' =
+    formatHint || (trimmed.startsWith('{') ? 'json' : 'sql');
 
   const discoveredTables = await discoverAllDatabaseTables();
   const allowedTables = new Set(discoveredTables);
 
+  const restoredTablesSet = new Set<string>();
   let restoredRows = 0;
+  let attemptedRows = 0;
+  const errors: string[] = [];
+  let errorCount = 0;
+
+  const pushError = (msg: string) => {
+    errorCount += 1;
+    if (errors.length < 50) {
+      errors.push(msg);
+    }
+  };
 
   if (detectedFormat === 'json') {
-    const parsed = JSON.parse(trimmed) as {
-      tables?: Record<string, Record<string, unknown>[]>;
-    };
-    if (!parsed?.tables || typeof parsed.tables !== 'object') {
-      throw new Error('ساختار فایل JSON پشتیبان معتبر نیست.');
+    let parsed: { tables?: Record<string, Record<string, unknown>[]> };
+    try {
+      parsed = JSON.parse(trimmed) as {
+        tables?: Record<string, Record<string, unknown>[]>;
+      };
+    } catch (err) {
+      throw new Error(
+        `فایل JSON پشتیبان قابل خواندن نیست: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
 
-    for (const [tableName, rows] of Object.entries(parsed.tables)) {
-      if (!allowedTables.has(tableName) || !Array.isArray(rows)) continue;
-      await dbExec(`DELETE FROM ${tableName}`);
-      for (const row of rows) {
-        const cols = Object.keys(row).filter((c) => /^[a-zA-Z0-9_]+$/.test(c));
-        if (cols.length === 0) continue;
-        const placeholders = cols.map((_, idx) => `$${idx + 1}`).join(', ');
-        const values = cols.map((c) => row[c] ?? null);
-        await dbExec(
-          `INSERT INTO ${tableName} (${cols.join(', ')}) VALUES (${placeholders})`,
-          values
+    if (!parsed?.tables || typeof parsed.tables !== 'object') {
+      throw new Error('ساختار فایل JSON پشتیبان معتبر نیست (کلید tables یافت نشد).');
+    }
+
+    const entries = Object.entries(parsed.tables);
+    const validEntries: [string, Record<string, unknown>[]][] = [];
+
+    for (const [tableName, rows] of entries) {
+      if (!Array.isArray(rows)) continue;
+      if (!allowedTables.has(tableName)) {
+        if (rows.length > 0) {
+          pushError(
+            `جدول "${tableName}" در اسکیمای فعلی دیتابیس وجود ندارد (${rows.length} رکورد رد شد).`
+          );
+        }
+        continue;
+      }
+      validEntries.push([tableName, rows]);
+    }
+
+    // Pass 1: Clear all target tables BEFORE inserting so PostgreSQL TRUNCATE CASCADE never wipes newly inserted tables
+    for (const [tableName] of validEntries) {
+      try {
+        await clearTargetTable(tableName, activeEngine);
+      } catch (err) {
+        pushError(
+          `[${tableName}] خطا در پاک‌سازی جدول پیش از بازیابی: ${
+            err instanceof Error ? err.message : String(err)
+          }`
         );
-        restoredRows += 1;
+      }
+    }
+
+    // Pass 2: Schema-tolerant column intersection + parameterized $1..$n inserts
+    for (const [tableName, rows] of validEntries) {
+      if (rows.length === 0) continue;
+
+      let actualCols: string[] = [];
+      try {
+        actualCols = await getActualTableColumns(tableName);
+      } catch (err) {
+        pushError(
+          `[${tableName}] خطا در خواندن ستون‌های جدول: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
+        continue;
+      }
+
+      if (actualCols.length === 0) {
+        pushError(`[${tableName}] هیچ ستونی برای جدول در دیتابیس یافت نشد.`);
+        continue;
+      }
+
+      const actualColSet = new Set(actualCols);
+      const quotedTable = quoteIdent(tableName);
+
+      for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
+        const row = rows[rowIdx];
+        if (!row || typeof row !== 'object') continue;
+        attemptedRows += 1;
+
+        const cols = Object.keys(row).filter(
+          (c) => /^[a-zA-Z0-9_]+$/.test(c) && actualColSet.has(c)
+        );
+        if (cols.length === 0) {
+          pushError(
+            `[${tableName} #${rowIdx + 1}] هیچ ستون مشترکی بین رکورد بکاپ و اسکیمای فعلی یافت نشد.`
+          );
+          continue;
+        }
+
+        const quotedCols = cols.map((c) => quoteIdent(c)).join(', ');
+        const placeholders = cols.map((_, idx) => `$${idx + 1}`).join(', ');
+        const values = cols.map((c) => normalizeRestoreParamValue(row[c]));
+
+        try {
+          await dbExec(
+            `INSERT INTO ${quotedTable} (${quotedCols}) VALUES (${placeholders})`,
+            values
+          );
+          restoredRows += 1;
+          restoredTablesSet.add(tableName);
+        } catch (err) {
+          pushError(
+            `[${tableName} #${rowIdx + 1}] ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
+        }
       }
     }
   } else {
-    const lines = trimmed
-      .split(/;\s*\n/)
-      .map((s) => s.trim())
-      .filter((s) => s && !s.startsWith('--') && !/^(BEGIN|COMMIT)$/i.test(s));
+    const statements = splitSqlStatements(trimmed);
+    const clearTablesOrder: string[] = [];
+    const clearTablesSeen = new Set<string>();
+    const insertStatements: { tableName: string; sql: string }[] = [];
 
-    for (const stmt of lines) {
-      if (/^DELETE\s+FROM\s+([a-zA-Z0-9_]+)$/i.test(stmt)) {
-        const tName = stmt.replace(/^DELETE\s+FROM\s+/i, '').trim();
-        if (!allowedTables.has(tName)) continue;
-        await dbExec(`DELETE FROM ${tName}`);
-      } else if (/^INSERT\s+INTO\s+([a-zA-Z0-9_]+)\s*\(/i.test(stmt)) {
-        const match = stmt.match(/^INSERT\s+INTO\s+([a-zA-Z0-9_]+)\s*\(/i);
-        const tName = match?.[1] || '';
-        if (!allowedTables.has(tName)) continue;
-        await dbExec(stmt);
+    for (const stmt of statements) {
+      const truncateMatch = stmt.match(
+        /^TRUNCATE\s+(?:TABLE\s+)?(?:"([a-zA-Z0-9_]+)"|([a-zA-Z0-9_]+))\b/i
+      );
+      if (truncateMatch) {
+        const tName = truncateMatch[1] || truncateMatch[2] || '';
+        if (!allowedTables.has(tName)) {
+          pushError(`جدول "${tName}" برای TRUNCATE در دیتابیس فعلی یافت نشد.`);
+          continue;
+        }
+        if (!clearTablesSeen.has(tName)) {
+          clearTablesSeen.add(tName);
+          clearTablesOrder.push(tName);
+        }
+        continue;
+      }
+
+      const deleteMatch = stmt.match(
+        /^DELETE\s+FROM\s+(?:"([a-zA-Z0-9_]+)"|([a-zA-Z0-9_]+))\s*$/i
+      );
+      if (deleteMatch) {
+        const tName = deleteMatch[1] || deleteMatch[2] || '';
+        if (!allowedTables.has(tName)) {
+          pushError(`جدول "${tName}" برای DELETE در دیتابیس فعلی یافت نشد.`);
+          continue;
+        }
+        if (!clearTablesSeen.has(tName)) {
+          clearTablesSeen.add(tName);
+          clearTablesOrder.push(tName);
+        }
+        continue;
+      }
+
+      const insertMatch = stmt.match(
+        /^INSERT\s+INTO\s+(?:"([a-zA-Z0-9_]+)"|([a-zA-Z0-9_]+))\s*\(/i
+      );
+      if (insertMatch) {
+        const tName = insertMatch[1] || insertMatch[2] || '';
+        if (!allowedTables.has(tName)) {
+          attemptedRows += 1;
+          pushError(`جدول "${tName}" برای INSERT در اسکیمای فعلی دیتابیس یافت نشد.`);
+          continue;
+        }
+        insertStatements.push({ tableName: tName, sql: stmt });
+        continue;
+      }
+
+      pushError(`دستور غیرمجاز یا ناشناخته در فایل SQL رد شد: ${stmt.slice(0, 80)}`);
+    }
+
+    // Pass 1: Clear target tables cleanly before executing INSERT statements
+    for (const tName of clearTablesOrder) {
+      try {
+        await clearTargetTable(tName, activeEngine);
+      } catch (err) {
+        pushError(
+          `[${tName}] خطا در پاک‌سازی جدول: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    }
+
+    // Pass 2: Execute INSERT statements and track every error transparently
+    for (let i = 0; i < insertStatements.length; i++) {
+      const item = insertStatements[i];
+      attemptedRows += 1;
+      try {
+        await dbExec(item.sql);
         restoredRows += 1;
+        restoredTablesSet.add(item.tableName);
+      } catch (err) {
+        pushError(
+          `[${item.tableName} SQL #${i + 1}] ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
       }
     }
   }
 
+  const restoredTableNames = Array.from(restoredTablesSet);
+  const result: BackupRestoreResult = {
+    format: detectedFormat,
+    engine: activeEngine,
+    restoredTables: restoredTableNames.length,
+    restoredTableNames,
+    restoredRows,
+    attemptedRows,
+    errors,
+    errorCount,
+  };
+
+  // Never allow a non-empty backup to silently succeed with 0 restored rows
+  if (attemptedRows > 0 && restoredRows === 0) {
+    const firstErr = errors[0] || 'هیچ رکوردی در دیتابیس ثبت نشد.';
+    const errorMessage = `بازیابی ناموفق بود (۰ از ${attemptedRows.toLocaleString(
+      'fa-IR'
+    )} رکورد بازیابی شد): ${firstErr}`;
+
+    await writeSystemLog({
+      level: 'error',
+      category: 'backup',
+      title: `شکست بازیابی بکاپ ${detectedFormat.toUpperCase()} (۰ رکورد)`,
+      detail: errorMessage,
+      sqlOrEndpoint: 'POST /api/admin/backup/restore',
+      payload: result,
+    });
+
+    throw new BackupRestoreError(422, errorMessage, result);
+  }
+
   await writeSystemLog({
-    level: 'success',
+    level: errorCount > 0 ? 'warning' : 'success',
     category: 'backup',
     title: `بازیابی اطلاعات از فایل ${detectedFormat.toUpperCase()}`,
-    detail: `تعداد ${restoredRows.toLocaleString('fa-IR')} رکورد در جداول سامانه بازیابی و ثبت شد.`,
+    detail: `تعداد ${restoredRows.toLocaleString('fa-IR')} رکورد در ${restoredTableNames.length.toLocaleString(
+      'fa-IR'
+    )} جدول بازیابی شد.${errorCount > 0 ? ` (${errorCount} خطای جزئی)` : ''}`,
     sqlOrEndpoint: 'POST /api/admin/backup/restore',
-    payload: { format: detectedFormat, restoredRows },
+    payload: result,
   });
 
-  return { format: detectedFormat, restoredRows };
+  return result;
 }
 
 export async function runScheduledBackupTick() {

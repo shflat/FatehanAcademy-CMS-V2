@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Activity,
   Bot,
   CheckCircle2,
   Loader2,
   Mic,
-  MicOff,
   Radio,
   Send,
   ShieldAlert,
   Sparkles,
+  Square,
   Wrench,
   XCircle,
 } from 'lucide-react';
@@ -26,15 +26,6 @@ interface AgentConversation {
 }
 
 type AgentTask = AgentTaskItem;
-
-interface SpeechRecLike {
-  lang: string;
-  interimResults: boolean;
-  onresult: ((e: { results: { [k: number]: { [k: number]: { transcript: string } } } }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-}
 
 export const AiCommandCenterCard: React.FC<{
   agentMode: 'light' | 'autonomous_24_7';
@@ -57,7 +48,9 @@ export const AiCommandCenterCard: React.FC<{
 }) => {
   const [command, setCommand] = useState('');
   const [sending, setSending] = useState(false);
-  const [listening, setListening] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [testingBridge, setTestingBridge] = useState(false);
   const [testingAgent, setTestingAgent] = useState(false);
   const [agentConnStatus, setAgentConnStatus] = useState<{
@@ -66,6 +59,35 @@ export const AiCommandCenterCard: React.FC<{
     message: string;
     hint?: string;
   } | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopStreamTracks = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      try {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch {
+        // ignore cleanup stop error
+      }
+      stopStreamTracks();
+    };
+  }, []);
 
   const handleTestAgent247 = async () => {
     setTestingAgent(true);
@@ -119,26 +141,152 @@ export const AiCommandCenterCard: React.FC<{
     onRefresh();
   };
 
-  const handleVoiceToggle = () => {
-    const w = window as unknown as {
-      SpeechRecognition?: new () => SpeechRecLike;
-      webkitSpeechRecognition?: new () => SpeechRecLike;
-    };
-    const Rec = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!Rec) {
-      onNotice?.('error', 'مرورگر فعلی از ورودی صوتی Web Speech پشتیبانی نمی‌کند.');
+  const pickPreferredAudioMime = (): string => {
+    if (typeof MediaRecorder === 'undefined' || typeof MediaRecorder.isTypeSupported !== 'function') {
+      return '';
+    }
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+      'audio/mp4',
+    ];
+    return candidates.find((mime) => MediaRecorder.isTypeSupported(mime)) || '';
+  };
+
+  const transcribeRecordedBlob = async (blob: Blob, mimeType: string) => {
+    if (blob.size < 128) {
+      onNotice?.('error', 'فایل صوتی ضبط‌شده بسیار کوتاه یا خالی بود.');
       return;
     }
-    const rec = new Rec();
-    rec.lang = 'fa-IR';
-    rec.interimResults = false;
-    setListening(true);
-    rec.onresult = (ev) => {
-      const transcript = ev.results?.[0]?.[0]?.transcript || '';
-      if (transcript) setCommand((prev) => (prev ? `${prev} ${transcript}` : transcript));
-    };
-    rec.onend = () => setListening(false);
-    rec.start();
+    setTranscribing(true);
+    try {
+      const ext = mimeType.includes('ogg')
+        ? 'ogg'
+        : mimeType.includes('mp4')
+        ? 'm4a'
+        : 'webm';
+      const form = new FormData();
+      form.append('file', blob, `voice_command.${ext}`);
+      form.append('language', 'fa');
+
+      const { ok, data } = await apiJson<{
+        ok?: boolean;
+        text?: string;
+        modelUsed?: string;
+        latencyMs?: number;
+        error?: string;
+      }>('/api/v1/modules/ai-hub/agent/transcribe', {
+        method: 'POST',
+        body: form,
+      });
+
+      if (!ok || !data.text) {
+        onNotice?.('error', data.error || 'خطا در تبدیل ویس به متن (اسلات ۴ صوت را بررسی کنید).');
+        return;
+      }
+
+      const transcript = data.text.trim();
+      setCommand((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      onNotice?.(
+        'success',
+        `ویس فارسی با ${data.modelUsed || 'Whisper'} تبدیل شد${
+          data.latencyMs ? ` (${data.latencyMs}ms)` : ''
+        }.`
+      );
+    } catch (err) {
+      onNotice?.(
+        'error',
+        err instanceof Error ? err.message : 'خطا در ارسال ویس به سرور تبدیل گفتار'
+      );
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  const handleVoiceToggle = async () => {
+    if (transcribing) return;
+
+    // Stop active recording -> triggers onstop -> sends to Slot 4 Whisper STT
+    if (recording && mediaRecorderRef.current) {
+      try {
+        if (mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch {
+        stopStreamTracks();
+        setRecording(false);
+      }
+      return;
+    }
+
+    if (
+      typeof navigator === 'undefined' ||
+      !navigator.mediaDevices?.getUserMedia ||
+      typeof MediaRecorder === 'undefined'
+    ) {
+      onNotice?.(
+        'error',
+        'مرورگر فعلی یا دسترسی محیط امن (HTTPS) از ضبط میکروفون MediaRecorder پشتیبانی نمی‌کند.'
+      );
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      audioChunksRef.current = [];
+
+      const chosenMime = pickPreferredAudioMime();
+      const recorder = chosenMime
+        ? new MediaRecorder(stream, { mimeType: chosenMime })
+        : new MediaRecorder(stream);
+
+      recorder.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size > 0) {
+          audioChunksRef.current.push(ev.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const effectiveMime = recorder.mimeType || chosenMime || 'audio/webm';
+        const chunks = audioChunksRef.current;
+        audioChunksRef.current = [];
+        mediaRecorderRef.current = null;
+        stopStreamTracks();
+        setRecording(false);
+        setRecordingSeconds(0);
+        const audioBlob = new Blob(chunks, { type: effectiveMime });
+        void transcribeRecordedBlob(audioBlob, effectiveMime);
+      };
+
+      recorder.onerror = () => {
+        mediaRecorderRef.current = null;
+        stopStreamTracks();
+        setRecording(false);
+        setRecordingSeconds(0);
+        onNotice?.('error', 'خطا هنگام ضبط صدا از میکروفون رخ داد.');
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+      setRecordingSeconds(0);
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds((sec) => sec + 1);
+      }, 1000);
+    } catch (err) {
+      stopStreamTracks();
+      setRecording(false);
+      const rawMsg = err instanceof Error ? err.message : '';
+      onNotice?.(
+        'error',
+        /Permission|NotAllowed|denied/i.test(rawMsg)
+          ? 'دسترسی به میکروفون توسط مرورگر مسدود شده است. لطفاً مجوز میکروفون را فعال کنید.'
+          : 'امکان شروع ضبط صدا از میکروفون وجود ندارد.'
+      );
+    }
   };
 
   const handleRunCommand = async (e: React.FormEvent) => {
@@ -380,21 +528,51 @@ export const AiCommandCenterCard: React.FC<{
         >
           <button
             type="button"
-            onClick={handleVoiceToggle}
-            title="ورودی صوتی فارسی (Voice Command)"
-            className={`p-2.5 rounded-xl border cursor-pointer transition-colors ${
-              listening
+            disabled={transcribing}
+            onClick={() => void handleVoiceToggle()}
+            title={
+              transcribing
+                ? 'در حال تبدیل ویس به متن با اسلات ۴ (Whisper)...'
+                : recording
+                ? 'توقف ضبط و تبدیل ویس به متن فارسی'
+                : 'ضبط فرمان صوتی فارسی (اسلات ۴ Whisper STT)'
+            }
+            className={`px-2.5 py-2.5 rounded-xl border cursor-pointer transition-colors inline-flex items-center gap-1.5 text-[11px] font-extrabold shrink-0 disabled:opacity-60 ${
+              recording
                 ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
+                : transcribing
+                ? 'bg-violet-600 text-white border-violet-600'
                 : 'border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-300'
             }`}
           >
-            {listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            {transcribing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>تبدیل ویس...</span>
+              </>
+            ) : recording ? (
+              <>
+                <Square className="w-3.5 h-3.5 fill-current" />
+                <span className="smooth-nums">
+                  توقف ({String(Math.floor(recordingSeconds / 60)).padStart(2, '0')}:
+                  {String(recordingSeconds % 60).padStart(2, '0')})
+                </span>
+              </>
+            ) : (
+              <Mic className="w-4 h-4" />
+            )}
           </button>
           <input
             type="text"
             value={command}
             onChange={(e) => setCommand(e.target.value)}
-            placeholder="فرمان متنی یا صوتی به ایجنت ۲۴/۷..."
+            placeholder={
+              recording
+                ? 'در حال ضبط ویس... برای تبدیل به متن دوباره روی دکمه قرمز کلیک کنید'
+                : transcribing
+                ? 'در حال تبدیل صدا به متن فارسی از طریق اسلات ۴ (Whisper)...'
+                : 'فرمان متنی یا صوتی به ایجنت ۲۴/۷...'
+            }
             className="flex-1 px-3.5 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 text-xs"
           />
           <button

@@ -3,7 +3,7 @@ import { dbExec, dbQuery } from '../../src/server/database/connection.js';
 import { getSetting, setSetting } from '../../src/server/database/settingsLogsRepo.js';
 import { requirePermission, type AuthenticatedRequest } from '../../src/server/core/permissionsEngine.js';
 
-export type AiSlotKey = 'text_seo' | 'image_visual' | 'agent_core';
+export type AiSlotKey = 'text_seo' | 'image_visual' | 'agent_core' | 'voice_audio';
 export type AiProviderKind = 'gemini' | 'openai_compatible' | 'ollama';
 
 export interface AiSlotRow {
@@ -120,6 +120,12 @@ export async function ensureAiHubSchema(): Promise<void> {
     { slot: 'text_seo', provider: 'gemini', baseUrl: '', model: 'gemini-4-hydrogen' },
     { slot: 'image_visual', provider: 'gemini', baseUrl: '', model: 'gemini-3.1-flash-lite-image' },
     { slot: 'agent_core', provider: 'gemini', baseUrl: '', model: 'gemini-4-hydrogen' },
+    {
+      slot: 'voice_audio',
+      provider: 'openai_compatible',
+      baseUrl: 'https://api.gapgpt.app/v1',
+      model: 'gapgpt/whisper-1',
+    },
   ];
 
   for (const s of defaultSlots) {

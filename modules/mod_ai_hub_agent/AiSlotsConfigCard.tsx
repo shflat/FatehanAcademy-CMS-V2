@@ -7,6 +7,7 @@ import {
   KeyRound,
   Loader2,
   Lock,
+  Mic,
   Save,
   Sparkles,
   XCircle,
@@ -14,7 +15,7 @@ import {
 import { apiJson } from '../../src/core/apiClient';
 
 export interface AiSlotItem {
-  slotKey: 'text_seo' | 'image_visual' | 'agent_core';
+  slotKey: 'text_seo' | 'image_visual' | 'agent_core' | 'voice_audio';
   providerKind: 'gemini' | 'openai_compatible' | 'ollama';
   baseUrl: string;
   modelName: string;
@@ -52,6 +53,12 @@ const SLOT_META: Record<
     subtitle: 'استدلال چندمرحله‌ای، اجرای ابزارها، یادگیری SKILL.md و پاسخگویی ۲۴/۷',
     icon: <Bot className="w-4 h-4 text-amber-600" />,
     badge: 'agent_core',
+  },
+  voice_audio: {
+    title: 'اسلات ۴: موتور صوت و ویس (STT / TTS)',
+    subtitle: 'تبدیل ویس فارسی به متن با GapGPT Whisper (gapgpt/whisper-1) و موتور صوتی',
+    icon: <Mic className="w-4 h-4 text-violet-600" />,
+    badge: 'voice_audio',
   },
 };
 
@@ -159,9 +166,10 @@ export const AiSlotsConfigCard: React.FC<{
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {slots.map((slot) => {
           const meta = SLOT_META[slot.slotKey];
+          if (!meta) return null;
           const d = getDraft(slot);
           const locked = slot.superAdminOnly && !isSuperAdmin;
           const testRes = testResults[slot.slotKey];
@@ -172,6 +180,8 @@ export const AiSlotsConfigCard: React.FC<{
               className={`rounded-2xl border p-4 space-y-3.5 bg-white dark:bg-stone-900 ${
                 slot.slotKey === 'agent_core'
                   ? 'border-amber-400/50 dark:border-amber-500/30'
+                  : slot.slotKey === 'voice_audio'
+                  ? 'border-violet-400/45 dark:border-violet-500/30'
                   : 'border-stone-200 dark:border-stone-800'
               }`}
             >
@@ -228,7 +238,9 @@ export const AiSlotsConfigCard: React.FC<{
                       value={d.modelName}
                       onChange={(e) => updateField(slot, { modelName: e.target.value })}
                       placeholder={
-                        slot.slotKey === 'image_visual'
+                        slot.slotKey === 'voice_audio'
+                          ? 'gapgpt/whisper-1'
+                          : slot.slotKey === 'image_visual'
                           ? 'gemini-3.1-flash-lite-image'
                           : 'gemini-4-hydrogen'
                       }
@@ -249,6 +261,8 @@ export const AiSlotsConfigCard: React.FC<{
                         placeholder={
                           d.providerKind === 'ollama'
                             ? 'http://127.0.0.1:11434'
+                            : slot.slotKey === 'voice_audio'
+                            ? 'https://api.gapgpt.app/v1'
                             : 'https://api.openai.com/v1'
                         }
                         className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 font-mono text-left"

@@ -19,7 +19,7 @@ import {
 } from './aiProviderGateway.js';
 import { registerSuperAdminAgentRoutes } from './aiAgentSubRouter.js';
 
-const ALLOWED_SLOTS: AiSlotKey[] = ['text_seo', 'image_visual', 'agent_core'];
+const ALLOWED_SLOTS: AiSlotKey[] = ['text_seo', 'image_visual', 'agent_core', 'voice_audio'];
 const ALLOWED_PROVIDERS: AiProviderKind[] = ['gemini', 'openai_compatible', 'ollama'];
 
 export function createAiHubAgentRouter(): express.Router {
@@ -37,6 +37,7 @@ export function createAiHubAgentRouter(): express.Router {
 
       const slots = rows
         .filter((r) => isSuperAdmin || r.slot_key !== 'agent_core')
+        .sort((a, b) => ALLOWED_SLOTS.indexOf(a.slot_key) - ALLOWED_SLOTS.indexOf(b.slot_key))
         .map((r) => ({
           slotKey: r.slot_key,
           providerKind: r.provider_kind,
@@ -92,11 +93,23 @@ export function createAiHubAgentRouter(): express.Router {
         return;
       }
 
+      const defaultProvider: AiProviderKind =
+        slotKey === 'voice_audio' ? 'openai_compatible' : 'gemini';
       const providerKind = ALLOWED_PROVIDERS.includes(b.providerKind as AiProviderKind)
         ? (b.providerKind as AiProviderKind)
-        : 'gemini';
-      const baseUrl = String(b.baseUrl || '').trim().slice(0, 300);
-      const modelName = String(b.modelName || 'gemini-4-hydrogen').trim().slice(0, 120);
+        : defaultProvider;
+      const defaultBaseUrl =
+        slotKey === 'voice_audio' && providerKind === 'openai_compatible'
+          ? 'https://api.gapgpt.app/v1'
+          : '';
+      const baseUrl = String(b.baseUrl || defaultBaseUrl).trim().slice(0, 300);
+      const defaultModel =
+        slotKey === 'voice_audio'
+          ? 'gapgpt/whisper-1'
+          : slotKey === 'image_visual'
+          ? 'gemini-3.1-flash-lite-image'
+          : 'gemini-4-hydrogen';
+      const modelName = String(b.modelName || defaultModel).trim().slice(0, 120);
 
       const existing = await dbQuery<{ api_key_enc: string }>(
         'SELECT api_key_enc FROM mod_ai_provider_configs WHERE slot_key = $1 LIMIT 1',

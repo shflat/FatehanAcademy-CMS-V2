@@ -218,11 +218,17 @@ export async function testAiSlotConnection(params: {
 
   const model =
     (params.modelName || savedCfg?.model_name || '').trim() ||
-    (params.slotKey === 'image_visual' ? 'gemini-3.1-flash-lite-image' : 'gemini-4-hydrogen');
+    (params.slotKey === 'voice_audio'
+      ? 'gapgpt/whisper-1'
+      : params.slotKey === 'image_visual'
+      ? 'gemini-3.1-flash-lite-image'
+      : 'gemini-4-hydrogen');
 
   const rawBaseUrl =
     (params.baseUrl ?? savedCfg?.base_url ?? '').trim() ||
-    (rawProvider === 'openai'
+    (params.slotKey === 'voice_audio' && normalizedProvider === 'openai_compatible'
+      ? 'https://api.gapgpt.app/v1'
+      : rawProvider === 'openai'
       ? 'https://api.openai.com/v1'
       : normalizedProvider === 'ollama'
       ? 'http://127.0.0.1:11434'
@@ -350,13 +356,15 @@ export async function testAiSlotConnection(params: {
         };
       }
       const openAiKey = effectiveKey || (process.env.OPENAI_API_KEY || '').trim();
-      const root = rawBaseUrl.replace(/\/+$/, '');
-      if (params.slotKey === 'image_visual') {
+      const root = validateProviderBaseUrl(rawBaseUrl);
+      if (params.slotKey === 'image_visual' || params.slotKey === 'voice_audio') {
         const resp = await fetch(`${root}/models`, {
           method: 'GET',
           headers: openAiKey ? { Authorization: `Bearer ${openAiKey}` } : {},
         });
         const latencyMs = Math.max(1, Date.now() - startedAt);
+        const slotLabelFa =
+          params.slotKey === 'voice_audio' ? 'سرویس صوت و ویس (STT)' : 'سرویس تصویر';
         if (!resp.ok) {
           return {
             ok: false,
@@ -365,8 +373,12 @@ export async function testAiSlotConnection(params: {
             providerUsed: 'openai_compatible',
             modelUsed: model,
             latencyMs,
-            message: `تست اتصال به سرویس تصویر (${root}) ناموفق بود (HTTP ${resp.status}).`,
+            message: `تست اتصال به ${slotLabelFa} (${root}) ناموفق بود (HTTP ${resp.status}).`,
             error: `HTTP ${resp.status}`,
+            hint:
+              resp.status === 401 || resp.status === 403
+                ? 'کلید API واردشده معتبر نیست یا دسترسی لازم را ندارد.'
+                : 'آدرس Base URL و دسترسی شبکه سرور به ارائه‌دهنده را بررسی کنید.',
           };
         }
         return {
@@ -377,7 +389,7 @@ export async function testAiSlotConnection(params: {
           modelUsed: model,
           latencyMs,
           sampleReply: 'Models endpoint reachable',
-          message: `اتصال به سرویس تصویرساز OpenAI-Compatible در ${latencyMs}ms با موفقیت تایید شد.`,
+          message: `اتصال به ${slotLabelFa} (${model}) در ${latencyMs}ms با موفقیت تایید شد.`,
         };
       }
       const sampleReply = await callOpenAiCompatibleText({
@@ -572,6 +584,132 @@ export async function generateImagePromptAndAsset(params: {
     providerUsed,
     modelUsed,
     note,
+  };
+}
+
+function validateProviderBaseUrl(rawUrl: string): string {
+  const trimmed = String(rawUrl || '').trim().replace(/\/+$/, '');
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error('آدرس پایه (Base URL) ارائه‌دهنده هوش مصنوعی معتبر نیست.');
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new Error('آدرس پایه فقط می‌تواند با پروتکل http یا https باشد.');
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (
+    host === '169.254.169.254' ||
+    host.startsWith('169.254.') ||
+    host === 'metadata.google.internal'
+  ) {
+    throw new Error('دسترسی به آدرس‌های متادیتای ابری مجاز نیست.');
+  }
+  return trimmed;
+}
+
+function inferAudioExtension(mimeType: string, filename?: string): { ext: string; cleanMime: string } {
+  const lowerMime = String(mimeType || '').toLowerCase().split(';')[0].trim();
+  const lowerName = String(filename || '').toLowerCase();
+  if (lowerMime.includes('ogg') || lowerName.endsWith('.ogg')) {
+    return { ext: 'ogg', cleanMime: 'audio/ogg' };
+  }
+  if (lowerMime.includes('mpeg') || lowerMime.includes('mp3') || lowerName.endsWith('.mp3')) {
+    return { ext: 'mp3', cleanMime: 'audio/mpeg' };
+  }
+  if (lowerMime.includes('wav') || lowerName.endsWith('.wav')) {
+    return { ext: 'wav', cleanMime: 'audio/wav' };
+  }
+  if (lowerMime.includes('mp4') || lowerMime.includes('m4a') || lowerName.endsWith('.m4a')) {
+    return { ext: 'm4a', cleanMime: 'audio/mp4' };
+  }
+  return { ext: 'webm', cleanMime: 'audio/webm' };
+}
+
+export interface VoiceTranscriptionResult {
+  text: string;
+  providerUsed: string;
+  modelUsed: string;
+  latencyMs: number;
+}
+
+export async function transcribeAudioViaVoiceSlot(params: {
+  audioBuffer: Buffer;
+  mimeType: string;
+  filename?: string;
+  language?: string;
+}): Promise<VoiceTranscriptionResult> {
+  const startedAt = Date.now();
+  const cfg = await getSlotConfig('voice_audio');
+  if (cfg && !cfg.enabled) {
+    throw new Error('اسلات ۴ (موتور صوت و ویس / voice_audio) در تنظیمات AI Hub غیرفعال است.');
+  }
+
+  const provider = cfg?.provider_kind || 'openai_compatible';
+  const model = (cfg?.model_name || '').trim() || 'gapgpt/whisper-1';
+  const rawBaseUrl = (cfg?.base_url || '').trim() || 'https://api.gapgpt.app/v1';
+  const baseUrl = validateProviderBaseUrl(rawBaseUrl);
+  const savedKey = cfg?.api_key_enc ? decryptSecret(cfg.api_key_enc) : '';
+  const apiKey = savedKey || (process.env.OPENAI_API_KEY || '').trim();
+
+  if (provider !== 'ollama' && !apiKey) {
+    throw new Error(
+      'کلید API برای اسلات ۴ (voice_audio) ثبت نشده است. لطفاً کلید GapGPT یا OpenAI خود را در تب ۴ اسلات موتور هوش مصنوعی ذخیره کنید.'
+    );
+  }
+
+  const { ext, cleanMime } = inferAudioExtension(params.mimeType, params.filename);
+  const uploadFilename =
+    params.filename && /\.(webm|ogg|mp3|wav|m4a|mp4|mpeg|flac)$/i.test(params.filename)
+      ? params.filename
+      : `voice_command_${Date.now()}.${ext}`;
+
+  const form = new FormData();
+  const audioBlob = new Blob([new Uint8Array(params.audioBuffer)], { type: cleanMime });
+  form.append('file', audioBlob, uploadFilename);
+  form.append('model', model);
+  form.append('language', (params.language || 'fa').trim() || 'fa');
+  form.append('response_format', 'json');
+
+  const endpoint = `${baseUrl}/audio/transcriptions`;
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+    },
+    body: form,
+  });
+
+  const latencyMs = Math.max(1, Date.now() - startedAt);
+  const rawBody = await resp.text().catch(() => '');
+  let parsed: { text?: string; error?: { message?: string } | string } = {};
+  if (rawBody) {
+    try {
+      parsed = JSON.parse(rawBody) as { text?: string; error?: { message?: string } | string };
+    } catch {
+      parsed = resp.ok ? { text: rawBody } : { error: rawBody.slice(0, 220) };
+    }
+  }
+
+  if (!resp.ok) {
+    const errDetail =
+      typeof parsed.error === 'string'
+        ? parsed.error
+        : parsed.error?.message || `HTTP ${resp.status}`;
+    throw new Error(`خطا در تبدیل ویس به متن (${model}): ${errDetail}`);
+  }
+
+  const text = String(parsed.text || '').trim();
+  if (!text) {
+    throw new Error('متنی در فایل صوتی تشخیص داده نشد. لطفاً دوباره و واضح‌تر صحبت کنید.');
+  }
+
+  return {
+    text,
+    providerUsed: provider,
+    modelUsed: model,
+    latencyMs,
   };
 }
 
