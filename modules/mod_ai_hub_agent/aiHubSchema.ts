@@ -60,6 +60,7 @@ export interface BaleAdminAlertsConfig {
   dailyBriefingEnabled: boolean;
   dailyBriefingTime: string;
   lastBriefingDate: string;
+  heartbeatEnabled: boolean;
 }
 
 export interface BaleAdminAlertsPublicConfig
@@ -80,6 +81,7 @@ export const DEFAULT_BALE_ADMIN_ALERTS: BaleAdminAlertsConfig = {
   dailyBriefingEnabled: false,
   dailyBriefingTime: '09:00',
   lastBriefingDate: '',
+  heartbeatEnabled: true,
 };
 
 export type InstagramPublishMode = 'package_only' | 'meta_graph_api';
@@ -599,6 +601,8 @@ export async function getAiHubSettings(): Promise<AiHubRuntimeSettings> {
           : false,
       dailyBriefingTime: normalizeBriefingTime(savedBale?.dailyBriefingTime, '09:00'),
       lastBriefingDate: String(savedBale?.lastBriefingDate || '').trim().slice(0, 20),
+      heartbeatEnabled:
+        typeof savedBale?.heartbeatEnabled === 'boolean' ? savedBale.heartbeatEnabled : true,
     },
     jarvisSettings: normalizeJarvisSettings(DEFAULT_JARVIS_SETTINGS, saved?.jarvisSettings),
   };
@@ -670,6 +674,7 @@ export async function saveAiHubSettings(
       dailyBriefingEnabled: Boolean(mergedBaleRaw.dailyBriefingEnabled),
       dailyBriefingTime: normalizeBriefingTime(mergedBaleRaw.dailyBriefingTime, '09:00'),
       lastBriefingDate: String(mergedBaleRaw.lastBriefingDate || '').trim().slice(0, 20),
+      heartbeatEnabled: mergedBaleRaw.heartbeatEnabled !== false,
     },
     jarvisSettings: normalizeJarvisSettings(current.jarvisSettings, next.jarvisSettings),
   };

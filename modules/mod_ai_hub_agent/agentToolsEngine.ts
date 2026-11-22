@@ -40,27 +40,64 @@ export function isGenericDisplayName(name?: string | null): boolean {
 }
 
 /**
+ * Strips Persian conversational fillers and punctuation from a display name.
+ * Examples: "مهرسام هستم." -> "مهرسام", "من علی رضایی هستم!" -> "علی رضایی", "اسمم سارا است" -> "سارا"
+ */
+export function sanitizePersianDisplayName(rawInput: string): string {
+  let text = String(rawInput || '')
+    .replace(/[\u200C\u200D]/g, ' ')
+    .replace(/[.!؟?،,:؛"«»()\-_~*]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return '';
+
+  // Remove leading greetings / intro fillers
+  const leadingRe =
+    /^(?:سلام|درود|وقت\s*بخیر|بله|بفرمایید|من|بنده|اسمم|نامم|اسم\s+من|نام\s+من|اسم|نام)\s+/i;
+  for (let i = 0; i < 4; i++) {
+    const next = text.replace(leadingRe, '').trim();
+    if (next === text) break;
+    text = next;
+  }
+
+  // Remove trailing verb / copula fillers ("هستم", "می‌باشم", "است", "هست")
+  const trailingRe =
+    /\s+(?:هستم|می\s*باشم|میباشم|است|هست|هستش|ام|ه|هستیم|ممنون|مرسی|تشکر)$/i;
+  for (let i = 0; i < 3; i++) {
+    const next = text.replace(trailingRe, '').trim();
+    if (next === text) break;
+    text = next;
+  }
+
+  // Remove trailing attached verb if whole token is only filler
+  text = text.replace(/\s+/g, ' ').trim().slice(0, 60);
+  if (/^(?:من|بنده|هستم|اسمم|نامم|کاربر|مهمان|سلام|ممنون)$/i.test(text)) return '';
+  return text;
+}
+
+/**
  * Extracts a clean Persian/Latin full name when a visitor introduces themselves in chat.
- * Examples: "من علی هستم", "اسمم سارا محمدی است", "اسم من رضا رضاییه", "بنده حسین کریمی هستم"
+ * Examples: "من علی هستم", "مهرسام هستم.", "اسمم سارا محمدی است", "بنده حسین کریمی هستم"
  */
 export function extractNameFromChatMessage(text: string, agentAskedForName: boolean): string | null {
-  const raw = String(text || '').trim().replace(/[.!؟?،,]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const raw = String(text || '').trim().replace(/[.!؟?،,:؛"«»()]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (!raw || raw.length > 80) return null;
 
   const patterns: RegExp[] = [
-    /(?:من|بنده)\s+([\u0600-\u06FFa-zA-Z]{2,20}(?:\s+[\u0600-\u06FFa-zA-Z]{2,22})?)\s+(?:هستم|می‌باشم|میباشم)/,
-    /(?:اسمم|نامم|اسم من|نام من)\s+([\u0600-\u06FFa-zA-Z]{2,20}(?:\s+[\u0600-\u06FFa-zA-Z]{2,22})?)(?:\s+(?:است|هست|ه|می‌باشد))?$/,
+    /(?:من|بنده)\s+([\u0600-\u06FFa-zA-Z]{2,20}(?:\s+[\u0600-\u06FFa-zA-Z]{2,22})?)\s+(?:هستم|می‌?باشم|می\s+باشم)/,
+    /^([\u0600-\u06FFa-zA-Z]{2,20}(?:\s+[\u0600-\u06FFa-zA-Z]{2,22})?)\s+(?:هستم|می‌?باشم|می\s+باشم)$/,
+    /(?:اسمم|نامم|اسم من|نام من)\s+([\u0600-\u06FFa-zA-Z]{2,20}(?:\s+[\u0600-\u06FFa-zA-Z]{2,22})?)(?:\s+(?:است|هست|ه|می‌?باشد))?$/,
     /(?:نام|اسم)\s*[:：]\s*([\u0600-\u06FFa-zA-Z]{2,20}(?:\s+[\u0600-\u06FFa-zA-Z]{2,22})?)/,
   ];
 
   const stopWords = new Set([
-    'سلام', 'ممنون', 'مرسی', 'تشکر', 'خرید', 'سفارش', 'پشتیبانی', 'فوری', 'قیمت', 'مشکل', 'خطا', 'بله', 'خیر', 'نه', 'باشه', 'چرا', 'چطور',
+    'سلام', 'ممنون', 'مرسی', 'تشکر', 'خرید', 'سفارش', 'پشتیبانی', 'فوری', 'قیمت', 'مشکل', 'خطا', 'بله', 'خیر', 'نه', 'باشه', 'چرا', 'چطور', 'دنبال', 'نیاز', 'درخواست', 'منتظر', 'مشتری', 'کاربر', 'مهمان',
   ]);
 
   for (const p of patterns) {
     const m = raw.match(p);
     if (m && m[1]) {
-      const candidate = m[1].trim().replace(/(?:ه|ام)$/, (tail) => (m[1].length > 5 ? '' : tail)).trim();
+      const candidate = sanitizePersianDisplayName(m[1]);
       const firstWord = candidate.split(' ')[0];
       if (candidate.length >= 2 && candidate.length <= 40 && !stopWords.has(firstWord)) {
         return candidate;
@@ -69,7 +106,8 @@ export function extractNameFromChatMessage(text: string, agentAskedForName: bool
   }
 
   if (agentAskedForName) {
-    const words = raw.split(' ').filter(Boolean);
+    const cleaned = sanitizePersianDisplayName(raw);
+    const words = cleaned.split(' ').filter(Boolean);
     if (
       words.length >= 1 &&
       words.length <= 3 &&
@@ -92,7 +130,7 @@ export async function updateVisitorUserProfileTool(params: {
   sessionId?: string;
 }): Promise<{ ok: boolean; phone: string; fullName: string }> {
   const cleanPhone = String(params.phone || '').trim();
-  const cleanName = String(params.fullName || '').trim().slice(0, 80);
+  const cleanName = sanitizePersianDisplayName(params.fullName).slice(0, 80);
   if (!cleanPhone || cleanName.length < 2) {
     return { ok: false, phone: cleanPhone, fullName: cleanName };
   }
@@ -313,13 +351,13 @@ export async function handleLiveChatAgentAutomation(params: {
     lastOperatorMsg && /نام|اسم/.test(String(lastOperatorMsg.message_text || ''))
   );
 
-  // Strict per-session conversation history only (never cross-user or Command Center)
+  // Strict per-session conversation history only (compact token-diet slice; sliding window of 6 enforced in turn engine)
   const history = params.existingMessages
     .slice(-10)
     .filter((m) => Boolean(String(m.message_text || '').trim()))
     .map((m) => ({
       role: (m.sender_role === 'visitor' ? 'user' : 'assistant') as 'user' | 'assistant',
-      content: String(m.message_text || '').slice(0, 600),
+      content: String(m.message_text || '').slice(0, 420),
     }));
 
   // Deterministic pre-check for explicit name introduction by authenticated user

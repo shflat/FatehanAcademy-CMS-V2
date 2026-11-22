@@ -53,9 +53,11 @@ export const GoftinoLiveChatWidget: React.FC<{
   const [operatorTitle, setOperatorTitle] = useState('پشتیبانی آنلاین اسکیل ۹۸ (گفتینو بومی)');
   const [sending, setSending] = useState(false);
   const [otpPromptReason, setOtpPromptReason] = useState<string>('');
+  const [forceInlineOtpOpen, setForceInlineOtpOpen] = useState(false);
 
   const isAuthenticated = Boolean(loggedInPhone);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const inlineOtpRef = useRef<HTMLDivElement | null>(null);
   const lastSeenOperatorCountRef = useRef(0);
 
   // Identify latest operator message that triggered inline OTP (when still guest)
@@ -64,12 +66,14 @@ export const GoftinoLiveChatWidget: React.FC<{
         .reverse()
         .find((m) => m.sender_role === 'operator' && m.ui_action === 'OPEN_INLINE_OTP')?.id || ''
     : '';
+  const shouldShowInlineOtpInFlow = !isAuthenticated && (Boolean(latestInlineOtpMsgId) || forceInlineOtpOpen);
 
   useEffect(() => {
     if (loggedInName) setVisitorName(loggedInName);
     if (loggedInPhone) {
       setVisitorPhone(loggedInPhone);
       setOtpPromptReason('');
+      setForceInlineOtpOpen(false);
     }
   }, [loggedInName, loggedInPhone]);
 
@@ -113,10 +117,21 @@ export const GoftinoLiveChatWidget: React.FC<{
   }, [isOpen, sessionId, loadChatStatus]);
 
   useEffect(() => {
-    if (isOpen && listRef.current) {
+    if (!isOpen) return;
+    if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages.length, isOpen, latestInlineOtpMsgId]);
+    if (shouldShowInlineOtpInFlow) {
+      const t = window.setTimeout(() => {
+        inlineOtpRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        if (listRef.current) {
+          listRef.current.scrollTop = listRef.current.scrollHeight;
+        }
+      }, 90);
+      return () => window.clearTimeout(t);
+    }
+    return undefined;
+  }, [messages.length, isOpen, latestInlineOtpMsgId, forceInlineOtpOpen, shouldShowInlineOtpInFlow]);
 
   const handleOpenChat = () => {
     setIsOpen(true);
@@ -184,6 +199,7 @@ export const GoftinoLiveChatWidget: React.FC<{
           onDisplayNameUpdated?.(data.updatedDisplayName);
         }
         if (data.uiAction === 'OPEN_INLINE_OTP') {
+          setForceInlineOtpOpen(true);
           setOtpPromptReason(
             String(
               data.uiActionPayload?.reasonFa ||
@@ -216,6 +232,7 @@ export const GoftinoLiveChatWidget: React.FC<{
     if (displayName) setVisitorName(displayName);
     setRequestUrgent(true);
     setOtpPromptReason('');
+    setForceInlineOtpOpen(false);
     onInlineLoginSuccess?.(role, phone, displayName, roleId, token);
   };
 
@@ -225,6 +242,7 @@ export const GoftinoLiveChatWidget: React.FC<{
     }
     setRequestUrgent(true);
     setOtpPromptReason('');
+    setForceInlineOtpOpen(false);
   };
 
   return (
@@ -301,7 +319,7 @@ export const GoftinoLiveChatWidget: React.FC<{
           </div>
 
           {!isAuthenticated ? (
-            !latestInlineOtpMsgId && (
+            !shouldShowInlineOtpInFlow && (
               <div className="shrink-0">
                 <ChatInlineOtpCard
                   sessionId={sessionId}
@@ -375,23 +393,41 @@ export const GoftinoLiveChatWidget: React.FC<{
                       )}
                     </div>
                     {showInlineOtpHere && (
-                      <ChatInlineOtpCard
-                        sessionId={sessionId}
-                        inlineMode
-                        forceExpanded
-                        autoContinueRequest
-                        promptReason={
-                          otpPromptReason ||
-                          'برای ثبت رسمی درخواست و دریافت کد پیگیری، شماره موبایل خود را همینجا تایید کنید:'
-                        }
-                        onVerifiedLogin={handleVerifiedFromOtp}
-                        onSessionLinked={handleLinkedFromOtp}
-                      />
+                      <div ref={inlineOtpRef} className="w-full mt-1">
+                        <ChatInlineOtpCard
+                          sessionId={sessionId}
+                          inlineMode
+                          forceExpanded
+                          autoContinueRequest
+                          promptReason={
+                            otpPromptReason ||
+                            'برای ثبت رسمی درخواست و دریافت کد پیگیری، شماره موبایل خود را همینجا تایید کنید:'
+                          }
+                          onVerifiedLogin={handleVerifiedFromOtp}
+                          onSessionLinked={handleLinkedFromOtp}
+                        />
+                      </div>
                     )}
                     <span className="text-[9px] text-stone-400 mt-0.5 px-1">{m.created_at_fa}</span>
                   </div>
                 );
               })
+            )}
+            {!isAuthenticated && forceInlineOtpOpen && !latestInlineOtpMsgId && (
+              <div ref={inlineOtpRef} className="w-full pt-1">
+                <ChatInlineOtpCard
+                  sessionId={sessionId}
+                  inlineMode
+                  forceExpanded
+                  autoContinueRequest
+                  promptReason={
+                    otpPromptReason ||
+                    'برای ثبت رسمی درخواست و دریافت کد پیگیری، شماره موبایل خود را همینجا تایید کنید:'
+                  }
+                  onVerifiedLogin={handleVerifiedFromOtp}
+                  onSessionLinked={handleLinkedFromOtp}
+                />
+              </div>
             )}
             {sending && (
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#1D4ED8] dark:text-sky-400 px-2 py-1">

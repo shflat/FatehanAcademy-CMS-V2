@@ -25,6 +25,14 @@ import {
   stopJarvisSpeech,
 } from './jarvisTtsPlayer';
 import { encodeAudioBlobToMono16kWav } from './voiceWavEncoder';
+import {
+  getSavedVoiceMode,
+  isBrowserSpeechSupported,
+  saveVoiceMode,
+  startBrowserPersianSpeech,
+  type BrowserSpeechRecognitionHandle,
+  type JarvisVoiceInputMode,
+} from './browserSpeechHelper';
 import { SafeMarkdownText } from './SafeMarkdownText';
 
 export interface JarvisClientPageContext {
@@ -69,13 +77,16 @@ export const SuperAdminJarvisMascot: React.FC<SuperAdminJarvisMascotProps> = ({
   const [attachedFile, setAttachedFile] = useState<{ fileName: string; content: string; sizeKb: number } | null>(null);
   const mdInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Slot 4 Whisper Voice-to-Text recording state
+  // Voice-to-Text recording state (Slot 4 Whisper WAV or $0 Browser SpeechRecognition)
+  const [voiceMode, setVoiceMode] = useState<JarvisVoiceInputMode>(getSavedVoiceMode);
+  const browserSpeechSupported = useMemo(() => isBrowserSpeechSupported(), []);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const browserSpeechRef = useRef<BrowserSpeechRecognitionHandle | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Per-message TTS audio state
@@ -131,6 +142,8 @@ export const SuperAdminJarvisMascot: React.FC<SuperAdminJarvisMascotProps> = ({
   useEffect(() => {
     return () => {
       try {
+        browserSpeechRef.current?.abort();
+        browserSpeechRef.current = null;
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
           mediaRecorderRef.current.stop();
         }
@@ -381,8 +394,56 @@ export const SuperAdminJarvisMascot: React.FC<SuperAdminJarvisMascotProps> = ({
     }
   };
 
+  const handleSwitchVoiceMode = () => {
+    if (recording || transcribing) return;
+    if (voiceMode === 'whisper' && !browserSpeechSupported) {
+      emitGlobalToast('error', 'مرورگر فعلی از SpeechRecognition رایگان پشتیبانی نمی‌کند.');
+      return;
+    }
+    const next: JarvisVoiceInputMode = voiceMode === 'whisper' ? 'browser_free' : 'whisper';
+    setVoiceMode(next);
+    saveVoiceMode(next);
+  };
+
   const handleVoiceToggle = async () => {
     if (transcribing) return;
+
+    // $0 Browser SpeechRecognition (fa-IR) mode
+    if (voiceMode === 'browser_free') {
+      if (recording && browserSpeechRef.current) {
+        browserSpeechRef.current.stop();
+        return;
+      }
+      const baseText = input.trim();
+      const handle = startBrowserPersianSpeech({
+        onTranscript: (text) => {
+          setInput(baseText ? `${baseText} ${text}` : text);
+        },
+        onEnd: () => {
+          browserSpeechRef.current = null;
+          stopStreamTracks();
+          setRecording(false);
+          setRecordingSeconds(0);
+        },
+        onError: (msg) => {
+          browserSpeechRef.current = null;
+          stopStreamTracks();
+          setRecording(false);
+          setRecordingSeconds(0);
+          emitGlobalToast('error', msg);
+        },
+      });
+      if (handle) {
+        browserSpeechRef.current = handle;
+        setRecording(true);
+        setRecordingSeconds(0);
+        timerRef.current = setInterval(() => {
+          setRecordingSeconds((s) => s + 1);
+        }, 1000);
+      }
+      return;
+    }
+
     if (recording && mediaRecorderRef.current) {
       try {
         if (mediaRecorderRef.current.state !== 'inactive') {
@@ -686,13 +747,35 @@ export const SuperAdminJarvisMascot: React.FC<SuperAdminJarvisMascotProps> = ({
 
             <button
               type="button"
+              disabled={recording || transcribing}
+              onClick={handleSwitchVoiceMode}
+              title={
+                voiceMode === 'browser_free'
+                  ? 'حالت فعلی: تشخیص گفتار رایگان مرورگر ($0 · fa-IR) — کلیک برای سوییچ به Whisper WAV'
+                  : 'حالت فعلی: Whisper WAV (اسلات ۴) — کلیک برای سوییچ به میکروفون رایگان مرورگر ($0)'
+              }
+              className={`h-9 px-2 rounded-xl border text-[10px] font-extrabold cursor-pointer transition-colors shrink-0 disabled:opacity-45 ${
+                voiceMode === 'browser_free'
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                  : 'border-stone-200 dark:border-slate-700 bg-stone-50 dark:bg-slate-800 text-stone-600 dark:text-slate-300'
+              }`}
+            >
+              {voiceMode === 'browser_free' ? '۰$' : 'WAV'}
+            </button>
+
+            <button
+              type="button"
               disabled={transcribing}
               onClick={() => void handleVoiceToggle()}
               title={
                 transcribing
                   ? 'در حال تبدیل ویس فارسی با اسلات ۴...'
                   : recording
-                  ? 'توقف ضبط و ارسال به Whisper'
+                  ? voiceMode === 'browser_free'
+                    ? 'توقف تشخیص گفتار مرورگر'
+                    : 'توقف ضبط و ارسال به Whisper'
+                  : voiceMode === 'browser_free'
+                  ? 'فرمان صوتی رایگان مرورگر (fa-IR · ۰ دلار)'
                   : 'فرمان صوتی فارسی (اسلات ۴ Whisper STT)'
               }
               className={`h-9 px-2.5 rounded-xl border cursor-pointer transition-colors inline-flex items-center gap-1 text-[11px] font-extrabold shrink-0 disabled:opacity-50 ${
@@ -700,6 +783,8 @@ export const SuperAdminJarvisMascot: React.FC<SuperAdminJarvisMascotProps> = ({
                   ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
                   : transcribing
                   ? 'bg-violet-600 text-white border-violet-600'
+                  : voiceMode === 'browser_free'
+                  ? 'border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
                   : 'border-stone-200 dark:border-slate-700 hover:bg-stone-100 dark:hover:bg-slate-800 text-stone-600 dark:text-slate-300'
               }`}
             >
@@ -724,7 +809,9 @@ export const SuperAdminJarvisMascot: React.FC<SuperAdminJarvisMascotProps> = ({
               onChange={(e) => setInput(e.target.value)}
               placeholder={
                 recording
-                  ? 'در حال ضبط ویس...'
+                  ? voiceMode === 'browser_free'
+                    ? 'در حال شنیدن فارسی (رایگان مرورگر)...'
+                    : 'در حال ضبط ویس...'
                   : transcribing
                   ? 'در حال تبدیل ویس به متن...'
                   : `فرمان به ${config.mascotName}...`

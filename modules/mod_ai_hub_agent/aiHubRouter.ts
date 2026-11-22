@@ -23,6 +23,7 @@ import { registerSystemLogErrorHook } from '../../src/server/database/settingsLo
 import {
   sendSuperAdminBaleAlert,
   startDailyMorningBriefingScheduler,
+  startZeroTokenHeartbeatScheduler,
 } from './baleAlertBridge.js';
 
 const ALLOWED_SLOTS: AiSlotKey[] = ['text_seo', 'image_visual', 'agent_core', 'voice_audio'];
@@ -34,6 +35,7 @@ export function createAiHubAgentRouter(): express.Router {
   const router = express.Router();
   void ensureAiHubSchema().catch(() => {});
   startDailyMorningBriefingScheduler();
+  startZeroTokenHeartbeatScheduler();
 
   if (!criticalErrorHookRegistered) {
     criticalErrorHookRegistered = true;

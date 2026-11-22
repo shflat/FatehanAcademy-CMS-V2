@@ -152,7 +152,12 @@ export function createModLiveChatRouter(): express.Router {
         } else {
           await dbExec(
             `UPDATE mod_live_chat_sessions
-             SET visitor_name = $1, visitor_phone = $2, priority = $3, updated_at = $4
+             SET visitor_name = $1,
+                 visitor_phone = $2,
+                 status = 'open',
+                 priority = $3,
+                 unread_admin_count = CASE WHEN unread_admin_count < 1 THEN 1 ELSE unread_admin_count END,
+                 updated_at = $4
              WHERE id = $5`,
             [displayName, session.phone, upgradeToUrgent ? 'urgent' : 'normal', nowIso, sessionId]
           );
@@ -194,10 +199,15 @@ export function createModLiveChatRouter(): express.Router {
             ? 'ورود شما با موفقیت انجام شد و ترد گفتگوی شما با «اولویت فوری» به حساب کاربری‌تان متصل گردید. برای تکمیل پروفایل و خطاب بهتر، لطفاً نام خود را بفرمایید؟'
             : `خوش آمدید ${displayName} عزیز! حساب کاربری شما به این گفتگو متصل شد و درخواست شما با «اولویت فوری» در صف پاسخ‌گویی قرار گرفت.`);
 
+        const linkBotIso = new Date(Date.now() + 25).toISOString();
         await dbExec(
           `INSERT INTO mod_live_chat_messages (id, session_id, sender_role, sender_name, message_text, attachment_url, attachment_name, ui_action, created_at_fa, created_at)
            VALUES ($1,$2,'operator','دستیار هوشمند پشتیبانی',$3,'','','',$4,$5)`,
-          [`msg_link_${Date.now()}`, sessionId, replyMessage, nowFa, nowIso]
+          [`msg_link_${Date.now()}`, sessionId, replyMessage, nowFa, linkBotIso]
+        );
+        await dbExec(
+          `UPDATE mod_live_chat_sessions SET updated_at = $1, last_message_preview = COALESCE(NULLIF(last_message_preview,''), $2) WHERE id = $3`,
+          [linkBotIso, replyMessage.slice(0, 140), sessionId]
         );
 
         const messages = await dbQuery<Record<string, unknown>>(

@@ -16,7 +16,7 @@ import type {
 } from '../core/types.js';
 import { EMPTY_ROLE_PERMISSIONS, FULL_ROLE_PERMISSIONS } from '../core/permissions.js';
 
-export const APP_VERSION = 'v2.9.2';
+export const APP_VERSION = 'v2.9.3';
 
 export const IMAGES = {
   heroStudio: '/src/assets/images/skill98_ai_architecture_hero_1795088218603.jpg',

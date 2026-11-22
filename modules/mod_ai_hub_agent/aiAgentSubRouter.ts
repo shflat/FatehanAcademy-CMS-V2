@@ -153,6 +153,10 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
                 typeof b.baleAlerts.dailyBriefingTime === 'string'
                   ? b.baleAlerts.dailyBriefingTime.trim().slice(0, 10)
                   : undefined,
+              heartbeatEnabled:
+                typeof b.baleAlerts.heartbeatEnabled === 'boolean'
+                  ? b.baleAlerts.heartbeatEnabled
+                  : undefined,
             }
           : undefined;
 
@@ -401,18 +405,18 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
       const senderPhone = req.authUser?.phone || 'super_admin';
       const senderDisplay = 'سوپر ادمین';
 
-      // Read strictly Command Center history before inserting the new turn
+      // Read compact Command Center history (last 10 rows; sliding 6-msg window + 1-line digest enforced in engine)
       const priorRows = await dbQuery<{ role: string; message_text: string }>(
         `SELECT role, message_text FROM mod_ai_agent_conversations
          WHERE channel = $1 AND role IN ('user', 'assistant')
-         ORDER BY created_at DESC LIMIT 12`,
+         ORDER BY created_at DESC LIMIT 10`,
         [channel]
       );
       const history = priorRows
         .reverse()
         .map((r) => ({
           role: (r.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-          content: String(r.message_text || '').slice(0, 700),
+          content: String(r.message_text || '').slice(0, 420),
         }));
 
       await dbExec(
@@ -648,7 +652,7 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
           title: 'تایید اتصال پل هشدار هوشمند ایجنت ۲۴/۷ به بله',
           lines: [
             'هشدارهای صف تایید، درخواست کاربران، سفارش‌ها/خریدهای ناموفق، خطاهای بحرانی و ارجاع سوالات بی‌پاسخ آماده ارسال هستند.',
-            'نسخه سامانه: DPATech Final Base CMS v2.9.2 (Jarvis Orchestrator + Zero-Token KB)',
+            'نسخه سامانه: DPATech Final Base CMS v2.9.3 (Jarvis Orchestrator + Token Diet + Heartbeat)',
           ],
         });
         res.status(result.ok ? 200 : 400).json(result);

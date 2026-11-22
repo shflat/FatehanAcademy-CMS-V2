@@ -21,13 +21,21 @@ import {
   runFixItemSeoAndMediaTool,
   runSkillToProductTool,
 } from './agentContentFactory.js';
-import { runPublishOrDraftSocialPostTool } from './agentSocialPublisher.js';
+import {
+  runPublishOrDraftSocialPostTool,
+  testSocialChannelConnection,
+} from './agentSocialPublisher.js';
 import {
   runCreateOrUpdatePageTool,
   runManageKnowledgeCacheTool,
   runManageSiteModulesTool,
   runReplyToLiveChatTool,
 } from './jarvisCmsBuilderTools.js';
+import { dispatchEventSms } from '../../src/server/database/smsService.js';
+import { sanitizePersianDisplayName } from './agentToolsEngine.js';
+
+// Rate limiter for Super Admin direct Bale messaging / connectivity test tool (max 6 calls/min)
+const ADMIN_BALE_TEST_TIMESTAMPS: number[] = [];
 
 export type AgentUiActionType = 'OPEN_INLINE_OTP';
 
@@ -671,6 +679,42 @@ const ALL_TOOL_DEFS: OpenAiToolDef[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'send_admin_bale_or_test',
+      description:
+        'Super Admin only (rate-limited): directly sends a custom Persian message/report to Super Admin Bale chat_id OR runs a real live connectivity test on bale_admin, bale_channel, or sms.',
+      parameters: {
+        type: 'object',
+        properties: {
+          mode: {
+            type: 'string',
+            description: 'Send a custom report to Super Admin Bale or test a channel.',
+            enum: ['send_message', 'test_connection'],
+          },
+          target: {
+            type: 'string',
+            description: 'Target channel when mode is test_connection (default bale_admin).',
+            enum: ['bale_admin', 'bale_channel', 'sms'],
+          },
+          title: {
+            type: 'string',
+            description: 'Optional Persian title for custom Bale message.',
+          },
+          messageText: {
+            type: 'string',
+            description: 'Custom Persian text/report to deliver to Super Admin on Bale.',
+          },
+          testPhone: {
+            type: 'string',
+            description: 'Optional mobile number (09...) when target is sms (defaults to Super Admin phone).',
+          },
+        },
+        required: ['mode'],
+      },
+    },
+  },
 ];
 
 function getAllowedToolsForContext(ctx: AgentToolContext): OpenAiToolDef[] {
@@ -694,6 +738,7 @@ function getAllowedToolsForContext(ctx: AgentToolContext): OpenAiToolDef[] {
     allowedNames.add('reply_to_live_chat');
     allowedNames.add('manage_site_modules');
     allowedNames.add('manage_knowledge_cache');
+    allowedNames.add('send_admin_bale_or_test');
   } else if (ctx.actorRole === 'admin') {
     allowedNames.add('create_site_form');
     allowedNames.add('create_or_submit_user_request');
@@ -804,7 +849,7 @@ export async function executeCmsTool(
           : mergedModules.filter((m) => m.enabled);
 
         const data = {
-          cmsName: 'DPATech Final Base CMS (v2.9.2)',
+          cmsName: 'DPATech Final Base CMS (v2.9.3)',
           activeTheme: themeCfg?.activeThemeId || 'default',
           siteTitle: themeCfg?.siteTitle || 'اسکیل ۹۸',
           counts: {
@@ -1141,7 +1186,7 @@ export async function executeCmsTool(
       }
 
       case 'update_visitor_user_profile': {
-        const cleanName = String(args.fullName || '').trim().slice(0, 80);
+        const cleanName = sanitizePersianDisplayName(String(args.fullName || '')).slice(0, 80);
         const phone = String(ctx.userId || '').trim();
         if (!phone || ctx.actorRole === 'guest') {
           ctx.uiAction = 'OPEN_INLINE_OTP';
@@ -1460,17 +1505,23 @@ export async function executeCmsTool(
 
         const steps = [
           {
-            step: 1,
-            titleFa: 'اطلاعات درخواست',
+            title: 'اطلاعات درخواست',
             fields: fieldLabels.map((label, idx) => ({
-              name: `field_${idx + 1}`,
-              labelFa: label,
+              id: `field_${idx + 1}`,
+              label,
               type: /موبایل|تلفن|شماره/.test(label)
-                ? 'tel'
-                : /شرح|توضیح|پیام/.test(label)
+                ? 'phone'
+                : /کد\s*ملی/.test(label)
+                ? 'national_id'
+                : /استان|شهر/.test(label)
+                ? 'province_city'
+                : /تعداد|عدد|مبلغ|سن/.test(label)
+                ? 'number'
+                : /شرح|توضیح|پیام|متن/.test(label)
                 ? 'textarea'
                 : 'text',
               required: idx < 3,
+              placeholder: label,
             })),
           },
         ];
@@ -1479,7 +1530,13 @@ export async function executeCmsTool(
         await dbExec(
           `INSERT INTO mod_forms_definitions
            (id, slug, title_fa, steps_json, conditional_logic_json, pricing_formula, honeypot_enabled, sms_notify_enabled, payment_gateway_linked, submissions_count, updated_at)
-           VALUES ($1, $2, $3, $4, '[]', $5, 1, 1, 0, 0, $6)`,
+           VALUES ($1, $2, $3, $4, '[]', $5, 1, 1, 0, 0, $6)
+           ON CONFLICT (id) DO UPDATE SET
+             slug = EXCLUDED.slug,
+             title_fa = EXCLUDED.title_fa,
+             steps_json = EXCLUDED.steps_json,
+             pricing_formula = EXCLUDED.pricing_formula,
+             updated_at = EXCLUDED.updated_at`,
           [
             id,
             slug,
@@ -1594,23 +1651,25 @@ export async function executeCmsTool(
         const priorityFilter = ['urgent', 'high', 'normal'].includes(String(args.priority || ''))
           ? String(args.priority)
           : '';
-        const limit = Math.min(15, Math.max(1, Number(args.limit || 8)));
+        const limit = Math.min(25, Math.max(1, Number(args.limit || 12)));
 
         const whereClauses: string[] = [];
         const paramsArr: unknown[] = [];
         if (onlyUnread) {
-          whereClauses.push('unread_admin_count > 0');
+          whereClauses.push('s.unread_admin_count > 0');
         }
         if (priorityFilter) {
           paramsArr.push(priorityFilter);
-          whereClauses.push(`priority = $${paramsArr.length}`);
+          whereClauses.push(`s.priority = $${paramsArr.length}`);
         }
         paramsArr.push(limit);
         const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
+        // Sort by most recently updated FIRST so newly OTP-logged-in users NEVER get buried behind old threads
         const sessions = await dbQuery<{
           id: string;
           visitor_name: string;
+          user_full_name: string | null;
           visitor_phone: string;
           subject: string;
           department: string;
@@ -1621,11 +1680,13 @@ export async function executeCmsTool(
           created_at_fa: string;
           updated_at: string;
         }>(
-          `SELECT id, visitor_name, visitor_phone, subject, department, status, priority,
-                  unread_admin_count, last_message_preview, created_at_fa, updated_at
-           FROM mod_live_chat_sessions
+          `SELECT s.id, s.visitor_name, u.full_name AS user_full_name, s.visitor_phone, s.subject,
+                  s.department, s.status, s.priority, s.unread_admin_count,
+                  s.last_message_preview, s.created_at_fa, s.updated_at
+           FROM mod_live_chat_sessions s
+           LEFT JOIN users u ON s.visitor_phone != '' AND u.phone = s.visitor_phone
            ${whereSql}
-           ORDER BY unread_admin_count DESC, updated_at DESC
+           ORDER BY s.updated_at DESC, s.unread_admin_count DESC
            LIMIT $${paramsArr.length}`,
           paramsArr
         ).catch(() => []);
@@ -1641,23 +1702,29 @@ export async function executeCmsTool(
               `SELECT sender_role, sender_name, message_text, created_at_fa
                FROM mod_live_chat_messages
                WHERE session_id = $1
-               ORDER BY created_at DESC LIMIT 8`,
+               ORDER BY created_at DESC LIMIT 6`,
               [s.id]
             ).catch(() => []);
+            const resolvedName =
+              (s.user_full_name && s.user_full_name.trim()) ||
+              (s.visitor_name && s.visitor_name.trim()) ||
+              'بازدیدکننده مهمان';
             return {
               sessionId: s.id,
-              visitorName: s.visitor_name || 'بازدیدکننده مهمان',
+              visitorName: resolvedName,
               visitorPhone: s.visitor_phone || '-',
+              isAuthenticated: Boolean(s.visitor_phone),
               subject: s.subject || '-',
               department: s.department || '-',
               status: s.status,
               priority: s.priority,
               unreadAdminCount: Number(s.unread_admin_count || 0),
               createdAtFa: s.created_at_fa,
+              updatedAt: s.updated_at,
               recentMessages: msgs.reverse().map((m) => ({
                 role: m.sender_role,
                 sender: m.sender_name,
-                text: String(m.message_text || '').slice(0, 420),
+                text: String(m.message_text || '').slice(0, 320),
                 at: m.created_at_fa,
               })),
             };
@@ -1669,7 +1736,7 @@ export async function executeCmsTool(
           tool: toolName,
           args,
           ok: true,
-          summary: `${threads.length} رشته چت زنده مشتریان بازیابی شد (مجموع پیام‌های خوانده‌نشده: ${totalUnread}).`,
+          summary: `${threads.length} رشته چت زنده اخیر بازیابی شد (مجموع پیام‌های خوانده‌نشده: ${totalUnread}).`,
           data: {
             threadsCount: threads.length,
             totalUnreadMessages: totalUnread,
@@ -1892,6 +1959,129 @@ export async function executeCmsTool(
         return { tool: toolName, args, ...res };
       }
 
+      case 'send_admin_bale_or_test': {
+        if (ctx.actorRole !== 'super_admin') {
+          return {
+            tool: toolName,
+            args,
+            ok: false,
+            summary: 'دسترسی رد شد: ابزار send_admin_bale_or_test فقط مخصوص سوپر ادمین است.',
+          };
+        }
+
+        // Strict rate-limit: max 6 dispatches per 60 seconds
+        const now = Date.now();
+        while (ADMIN_BALE_TEST_TIMESTAMPS.length > 0 && now - ADMIN_BALE_TEST_TIMESTAMPS[0] > 60_000) {
+          ADMIN_BALE_TEST_TIMESTAMPS.shift();
+        }
+        if (ADMIN_BALE_TEST_TIMESTAMPS.length >= 6) {
+          return {
+            tool: toolName,
+            args,
+            ok: false,
+            summary: 'محدودیت نرخ ارسال (حداکثر ۶ پیام/تست در دقیقه) فعال شد. لطفاً لحظه‌ای بعد تلاش کنید.',
+          };
+        }
+        ADMIN_BALE_TEST_TIMESTAMPS.push(now);
+
+        const mode = args.mode === 'test_connection' ? 'test_connection' : 'send_message';
+        if (mode === 'send_message') {
+          const title = String(args.title || 'پیام مستقیم از دستیار جارویس').trim().slice(0, 140);
+          const messageText = String(args.messageText || '').trim().slice(0, 2400);
+          if (!messageText) {
+            return {
+              tool: toolName,
+              args,
+              ok: false,
+              summary: 'متن پیام (messageText) برای ارسال به بله سوپر ادمین الزامی است.',
+            };
+          }
+          const lines = messageText
+            .split('\n')
+            .map((l) => l.trim())
+            .filter(Boolean)
+            .slice(0, 12);
+          const result = await sendSuperAdminBaleAlert({
+            category: 'agent_escalation',
+            force: true,
+            title,
+            lines: lines.length > 0 ? lines : [messageText],
+          });
+          return {
+            tool: toolName,
+            args,
+            ok: result.ok && result.sent,
+            summary: result.sent
+              ? `پیام با موفقیت به بله سوپر ادمین ارسال شد (chat_id: ${result.chatId || '-'} · منبع: ${result.channelSource || '-'}).`
+              : `ارسال پیام به بله ناموفق بود: ${result.error || 'خطای نامشخص'}`,
+            data: result as unknown as Record<string, unknown>,
+          };
+        }
+
+        // mode === 'test_connection'
+        const target =
+          args.target === 'bale_channel' || args.target === 'sms' ? args.target : 'bale_admin';
+
+        if (target === 'bale_admin') {
+          const result = await sendSuperAdminBaleAlert({
+            category: 'test',
+            force: true,
+            title: 'تست زنده اتصال بله سوپر ادمین از طریق جارویس',
+            lines: [
+              'اتصال ربات بله و شناسه چت سوپر ادمین فعال و سالم است.',
+              'درخواست‌کننده: دستور مستقیم سوپر ادمین به جارویس',
+            ],
+          });
+          return {
+            tool: toolName,
+            args,
+            ok: result.ok && result.sent,
+            summary: result.sent
+              ? `تست اتصال bale_admin موفق بود (chat_id: ${result.chatId || '-'} · منبع توکن: ${result.channelSource || '-'}).`
+              : `تست اتصال bale_admin ناموفق بود: ${result.error || 'خطای اتصال بله'}`,
+            data: { target, ...result },
+          };
+        }
+
+        if (target === 'bale_channel') {
+          const result = await testSocialChannelConnection('bale');
+          return {
+            tool: toolName,
+            args,
+            ok: Boolean(result.ok),
+            summary: result.ok
+              ? `تست کانال بله (bale_channel) موفق بود (${result.target ? `مقصد: ${result.target}` : 'پیام تست منتشر شد'}).`
+              : `تست کانال بله ناموفق بود: ${result.error || 'کانال بله پیکربندی نشده است.'}`,
+            data: { target, ...result },
+          };
+        }
+
+        // target === 'sms'
+        const envCfg = getEnvConfig();
+        const phone = String(args.testPhone || ctx.userId || envCfg.adminPhone || '').trim();
+        if (!phone) {
+          return {
+            tool: toolName,
+            args,
+            ok: false,
+            summary: 'شماره موبایل مقصد (testPhone) برای تست پیامک یافت نشد.',
+          };
+        }
+        const smsRes = await dispatchEventSms({
+          phone,
+          customMessageOverride: `تست زنده سامانه پیامکی توسط دستیار جارویس — ${formatPersianDateTime()}`,
+        });
+        return {
+          tool: toolName,
+          args,
+          ok: Boolean(smsRes.dispatched),
+          summary: smsRes.dispatched
+            ? `تست پیامک (sms) با ارائه‌دهنده ${smsRes.provider}${smsRes.sandbox ? ' (حالت Sandbox)' : ''} به ${phone} موفق بود.`
+            : `تست پیامک (${smsRes.provider}) ناموفق بود: ${smsRes.errorMessage || 'خطای درگاه پیامک'}`,
+          data: { target, phone, ...smsRes },
+        };
+      }
+
       default:
         return {
           tool: toolName,
@@ -1916,33 +2106,43 @@ export async function buildGroundedSystemPrompt(params: {
   extraContext?: string;
   includeJsonFallbackProtocol?: boolean;
 }): Promise<string> {
-  const [skills, memories, hubSettings, themeCfg, prodCats, artCats, sampleProds] = await Promise.all([
+  const isLiveChatChannel = params.ctx.channel === 'live_chat';
+  const [allSkills, memories, hubSettings, themeCfg, prodCats, sampleProds] = await Promise.all([
     getAllActiveAgentSkills(),
     readScopedAgentMemories({
       actorRole: params.ctx.actorRole,
       userId: params.ctx.userId,
       visitorSessionId: params.ctx.visitorSessionId,
-      limit: 35,
+      limit: isLiveChatChannel ? 10 : 18,
     }),
     getAiHubSettings(),
     getSetting<Record<string, unknown>>('theme_config', {}),
     dbQuery<{ category: string }>(
-      "SELECT DISTINCT category FROM products WHERE category != '' LIMIT 16"
-    ).catch(() => []),
-    dbQuery<{ category: string }>(
-      "SELECT DISTINCT category FROM articles WHERE category != '' LIMIT 12"
+      "SELECT DISTINCT category FROM products WHERE category != '' LIMIT 10"
     ).catch(() => []),
     dbQuery<{ title: string; category: string }>(
-      "SELECT title, category FROM products WHERE status = 'published' ORDER BY updated_at DESC LIMIT 8"
+      "SELECT title, category FROM products WHERE status = 'published' ORDER BY updated_at DESC LIMIT 6"
     ).catch(() => []),
   ]);
 
+  // Scoped SKILL.md filtering: Storefront Live Chat NEVER loads Super Admin diagnostic/SEO/social skills (~65% token diet)
+  const SUPER_ADMIN_ONLY_SKILL_RE =
+    /(?:product_and_social|social|seo|diagnos|admin_only|super_admin|system_log|module_manage|heartbeat|briefing)/i;
+  const skills = isLiveChatChannel
+    ? allSkills.filter(
+        (s) =>
+          !SUPER_ADMIN_ONLY_SKILL_RE.test(`${s.slug} ${s.category}`) &&
+          s.category !== 'admin' &&
+          s.category !== 'seo' &&
+          s.category !== 'social'
+      )
+    : allSkills;
+
   const roleLabels: Record<AgentActorRole, string> = {
-    super_admin:
-      'سوپر ادمین (فرماندهی کل سامانه از طریق جارویس — ناظر ارشد تمام زیر-ایجنت‌ها، ساخت برگه/فرم/محصول، عیب‌یابی، چت مشتریان، ماژول‌ها و بانک دانش صفرتوکن)',
+    super_admin: 'سوپر ادمین (ارکستراتور کل سامانه)',
     admin: 'ادمین سایت',
-    customer: 'کاربر احراز هویت‌شده (عضو سایت)',
-    guest: 'کاربر مهمان (احراز هویت نشده)',
+    customer: 'کاربر عضو احراز هویت‌شده',
+    guest: 'کاربر مهمان',
   };
 
   const liveSiteTitle = String(
@@ -1952,105 +2152,81 @@ export async function buildGroundedSystemPrompt(params: {
     themeCfg?.heroSubtitle || themeCfg?.footerDescription || ''
   )
     .trim()
-    .slice(0, 260);
+    .slice(0, 180);
   const productCategoriesStr =
-    prodCats.map((c) => c.category).filter(Boolean).join('، ') || 'محصولات و خدمات اصلی سایت';
-  const articleCategoriesStr =
-    artCats.map((c) => c.category).filter(Boolean).join('، ') || 'مقالات و راهنماهای آموزشی سایت';
+    prodCats.map((c) => c.category).filter(Boolean).join('، ') || 'محصولات و خدمات سایت';
   const sampleProductsStr = sampleProds
     .map((p) => `${p.title}${p.category ? ` (${p.category})` : ''}`)
     .join(' | ');
 
+  const maxSkillChars = isLiveChatChannel ? 650 : 1100;
   const skillsSection =
     skills.length > 0
       ? skills
           .map(
             (s) =>
-              `### [${s.title_fa}] (slug: ${s.slug} | category: ${s.category})\n${s.skill_markdown}`
+              `- [${s.title_fa}]: ${String(s.skill_markdown || '').trim().slice(0, maxSkillChars)}`
           )
-          .join('\n\n')
-      : 'هنوز مهارت سفارشی ثبت نشده است.';
+          .join('\n')
+      : '—';
 
   const memorySection =
     memories.length > 0
       ? memories
-          .map((m) => `- (${m.scope_type}) ${m.memory_key}: ${m.memory_value}`)
+          .map((m) => `- (${m.scope_type}) ${m.memory_key}: ${String(m.memory_value || '').slice(0, 200)}`)
           .join('\n')
-      : 'حافظه اختصاصی جدیدی برای این نشست ثبت نشده است.';
+      : '—';
 
-  const toolNamesList = params.tools.map((t) => `- ${t.function.name}: ${t.function.description}`).join('\n');
+  const toolNamesList = params.tools.map((t) => t.function.name).join(', ');
 
   const jsonFallbackGuide = params.includeJsonFallbackProtocol
-    ? `\n\n## پروتکل اجرای ابزار (Fallback JSON)\nاگر ابزار بومی مدل فعال نبود و نیاز به اجرای ابزار داشتی، فقط یک بلوک JSON خالص بدون متن اضافه با ساختار زیر برگردان:\n{"tool_call": {"name": "TOOL_NAME", "arguments": { ... }}}\nدر غیر این صورت پاسخ نهایی فارسی خود را بنویس.`
+    ? `\nپروتکل JSON ابزار (در صورت نبود function calling بومی): {"tool_call":{"name":"TOOL_NAME","arguments":{}}}`
     : '';
 
   const jarvisCfg = hubSettings.jarvisSettings;
   const jarvisName = jarvisCfg.mascotName || 'جارویس';
-  const isLiveChatChannel = params.ctx.channel === 'live_chat';
 
   const pageCtx = params.ctx.pageContext;
   const pageContextBlock = pageCtx
-    ? `## کانتکست لحظه‌ای صفحه‌ای که سوپر ادمین هم‌اکنون در حال مشاهده آن است:\n- مسیر صفحه: ${pageCtx.path || '/'}\n- عنوان صفحه: ${pageCtx.pageTitle || '-'}\n- نوع موجودیت: ${pageCtx.entityType}${
-        pageCtx.entityId ? `\n- شناسه موجودیت (entityId): ${pageCtx.entityId}` : ''
-      }${pageCtx.entitySlug ? `\n- اسلاگ (entitySlug): ${pageCtx.entitySlug}` : ''}\nاگر سوپر ادمین گفت «همین صفحه»، «همین محصول»، «همین مقاله» یا «همین سفارش»، دقیقاً منظورش همین موجودیت بالاست.`
+    ? `صفحه فعلی مدیر: ${pageCtx.path || '/'} (${pageCtx.entityType}${
+        pageCtx.entityId ? ` #${pageCtx.entityId}` : ''
+      }${pageCtx.entitySlug ? ` /${pageCtx.entitySlug}` : ''})`
     : '';
 
-  // Strict hierarchy & role-specific constitution
   const roleConstitution = isLiveChatChannel
     ? [
-        `تو زیر-ایجنت گفتگوی آنلاین فروشگاه (Storefront Live Chat Sub-Agent) تحت نظارت ارشد «${jarvisName}» در وب‌سایت **«${liveSiteTitle}»** (اجراشده بر بستر DPATech Final Base CMS v2.9.2) هستی.`,
-        `## هویت زنده این وب‌سایت (به‌صورت پویا از دیتابیس خوانده شده):`,
-        `- نام برند/سایت: **${liveSiteTitle}**`,
-        liveSiteDescription ? `- معرفی و حوزه فعالیت سایت: ${liveSiteDescription}` : '',
-        `- دسته‌بندی واقعی محصولات/خدمات: ${productCategoriesStr}`,
-        `- دسته‌بندی واقعی مقالات: ${articleCategoriesStr}`,
-        sampleProductsStr ? `- نمونه موارد موجود در کاتالوگ: ${sampleProductsStr}` : '',
-        `## قوانین حیاتی و غیرقابل‌نقض چت آنلاین (Anti-Free-Labor & Conversion Guardrail):
-1. نقش تو **صرفاً مشاور فروش، راهنمای استفاده از سایت و ثبت‌کننده سرنخ/درخواست مشتریان «${liveSiteTitle}»** است.
-2. **ممنوعیت مطلق کار رایگان (Anti-Free-Labor):** هرگز نقش ChatGPT عمومی بازی نکن! هرگز برای بازدیدکننده کد، مقاله، کاتالوگ، پرامپت اختصاصی، ترجمه، تمرین درسی یا هر کار رایگان بیرونی تولید نکن.
-3. **پاسخ‌های کوتاه و کم‌مصرف:** پاسخ‌های خود را بسیار خلاصه، دقیق و محترمانه در حداکثر **۲ تا ۴ جمله کوتاه فارسی** بنویس تا مصرف توکن به حداقل برسد.
-4. **جریان هوشمند تبدیل مورد ناموجود به سرنخ (Dynamic Missing-Item Conversion):** اگر بازدیدکننده محصول، دوره، فایل یا خدمتی متناسب با حوزه فعالیت «${liveSiteTitle}» خواست، ابتدا حتماً \`search_site_catalog\` را صدا بزن. اگر مورد دقیق در کاتالوگ پیدا نشد، **هرگز پیشنهاد نده کارش را رایگان انجام دهی**؛ محترمانه بگو در حال حاضر این مورد در کاتالوگ «${liveSiteTitle}» موجود نیست، پیشنهاد بده درخواست اختصاصی‌اش ثبت شود تا تیم ما نسخه اختصاصی آماده کند و **بلافاصله** برای مهمان ابزار \`trigger_chat_otp_box\` را اجرا کن تا کادر ورود با موبایل و OTP همینجا باز شود (و اگر وارد شده است، با تاییدش ابزار \`create_or_submit_user_request\` را اجرا کن).
-5. **موضوعات خارج از حوزه سایت:** اگر سوال بازدیدکننده کاملاً بی‌ربط به حوزه فعالیت و خدمات «${liveSiteTitle}» بود (مثلاً سوال عمومی، آشپزی، کدنویسی متفرقه یا پرامپت رایگان)، محترمانه عذرخواهی کن و گفتگو را به محصولات و خدمات واقعی «${liveSiteTitle}» هدایت کن.
-6. اگر کاربر وارد شده است و نام واقعی خود را اعلام کرد، بلافاصله ابزار \`update_visitor_user_profile\` را صدا بزن.
-7. اگر مشکل فوری خرید/پرداخت یا سوال حساس بی‌پاسخ پیش آمد، ابزار \`notify_super_admin_bale\` را اجرا کن.`,
+        `تو مشاور فروش و راهنمای آنلاین مهربان و حرفه‌ای وب‌سایت **«${liveSiteTitle}»** هستی.`,
+        liveSiteDescription ? `معرفی سایت: ${liveSiteDescription}` : '',
+        `دسته‌ها: ${productCategoriesStr}${sampleProductsStr ? ` | نمونه کاتالوگ: ${sampleProductsStr}` : ''}`,
+        `قوانین اصلی چت:
+1. فقط مشاور فروش، راهنمای سایت و ثبت‌کننده درخواست مشتریان «${liveSiteTitle}» هستی؛ هرگز کار رایگان بیرونی (کد، مقاله، ترجمه، پرامپت) تولید نکن.
+2. کوتاه، گرم و صمیمی در ۲ تا ۴ جمله فارسی پاسخ بده.
+3. **لحن گرم و حرفه‌ای:** هرگز جملات سرد یا تدافعی مثل «تضمین نمی‌توانم بدهم» یا «نمی‌توانم قول بدهم» نگو و هرگز از محدودیت ابزارهای داخلی صحبت نکن.
+4. **مورد ناموجود در کاتالوگ:** ابتدا \`search_site_catalog\` را صدا بزن. اگر پیدا نشد، محترمانه بگو الان آماده نیست اما می‌توانیم اختصاصی برایتان آماده کنیم و بلافاصله برای مهمان \`trigger_chat_otp_box\` را اجرا کن.
+5. **پس از ثبت موفق درخواست (\`REQ-...\`):** با لحن گرم و ایموجی مناسب (✅ 🌟) ثبت درخواست و کد پیگیری را تبریک بگو و اطمینان بده که تیم ما از طریق شماره موبایل ثبت‌شده با ایشان تماس و پیگیری خواهد داشت.
+6. اگر کاربر عضو نامش را گفت، فقط نام خالص را با \`update_visitor_user_profile\` ثبت کن. در مشکلات فوری خرید/پرداخت \`notify_super_admin_bale\` را صدا بزن.`,
       ]
         .filter(Boolean)
         .join('\n')
     : [
-        `تو **«${jarvisName}»**، ارکستراتور ارشد سوپر ادمین (Master Orchestrator) و ناظر کل زیر-ایجنت‌های سامانه **«${liveSiteTitle}»** (DPATech Final Base CMS v2.9.2) هستی. زیر-ایجنت‌های چت آنلاین ویترین، تولید محتوا و سئو، انتشار شبکه‌های اجتماعی و پایش سلامت سیستم همگی تحت نظارت و فرمان تو عمل می‌کنند.`,
-        jarvisCfg.mascotPersona ? `شخصیت و لحن مورد نظر سوپر ادمین: ${jarvisCfg.mascotPersona}` : '',
-        `هویت زنده این وب‌سایت: نام سایت «${liveSiteTitle}»${
-          liveSiteDescription ? ` · معرفی: ${liveSiteDescription}` : ''
-        } · دسته‌بندی محصولات: ${productCategoriesStr} · دسته‌بندی مقالات: ${articleCategoriesStr}.`,
-        `قانون امنیتی و هویت: هرگز نگو «من دسترسی به دیتابیس یا سایت ندارم» و هرگز نپرس «آیا سایت وردپرس یا شاپیفای است؟». این CMS اختصاصی DPATech است و تمام کارها باید منحصراً از طریق ابزارهای ایمن و اعتبارسنجی‌شده همین سامانه انجام شود (هرگز کد منبع خام یا SQL خام اجرا نکن).`,
-        `## قوانین فرماندهی ارکستراتور (${jarvisName} — سوپر ادمین):
-1. تمام پاسخ‌ها را دقیق، مستند به خروجی واقعی ابزارها و به زبان فارسی روان بنویس.
-2. برای **ساخت یا ویرایش برگه‌های پویا** (مثل «یک برگه جدید برای ... بساز») مستقیماً ابزار \`create_or_update_page\` را اجرا کن (به‌صورت پیش‌فرض \`draft\` مگر اینکه سوپر ادمین صراحتاً انتشار فوری بخواهد).
-3. برای **نظارت و پاسخ مستقیم به مشتریان چت آنلاین** ابتدا با \`read_live_chat_messages\` مکالمات واقعی را بخوان و با دستور سوپر ادمین از طریق \`reply_to_live_chat\` پاسخ رسمی ارسال و خوانده‌نشده‌ها را صفر کن.
-4. برای **روشن یا خاموش کردن ماژول‌های غیرهسته‌ای CMS** با ثبت لاگ ممیزی از \`manage_site_modules\` استفاده کن.
-5. برای **مدیریت بانک دانش صفرتوکن چت** (مشاهده، افزودن، ویرایش، تایید، غیرفعال‌سازی یا حذف پاسخ‌های صفرتوکن) از \`manage_knowledge_cache\` استفاده کن.
-6. برای **عیب‌یابی خطاها، اتصال بله/سفیر/اسلات‌های AI یا سفارش‌های ناموفق** حتماً \`diagnose_site_config\` و \`read_system_logs\` را اجرا کن و بر اساس داده واقعی گزارش بده.
-7. برای **تبدیل فایل .md، لینک یا توضیحات به محصول/مقاله سئوشده** از \`skill_to_product\`، برای **ممیزی و رفع نقص سئو/تصویر** از \`audit_missing_seo_and_media\` و \`fix_item_seo_and_media\`، و برای **انتشار شبکه‌های اجتماعی** از \`publish_or_draft_social_post\` استفاده کن.
-8. برای **آموزش قانون یا دستورالعمل دائمی جدید** به سیستم (مثل «یاد بگیر...» یا «از این به بعد...») ابزار \`save_learned_skill\` را صدا بزن.`,
+        `تو **«${jarvisName}»** ارکستراتور ارشد سوپر ادمین سامانه **«${liveSiteTitle}»** (DPATech CMS v2.9.3) هستی.`,
+        jarvisCfg.mascotPersona ? `لحن: ${jarvisCfg.mascotPersona}` : '',
+        `سایت: ${liveSiteTitle} | دسته‌ها: ${productCategoriesStr}. هرگز نگو دسترسی ندارم؛ تمام کارها را فقط با ابزارهای ایمن زیر و به فارسی دقیق انجام بده (بدون SQL یا تغییر کد خام).`,
+        `ابزارهای کلیدی: برگه (\`create_or_update_page\`)، چت مشتریان (\`read_live_chat_messages\`, \`reply_to_live_chat\`)، ماژول‌ها (\`manage_site_modules\`)، بانک دانش (\`manage_knowledge_cache\`)، ارسال/تست بله و پیامک (\`send_admin_bale_or_test\`)، عیب‌یابی (\`diagnose_site_config\`, \`read_system_logs\`)، ساخت محصول/سئو (\`skill_to_product\`, \`audit_missing_seo_and_media\`, \`fix_item_seo_and_media\`)، شبکه اجتماعی (\`publish_or_draft_social_post\`)، یادگیری (\`save_learned_skill\`).`,
       ]
         .filter(Boolean)
         .join('\n');
 
   return [
     roleConstitution,
-    `کانال فعلی: ${
-      params.ctx.channel === 'command_center'
-        ? `مرکز فرماندهی سوپر ادمین (${jarvisName} Master Orchestrator)`
-        : 'گفتگوی آنلاین فروشگاه (Storefront Live Chat Sub-Agent)'
-    }`,
-    `نقش مخاطب فعلی: ${roleLabels[params.ctx.actorRole]}${
-      params.ctx.userDisplayName ? ` | نام فعلی: ${params.ctx.userDisplayName}` : ''
-    }${params.ctx.userId ? ` | شناسه/موبایل: ${params.ctx.userId}` : ''}`,
+    `مخاطب: ${roleLabels[params.ctx.actorRole]}${
+      params.ctx.userDisplayName ? ` | نام: ${params.ctx.userDisplayName}` : ''
+    }${params.ctx.userId ? ` | موبایل: ${params.ctx.userId}` : ''}`,
     pageContextBlock,
-    `## ابزارهای مجاز برای این نشست:\n${toolNamesList}`,
-    `## حافظه دائمی مهارت‌ها و دستورالعمل‌های فعال (${skills.length} مهارت فعال SKILL.md — همیشه تزریق‌شده):\n${skillsSection}`,
-    `## حافظه اختصاصی و مجاز این نشست (Scoped Memory — کاملاً ایزوله):\n${memorySection}`,
-    params.extraContext ? `## اطلاعات تکمیلی نشست:\n${params.extraContext}` : '',
+    `ابزارهای مجاز: ${toolNamesList}`,
+    `مهارت‌های فعال (${skills.length}):\n${skillsSection}`,
+    `حافظه نشست:\n${memorySection}`,
+    params.extraContext ? `تکمیلی:\n${params.extraContext}` : '',
     jsonFallbackGuide,
   ]
     .filter(Boolean)
@@ -2142,14 +2318,29 @@ export async function runMultiStepAgentTurn(params: {
   const provider = cfg?.provider_kind || 'gemini';
   const model = (cfg?.model_name || '').trim() || 'gemini-4-hydrogen';
   const savedKey = cfg?.api_key_enc ? decryptSecret(cfg.api_key_enc) : '';
-  const recentHistory = (params.history || []).slice(-10);
+
+  // Token Diet (v2.9.3): Sliding History Window — ONLY last 6 messages + tiny 1-line digest of older context
+  const rawHistory = params.history || [];
+  const olderTurns = rawHistory.length > 6 ? rawHistory.slice(0, rawHistory.length - 6) : [];
+  const olderDigest =
+    olderTurns.length > 0
+      ? `خلاصه پیام‌های قبلی: ${olderTurns
+          .slice(-4)
+          .map((h) => `${h.role === 'user' ? 'کاربر' : 'دستیار'}: ${h.content.replace(/\s+/g, ' ').slice(0, 65)}`)
+          .join(' | ')}`
+      : '';
+  const effectiveExtraContext = [params.extraContext, olderDigest].filter(Boolean).join('\n');
+  const recentHistory = rawHistory.slice(-6).map((h) => ({
+    role: h.role,
+    content: String(h.content || '').slice(0, 420),
+  }));
 
   // 1) OpenAI-Compatible Multi-Step Tool Calling (Native `tools` / `tool_calls` + JSON fallback)
   if (provider === 'openai_compatible' && cfg?.base_url) {
     const systemPrompt = await buildGroundedSystemPrompt({
       ctx: params.ctx,
       tools: allowedTools,
-      extraContext: params.extraContext,
+      extraContext: effectiveExtraContext,
       includeJsonFallbackProtocol: true,
     });
     const endpoint = `${cfg.base_url.replace(/\/+$/, '')}/chat/completions`;
@@ -2310,7 +2501,7 @@ export async function runMultiStepAgentTurn(params: {
     const systemPrompt = await buildGroundedSystemPrompt({
       ctx: params.ctx,
       tools: allowedTools,
-      extraContext: params.extraContext,
+      extraContext: effectiveExtraContext,
       includeJsonFallbackProtocol: true,
     });
     const root = (cfg?.base_url || 'http://127.0.0.1:11434').replace(/\/+$/, '');
@@ -2389,7 +2580,7 @@ export async function runMultiStepAgentTurn(params: {
   const systemPrompt = await buildGroundedSystemPrompt({
     ctx: params.ctx,
     tools: allowedTools,
-    extraContext: params.extraContext,
+    extraContext: effectiveExtraContext,
     includeJsonFallbackProtocol: false,
   });
 

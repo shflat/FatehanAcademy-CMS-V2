@@ -20,6 +20,7 @@ export type BaleAlertCategory =
   | 'critical_error'
   | 'agent_escalation'
   | 'daily_briefing'
+  | 'heartbeat'
   | 'test';
 
 export interface BaleAlertDispatchResult {
@@ -185,6 +186,8 @@ function isCategoryEnabled(
       return cfg.notifyAgentEscalations !== false;
     case 'daily_briefing':
       return cfg.dailyBriefingEnabled === true;
+    case 'heartbeat':
+      return cfg.heartbeatEnabled !== false;
     default:
       return true;
   }
@@ -198,6 +201,7 @@ const CATEGORY_LABELS_FA: Record<BaleAlertCategory, string> = {
   critical_error: '🚨 خطای بحرانی سامانه',
   agent_escalation: '🤖 ارجاع فوری از ایجنت ۲۴/۷',
   daily_briefing: '☀️ گزارش صبحگاهی ۲۴ ساعته سامانه (Jarvis Briefing)',
+  heartbeat: '💓 پایش خودکار ۲ دقیقه‌ای (صفرتوکن)',
   test: '🧪 تست پل هشدار ایجنت ۲۴/۷ به بله',
 };
 
@@ -738,6 +742,215 @@ export function startDailyMorningBriefingScheduler(): void {
   const timer = setInterval(() => {
     void tick();
   }, 60_000);
+  if (typeof timer.unref === 'function') {
+    timer.unref();
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Phase 16 (v2.9.3) — Zero-Token 2-Minute Background Heartbeat              */
+/*  Pure Node.js DB polling (0 LLM tokens) + strict DB/memory deduplication   */
+/* -------------------------------------------------------------------------- */
+
+const HEARTBEAT_SEEN_SETTING_KEY = 'mod_ai_heartbeat_seen';
+const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000;
+const HEARTBEAT_MEM_SEEN = new Set<string>();
+let heartbeatSchedulerStarted = false;
+let heartbeatTickInProgress = false;
+let heartbeatSeenLoaded = false;
+
+async function loadHeartbeatSeenSet(): Promise<Set<string>> {
+  if (heartbeatSeenLoaded) return HEARTBEAT_MEM_SEEN;
+  heartbeatSeenLoaded = true;
+  try {
+    const saved = await getSetting<string[]>(HEARTBEAT_SEEN_SETTING_KEY, []);
+    if (Array.isArray(saved)) {
+      for (const id of saved) {
+        if (typeof id === 'string' && id) HEARTBEAT_MEM_SEEN.add(id);
+      }
+    }
+  } catch {
+    // ignore load failure
+  }
+  return HEARTBEAT_MEM_SEEN;
+}
+
+async function persistHeartbeatSeenSet(seen: Set<string>): Promise<void> {
+  const arr = Array.from(seen);
+  const trimmed = arr.length > 350 ? arr.slice(-350) : arr;
+  if (arr.length > 350) {
+    seen.clear();
+    for (const k of trimmed) seen.add(k);
+  }
+  await setSetting(HEARTBEAT_SEEN_SETTING_KEY, trimmed).catch(() => {});
+}
+
+export async function runZeroTokenHeartbeatCheckOnce(): Promise<{
+  checked: boolean;
+  alertsSent: number;
+  skippedReason?: string;
+}> {
+  const modEnabled = await isAiHubModuleEnabled();
+  if (!modEnabled) return { checked: false, alertsSent: 0, skippedReason: 'ai_hub_disabled' };
+
+  const settings = await getAiHubSettings();
+  const baleCfg = settings.baleAlerts;
+  if (!baleCfg.enabled || baleCfg.heartbeatEnabled === false) {
+    return { checked: false, alertsSent: 0, skippedReason: 'heartbeat_disabled' };
+  }
+
+  const seen = await loadHeartbeatSeenSet();
+  const nowMs = Date.now();
+  const twoMinsAgoIso = new Date(nowMs - 2 * 60 * 1000).toISOString();
+  const thirtyMinsAgoIso = new Date(nowMs - 30 * 60 * 1000).toISOString();
+
+  let alertsSent = 0;
+  let dirtySeen = false;
+
+  // 1) Unread customer live chat messages older than 2 minutes
+  const staleUnreadChats = await dbQuery<{
+    id: string;
+    visitor_name: string;
+    visitor_phone: string;
+    unread_admin_count: number;
+    last_message_preview: string;
+    updated_at: string;
+  }>(
+    `SELECT id, visitor_name, visitor_phone, unread_admin_count, last_message_preview, updated_at
+     FROM mod_live_chat_sessions
+     WHERE unread_admin_count > 0 AND updated_at <= $1 AND updated_at >= $2
+     ORDER BY updated_at DESC LIMIT 8`,
+    [twoMinsAgoIso, thirtyMinsAgoIso]
+  ).catch(() => []);
+
+  for (const chat of staleUnreadChats) {
+    const key = `chat:${chat.id}:${chat.updated_at}`;
+    if (seen.has(key)) continue;
+    const res = await sendSuperAdminBaleAlert({
+      category: 'heartbeat',
+      title: `پیام چت خوانده‌نشده (+۲ دقیقه بدون پاسخ)`,
+      lines: [
+        `کاربر: ${chat.visitor_name || 'بازدیدکننده'}${chat.visitor_phone ? ` (${chat.visitor_phone})` : ''}`,
+        `تعداد خوانده‌نشده: ${Number(chat.unread_admin_count || 1).toLocaleString('fa-IR')}`,
+        `آخرین پیام: ${String(chat.last_message_preview || '-').slice(0, 180)}`,
+        `شناسه نشست: ${chat.id}`,
+      ],
+      dedupKey: key,
+      cooldownMs: 30 * 60 * 1000,
+    });
+    if (res.sent || res.skippedReason === 'cooldown_deduplicated') {
+      seen.add(key);
+      dirtySeen = true;
+      if (res.sent) alertsSent += 1;
+    }
+  }
+
+  // 2) New failed/pending orders in last 30 minutes
+  if (baleCfg.notifyOrdersAndFailures !== false) {
+    const badOrders = await dbQuery<{
+      id: string;
+      buyer_name: string;
+      buyer_phone: string;
+      total_amount: number;
+      status: string;
+      created_at_label: string;
+    }>(
+      `SELECT id, buyer_name, buyer_phone, total_amount, status, created_at_label
+       FROM orders
+       WHERE created_at >= $1 AND LOWER(status) IN ('failed', 'pending', 'cancelled', 'canceled', 'unpaid', 'awaiting_payment')
+       ORDER BY created_at DESC LIMIT 6`,
+      [thirtyMinsAgoIso]
+    ).catch(() => []);
+
+    for (const ord of badOrders) {
+      const key = `order:${ord.id}:${ord.status}`;
+      if (seen.has(key)) continue;
+      const res = await sendSuperAdminBaleAlert({
+        category: 'heartbeat',
+        title: `سفارش ناموفق / در انتظار پرداخت (${ord.status})`,
+        lines: [
+          `شناسه سفارش: ${ord.id}`,
+          `خریدار: ${ord.buyer_name || 'مشتری'} (${ord.buyer_phone || '-'})`,
+          `مبلغ: ${Number(ord.total_amount || 0).toLocaleString('fa-IR')} تومان`,
+          `زمان: ${ord.created_at_label || '-'}`,
+        ],
+        dedupKey: key,
+        cooldownMs: 60 * 60 * 1000,
+      });
+      if (res.sent || res.skippedReason === 'cooldown_deduplicated') {
+        seen.add(key);
+        dirtySeen = true;
+        if (res.sent) alertsSent += 1;
+      }
+    }
+  }
+
+  // 3) New critical system_logs errors in last 30 minutes
+  if (baleCfg.notifyCriticalErrors !== false) {
+    const newErrors = await dbQuery<{
+      id: string;
+      category: string;
+      title: string;
+      detail: string;
+      sql_or_endpoint: string;
+    }>(
+      `SELECT id, category, title, detail, sql_or_endpoint
+       FROM system_logs
+       WHERE created_at >= $1 AND LOWER(level) = 'error'
+       ORDER BY created_at DESC LIMIT 5`,
+      [thirtyMinsAgoIso]
+    ).catch(() => []);
+
+    for (const errRow of newErrors) {
+      if (/bale_alert_bridge|agent_bale_bridge|bot-bridge/i.test(`${errRow.sql_or_endpoint} ${errRow.title}`)) {
+        continue;
+      }
+      const key = `err:${errRow.id}`;
+      if (seen.has(key)) continue;
+      const res = await sendSuperAdminBaleAlert({
+        category: 'heartbeat',
+        title: `خطای جدید سامانه: ${String(errRow.title || 'خطای بحرانی').slice(0, 120)}`,
+        lines: [
+          `بخش: ${errRow.category || 'system'}`,
+          `جزئیات: ${String(errRow.detail || '-').slice(0, 220)}`,
+          errRow.sql_or_endpoint ? `مسیر: ${errRow.sql_or_endpoint}` : '',
+        ].filter(Boolean),
+        dedupKey: key,
+        cooldownMs: 60 * 60 * 1000,
+      });
+      if (res.sent || res.skippedReason === 'cooldown_deduplicated') {
+        seen.add(key);
+        dirtySeen = true;
+        if (res.sent) alertsSent += 1;
+      }
+    }
+  }
+
+  if (dirtySeen) {
+    await persistHeartbeatSeenSet(seen);
+  }
+  return { checked: true, alertsSent };
+}
+
+export function startZeroTokenHeartbeatScheduler(): void {
+  if (heartbeatSchedulerStarted) return;
+  heartbeatSchedulerStarted = true;
+
+  const tick = async () => {
+    if (heartbeatTickInProgress) return;
+    heartbeatTickInProgress = true;
+    try {
+      await runZeroTokenHeartbeatCheckOnce();
+    } catch {
+      // keep zero-token heartbeat resilient
+    } finally {
+      heartbeatTickInProgress = false;
+    }
+  };
+
+  const timer = setInterval(() => {
+    void tick();
+  }, HEARTBEAT_INTERVAL_MS);
   if (typeof timer.unref === 'function') {
     timer.unref();
   }

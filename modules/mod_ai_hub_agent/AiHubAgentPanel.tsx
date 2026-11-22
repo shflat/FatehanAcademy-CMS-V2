@@ -50,6 +50,7 @@ export const AiHubAgentPanel: React.FC<{
       dailyBriefingEnabled?: boolean;
       dailyBriefingTime?: string;
       lastBriefingDate?: string;
+      heartbeatEnabled?: boolean;
     };
     jarvisSettings?: JarvisSettingsUiConfig;
   }>({
@@ -70,6 +71,7 @@ export const AiHubAgentPanel: React.FC<{
       dailyBriefingEnabled: false,
       dailyBriefingTime: '09:00',
       lastBriefingDate: '',
+      heartbeatEnabled: true,
     },
     jarvisSettings: DEFAULT_JARVIS_UI_SETTINGS,
   });

@@ -28,7 +28,7 @@ export function createStorefrontRouter(): express.Router {
     res.json({
       status: 'ok',
       service: 'skill98-platform',
-      cmsVersion: 'v2.9.2',
+      cmsVersion: 'v2.9.3',
       buildId: resolveBuildId(),
       databaseEngine: getActiveEngine(),
       cacheStats: cmsCache.getStats(),

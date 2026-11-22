@@ -34,6 +34,14 @@ import {
 import { AiSocialPublisherCard } from './AiSocialPublisherCard';
 import { playJarvisMessageAudio, stopJarvisSpeech } from './jarvisTtsPlayer';
 import { encodeAudioBlobToMono16kWav } from './voiceWavEncoder';
+import {
+  getSavedVoiceMode,
+  isBrowserSpeechSupported,
+  saveVoiceMode,
+  startBrowserPersianSpeech,
+  type BrowserSpeechRecognitionHandle,
+  type JarvisVoiceInputMode,
+} from './browserSpeechHelper';
 import { SafeMarkdownText } from './SafeMarkdownText';
 
 interface AgentConversation {
@@ -58,6 +66,7 @@ export interface BaleAlertsUiConfig {
   dailyBriefingEnabled?: boolean;
   dailyBriefingTime?: string;
   lastBriefingDate?: string;
+  heartbeatEnabled?: boolean;
 }
 
 const DEFAULT_BALE_ALERTS_UI: BaleAlertsUiConfig = {
@@ -73,6 +82,7 @@ const DEFAULT_BALE_ALERTS_UI: BaleAlertsUiConfig = {
   dailyBriefingEnabled: false,
   dailyBriefingTime: '09:00',
   lastBriefingDate: '',
+  heartbeatEnabled: true,
 };
 
 type AgentTask = AgentTaskItem;
@@ -116,6 +126,8 @@ export const AiCommandCenterCard: React.FC<{
   } | null>(null);
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [voiceMode, setVoiceMode] = useState<JarvisVoiceInputMode>(getSavedVoiceMode);
+  const [browserSpeechSupported] = useState<boolean>(() => isBrowserSpeechSupported());
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -148,6 +160,7 @@ export const AiCommandCenterCard: React.FC<{
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const browserSpeechRef = useRef<BrowserSpeechRecognitionHandle | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopStreamTracks = () => {
@@ -164,6 +177,8 @@ export const AiCommandCenterCard: React.FC<{
   useEffect(() => {
     return () => {
       try {
+        browserSpeechRef.current?.abort();
+        browserSpeechRef.current = null;
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
           mediaRecorderRef.current.stop();
         }
@@ -440,8 +455,55 @@ export const AiCommandCenterCard: React.FC<{
     }
   };
 
+  const handleSwitchVoiceMode = () => {
+    if (recording || transcribing) return;
+    if (voiceMode === 'whisper' && !browserSpeechSupported) {
+      onNotice?.('error', 'مرورگر فعلی از SpeechRecognition رایگان پشتیبانی نمی‌کند.');
+      return;
+    }
+    const next: JarvisVoiceInputMode = voiceMode === 'whisper' ? 'browser_free' : 'whisper';
+    setVoiceMode(next);
+    saveVoiceMode(next);
+  };
+
   const handleVoiceToggle = async () => {
     if (transcribing) return;
+
+    // $0 Browser SpeechRecognition (fa-IR) mode
+    if (voiceMode === 'browser_free') {
+      if (recording && browserSpeechRef.current) {
+        browserSpeechRef.current.stop();
+        return;
+      }
+      const baseText = command.trim();
+      const handle = startBrowserPersianSpeech({
+        onTranscript: (text) => {
+          setCommand(baseText ? `${baseText} ${text}` : text);
+        },
+        onEnd: () => {
+          browserSpeechRef.current = null;
+          stopStreamTracks();
+          setRecording(false);
+          setRecordingSeconds(0);
+        },
+        onError: (msg) => {
+          browserSpeechRef.current = null;
+          stopStreamTracks();
+          setRecording(false);
+          setRecordingSeconds(0);
+          onNotice?.('error', msg);
+        },
+      });
+      if (handle) {
+        browserSpeechRef.current = handle;
+        setRecording(true);
+        setRecordingSeconds(0);
+        timerRef.current = setInterval(() => {
+          setRecordingSeconds((sec) => sec + 1);
+        }, 1000);
+      }
+      return;
+    }
 
     // Stop active recording -> triggers onstop -> sends to Slot 4 Whisper STT
     if (recording && mediaRecorderRef.current) {
@@ -860,6 +922,17 @@ export const AiCommandCenterCard: React.FC<{
             />
             <span>ارجاع سوالات بی‌پاسخ توسط ابزار ایجنت</span>
           </label>
+          <label className="flex items-center gap-2 p-2 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300/60 dark:border-emerald-800/70 cursor-pointer font-bold">
+            <input
+              type="checkbox"
+              disabled={!effectiveBaleAlerts.enabled}
+              checked={effectiveBaleAlerts.heartbeatEnabled !== false}
+              onChange={(e) =>
+                void handleToggleBaleAlerts({ heartbeatEnabled: e.target.checked })
+              }
+            />
+            <span>پایش صفرتوکن ۲ دقیقه‌ای (چت، سفارش ناموفق و خطا · ۰ توکن)</span>
+          </label>
           <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/80 dark:bg-stone-900/70 border border-stone-200/80 dark:border-stone-800">
             <input
               type="text"
@@ -1235,13 +1308,34 @@ export const AiCommandCenterCard: React.FC<{
           </button>
           <button
             type="button"
+            disabled={recording || transcribing}
+            onClick={handleSwitchVoiceMode}
+            title={
+              voiceMode === 'browser_free'
+                ? 'حالت فعلی: تشخیص گفتار رایگان مرورگر ($0 · fa-IR) — کلیک برای سوییچ به Whisper WAV'
+                : 'حالت فعلی: Whisper WAV (اسلات ۴) — کلیک برای سوییچ به میکروفون رایگان مرورگر ($0)'
+            }
+            className={`px-2 py-2.5 rounded-xl border cursor-pointer transition-colors text-[10px] font-extrabold shrink-0 disabled:opacity-45 ${
+              voiceMode === 'browser_free'
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                : 'border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
+            }`}
+          >
+            {voiceMode === 'browser_free' ? 'مرورگر ۰$' : 'Whisper'}
+          </button>
+          <button
+            type="button"
             disabled={transcribing}
             onClick={() => void handleVoiceToggle()}
             title={
               transcribing
                 ? 'در حال تبدیل ویس به متن با اسلات ۴ (Whisper)...'
                 : recording
-                ? 'توقف ضبط و تبدیل ویس به متن فارسی'
+                ? voiceMode === 'browser_free'
+                  ? 'توقف تشخیص گفتار مرورگر'
+                  : 'توقف ضبط و تبدیل ویس به متن فارسی'
+                : voiceMode === 'browser_free'
+                ? 'فرمان صوتی رایگان مرورگر (fa-IR · ۰ دلار)'
                 : 'ضبط فرمان صوتی فارسی (اسلات ۴ Whisper STT)'
             }
             className={`px-2.5 py-2.5 rounded-xl border cursor-pointer transition-colors inline-flex items-center gap-1.5 text-[11px] font-extrabold shrink-0 disabled:opacity-60 ${
@@ -1249,6 +1343,8 @@ export const AiCommandCenterCard: React.FC<{
                 ? 'bg-rose-600 text-white border-rose-600 animate-pulse'
                 : transcribing
                 ? 'bg-violet-600 text-white border-violet-600'
+                : voiceMode === 'browser_free'
+                ? 'border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
                 : 'border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-300'
             }`}
           >
@@ -1275,7 +1371,9 @@ export const AiCommandCenterCard: React.FC<{
             onChange={(e) => setCommand(e.target.value)}
             placeholder={
               recording
-                ? 'در حال ضبط ویس... برای تبدیل به متن دوباره روی دکمه قرمز کلیک کنید'
+                ? voiceMode === 'browser_free'
+                  ? 'در حال شنیدن فارسی (رایگان مرورگر ۰$)...'
+                  : 'در حال ضبط ویس... برای تبدیل به متن دوباره روی دکمه قرمز کلیک کنید'
                 : transcribing
                 ? 'در حال تبدیل صدا به متن فارسی از طریق اسلات ۴ (Whisper)...'
                 : 'فرمان متنی، لینک، فایل .md یا صوتی به ایجنت ۲۴/۷...'
