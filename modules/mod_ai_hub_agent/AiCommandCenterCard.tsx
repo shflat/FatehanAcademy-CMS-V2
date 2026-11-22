@@ -8,6 +8,7 @@ import {
   Copy,
   ExternalLink,
   FileText,
+  KeyRound,
   Link2,
   Loader2,
   Mic,
@@ -32,6 +33,8 @@ import {
 } from './AiJarvisSettingsCard';
 import { AiSocialPublisherCard } from './AiSocialPublisherCard';
 import { playJarvisMessageAudio, stopJarvisSpeech } from './jarvisTtsPlayer';
+import { encodeAudioBlobToMono16kWav } from './voiceWavEncoder';
+import { SafeMarkdownText } from './SafeMarkdownText';
 
 interface AgentConversation {
   id: string;
@@ -50,6 +53,8 @@ export interface BaleAlertsUiConfig {
   notifyCriticalErrors: boolean;
   notifyAgentEscalations: boolean;
   overrideChatId: string;
+  baleBotTokenMasked?: string;
+  hasDirectBaleBotToken?: boolean;
   dailyBriefingEnabled?: boolean;
   dailyBriefingTime?: string;
   lastBriefingDate?: string;
@@ -63,6 +68,8 @@ const DEFAULT_BALE_ALERTS_UI: BaleAlertsUiConfig = {
   notifyCriticalErrors: true,
   notifyAgentEscalations: true,
   overrideChatId: '',
+  baleBotTokenMasked: '',
+  hasDirectBaleBotToken: false,
   dailyBriefingEnabled: false,
   dailyBriefingTime: '09:00',
   lastBriefingDate: '',
@@ -115,6 +122,8 @@ export const AiCommandCenterCard: React.FC<{
   const [testingBridge, setTestingBridge] = useState(false);
   const [testingBaleAlert, setTestingBaleAlert] = useState(false);
   const [baleOverrideChatId, setBaleOverrideChatId] = useState(effectiveBaleAlerts.overrideChatId || '');
+  const [baleBotTokenInput, setBaleBotTokenInput] = useState(effectiveBaleAlerts.baleBotTokenMasked || '');
+  const [savingBaleToken, setSavingBaleToken] = useState(false);
   const [baleBriefingTime, setBaleBriefingTime] = useState(effectiveBaleAlerts.dailyBriefingTime || '09:00');
   const [baleTestResult, setBaleTestResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [startingPair, setStartingPair] = useState(false);
@@ -201,6 +210,10 @@ export const AiCommandCenterCard: React.FC<{
   }, [baleAlerts?.overrideChatId]);
 
   useEffect(() => {
+    setBaleBotTokenInput(baleAlerts?.baleBotTokenMasked || '');
+  }, [baleAlerts?.baleBotTokenMasked]);
+
+  useEffect(() => {
     setBaleBriefingTime(baleAlerts?.dailyBriefingTime || '09:00');
   }, [baleAlerts?.dailyBriefingTime]);
 
@@ -226,13 +239,29 @@ export const AiCommandCenterCard: React.FC<{
     onRefresh();
   };
 
-  const handleToggleBaleAlerts = async (patch: Partial<BaleAlertsUiConfig>) => {
+  const handleToggleBaleAlerts = async (
+    patch: Partial<BaleAlertsUiConfig> & { baleBotToken?: string }
+  ) => {
+    const {
+      baleBotTokenMasked: _masked,
+      hasDirectBaleBotToken: _hasDirect,
+      ...safeCurrent
+    } = effectiveBaleAlerts;
     await handleToggleSettings({
       baleAlerts: {
-        ...effectiveBaleAlerts,
+        ...safeCurrent,
         ...patch,
       },
     });
+  };
+
+  const handleSaveDirectBaleToken = async () => {
+    setSavingBaleToken(true);
+    try {
+      await handleToggleBaleAlerts({ baleBotToken: baleBotTokenInput.trim() });
+    } finally {
+      setSavingBaleToken(false);
+    }
   };
 
   const handleTestBaleAdminAlert = async () => {
@@ -365,20 +394,16 @@ export const AiCommandCenterCard: React.FC<{
     return candidates.find((mime) => MediaRecorder.isTypeSupported(mime)) || '';
   };
 
-  const transcribeRecordedBlob = async (blob: Blob, mimeType: string) => {
+  const transcribeRecordedBlob = async (blob: Blob, _mimeType: string) => {
     if (blob.size < 128) {
       onNotice?.('error', 'فایل صوتی ضبط‌شده بسیار کوتاه یا خالی بود.');
       return;
     }
     setTranscribing(true);
     try {
-      const ext = mimeType.includes('ogg')
-        ? 'ogg'
-        : mimeType.includes('mp4')
-        ? 'm4a'
-        : 'webm';
+      const wavBlob = await encodeAudioBlobToMono16kWav(blob);
       const form = new FormData();
-      form.append('file', blob, `voice_command.${ext}`);
+      form.append('file', wavBlob, 'voice.wav');
       form.append('language', 'fa');
 
       const { ok, data } = await apiJson<{
@@ -856,6 +881,40 @@ export const AiCommandCenterCard: React.FC<{
           </div>
         </div>
 
+        {/* Direct Encrypted Bale Bot API Token (Priority #1, falls back to SMS Hub & Bot Bridge) */}
+        <div className="p-2.5 rounded-xl bg-white/85 dark:bg-stone-900/75 border border-teal-500/25 flex flex-col sm:flex-row sm:items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <KeyRound className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+            <span className="font-extrabold text-stone-900 dark:text-white text-[11px]">
+              توکن ربات بله (Bot API Token):
+            </span>
+            {effectiveBaleAlerts.hasDirectBaleBotToken && (
+              <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[9px] font-extrabold">
+                رمزنگاری AES-256-GCM
+              </span>
+            )}
+          </div>
+          <div className="flex-1 flex items-center gap-1.5 min-w-0">
+            <input
+              type="password"
+              dir="ltr"
+              autoComplete="off"
+              value={baleBotTokenInput}
+              onChange={(e) => setBaleBotTokenInput(e.target.value)}
+              placeholder="مثال: 123456789:AbCdEf... (اختیاری — از هاب پیامک بله نیز خودکار خوانده می‌شود)"
+              className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 font-mono text-[11px] outline-none focus:border-teal-500"
+            />
+            <button
+              type="button"
+              disabled={savingBaleToken}
+              onClick={() => void handleSaveDirectBaleToken()}
+              className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-extrabold cursor-pointer shrink-0 disabled:opacity-50"
+            >
+              {savingBaleToken ? 'ذخیره...' : 'ذخیره توکن'}
+            </button>
+          </div>
+        </div>
+
         {/* Phase 14.3.2 — 1-Click Bale Bot Pairing + Daily Morning Briefing */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 pt-1">
           {/* 1-Click Bale Pairing */}
@@ -1073,7 +1132,11 @@ export const AiCommandCenterCard: React.FC<{
                           : 'ایجنت ۲۴/۷'}
                       </span>
                     </div>
-                    <p className="whitespace-pre-wrap leading-relaxed">{c.message_text}</p>
+                    {c.role === 'assistant' ? (
+                      <SafeMarkdownText text={c.message_text} />
+                    ) : (
+                      <p className="whitespace-pre-wrap leading-relaxed">{c.message_text}</p>
+                    )}
                     {parsedTools.length > 0 && (
                       <div className="pt-1.5 mt-1 border-t border-stone-200/70 dark:border-stone-700/70 space-y-1">
                         {parsedTools.map((t, idx) => (

@@ -8,6 +8,7 @@ import {
   Globe,
   Image as ImageIcon,
   Loader2,
+  MessageCircle,
   MessageSquare,
   Palette,
   Save,
@@ -45,6 +46,7 @@ import { MediaPickerModal } from '../components/MediaPickerModal';
 import { SeoVisibilityControlCard } from '../components/SeoVisibilityControlCard';
 import { SolarBookingAutoBackupPanel } from '../../../../modules/mod_booking/SolarBookingAutoBackupPanel';
 import { ShippingSettingsPanel } from '../../../../modules/mod_ecommerce_suite/ShippingSettingsPanel';
+import { UnifiedBaleHubPanel } from './UnifiedBaleHubPanel';
 import {
   REGISTERED_THEMES_LIST,
   type RegisteredThemeId,
@@ -56,6 +58,7 @@ export type UnifiedSettingsTabId =
   | 'calendar'
   | 'gateways'
   | 'sms'
+  | 'bale'
   | 'ai'
   | 'security'
   | 'backup';
@@ -225,7 +228,8 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
     { id: 'shipping', label: 'حمل‌ونقل و ارسال', icon: Truck },
     { id: 'calendar', label: 'تقویم شمسی و جغرافیا', icon: Calendar },
     { id: 'gateways', label: 'درگاه‌های پرداخت (۱۶)', icon: CreditCard },
-    { id: 'sms', label: 'درگاه‌های پیامکی (۱۲) و بله', icon: MessageSquare },
+    { id: 'sms', label: 'درگاه‌های پیامکی (۱۲)', icon: MessageSquare },
+    { id: 'bale', label: 'تنظیمات یکپارچه بله', icon: MessageCircle },
     { id: 'ai', label: 'هوش مصنوعی و سئو', icon: Bot },
     { id: 'security', label: 'کاربران، نقش‌ها و نشست‌ها', icon: Shield },
     { id: 'backup', label: 'دیتابیس SQL و بکاپ', icon: Database },
@@ -828,6 +832,10 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
       )}
 
       {activeTab === 'sms' && <SmsTriggersPanel onNotice={onNotice} />}
+
+      {activeTab === 'bale' && (
+        <UnifiedBaleHubPanel isSuperAdmin={isSuperAdmin} onNotice={onNotice} />
+      )}
 
       {activeTab === 'ai' && (
         <div className="space-y-6">

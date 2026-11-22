@@ -24,6 +24,8 @@ import {
   playJarvisMessageAudio,
   stopJarvisSpeech,
 } from './jarvisTtsPlayer';
+import { encodeAudioBlobToMono16kWav } from './voiceWavEncoder';
+import { SafeMarkdownText } from './SafeMarkdownText';
 
 export interface JarvisClientPageContext {
   path: string;
@@ -345,16 +347,16 @@ export const SuperAdminJarvisMascot: React.FC<SuperAdminJarvisMascotProps> = ({
     return candidates.find((mime) => MediaRecorder.isTypeSupported(mime)) || '';
   };
 
-  const transcribeBlob = async (blob: Blob, mimeType: string) => {
+  const transcribeBlob = async (blob: Blob, _mimeType: string) => {
     if (blob.size < 128) {
       emitGlobalToast('error', 'فایل صوتی ضبط‌شده بسیار کوتاه بود.');
       return;
     }
     setTranscribing(true);
     try {
-      const ext = mimeType.includes('ogg') ? 'ogg' : mimeType.includes('mp4') ? 'm4a' : 'webm';
+      const wavBlob = await encodeAudioBlobToMono16kWav(blob);
       const form = new FormData();
-      form.append('file', blob, `jarvis_voice.${ext}`);
+      form.append('file', wavBlob, 'voice.wav');
       form.append('language', 'fa');
 
       const { ok, data } = await apiJson<{
@@ -561,7 +563,11 @@ export const SuperAdminJarvisMascot: React.FC<SuperAdminJarvisMascotProps> = ({
                         : 'bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 text-stone-800 dark:text-slate-100 shadow-xs'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                    {m.role === 'assistant' ? (
+                      <SafeMarkdownText text={m.text} />
+                    ) : (
+                      <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>
+                    )}
 
                     {m.role === 'assistant' && m.tools && m.tools.length > 0 && (
                       <div className="pt-1.5 border-t border-stone-200/70 dark:border-slate-800 space-y-1">

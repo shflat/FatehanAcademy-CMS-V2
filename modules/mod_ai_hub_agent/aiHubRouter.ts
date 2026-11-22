@@ -9,6 +9,7 @@ import {
 import {
   ensureAiHubSchema,
   getAiHubSettings,
+  maskAiHubSettingsForClient,
   type AiProviderKind,
   type AiSlotKey,
   type AiSlotRow,
@@ -84,15 +85,16 @@ export function createAiHubAgentRouter(): express.Router {
           superAdminOnly: r.slot_key === 'agent_core',
         }));
 
+      const maskedSettings = maskAiHubSettingsForClient(settings);
       res.json({
         ok: true,
         isSuperAdmin,
         settings: isSuperAdmin
-          ? settings
+          ? maskedSettings
           : {
-              agentMode: settings.agentMode,
-              liveChatAutoReply: settings.liveChatAutoReply,
-              autoProfileCompletion: settings.autoProfileCompletion,
+              agentMode: maskedSettings.agentMode,
+              liveChatAutoReply: maskedSettings.liveChatAutoReply,
+              autoProfileCompletion: maskedSettings.autoProfileCompletion,
             },
         slots,
       });

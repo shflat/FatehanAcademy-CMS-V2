@@ -14,13 +14,20 @@ import {
   type AgentActorRole,
 } from './aiHubSchema.js';
 import { getSlotConfig } from './aiProviderGateway.js';
-import { sendSuperAdminBaleAlert } from './baleAlertBridge.js';
+import { resolveBaleBotTokenOnly, sendSuperAdminBaleAlert } from './baleAlertBridge.js';
+import { DEFAULT_SITE_MODULES_REGISTRY } from '../../src/server/modules/admin/modulesConfigRouter.js';
 import {
   runAuditMissingSeoAndMediaTool,
   runFixItemSeoAndMediaTool,
   runSkillToProductTool,
 } from './agentContentFactory.js';
 import { runPublishOrDraftSocialPostTool } from './agentSocialPublisher.js';
+import {
+  runCreateOrUpdatePageTool,
+  runManageKnowledgeCacheTool,
+  runManageSiteModulesTool,
+  runReplyToLiveChatTool,
+} from './jarvisCmsBuilderTools.js';
 
 export type AgentUiActionType = 'OPEN_INLINE_OTP';
 
@@ -467,6 +474,203 @@ const ALL_TOOL_DEFS: OpenAiToolDef[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'read_live_chat_messages',
+      description:
+        'Super Admin only: reads actual recent or unread customer live chat threads and their real messages from mod_live_chat_sessions and mod_live_chat_messages.',
+      parameters: {
+        type: 'object',
+        properties: {
+          onlyUnread: {
+            type: 'boolean',
+            description: 'If true, returns only sessions with unread_admin_count > 0.',
+          },
+          priority: {
+            type: 'string',
+            description: 'Optional priority filter (urgent, high, normal).',
+            enum: ['urgent', 'high', 'normal'],
+          },
+          limit: {
+            type: 'number',
+            description: 'Number of chat threads to inspect (1 to 15, default 8).',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'diagnose_site_config',
+      description:
+        'Super Admin only: inspects non-secret readiness status across Bale Bot token, Bale Safir OTP, AI Hub Slots 1-4, SMTP mail config, active CMS modules count, recent system_logs errors, and recent failed/pending orders.',
+      parameters: {
+        type: 'object',
+        properties: {
+          includeRecentErrors: {
+            type: 'boolean',
+            description: 'Include last 10 error logs from system_logs (default true).',
+          },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_or_update_page',
+      description:
+        'Super Admin only: dynamically creates or updates a custom CMS page in the pages table with sanitized HTML content, SEO title/meta, slug, and draft/published status.',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'Optional existing page ID to update.',
+          },
+          title: {
+            type: 'string',
+            description: 'Persian page title (required).',
+          },
+          slug: {
+            type: 'string',
+            description: 'URL slug (e.g. about-us or ai-consulting).',
+          },
+          summary: {
+            type: 'string',
+            description: 'Short intro/summary shown in the hero section.',
+          },
+          htmlContent: {
+            type: 'string',
+            description: 'Clean HTML content for the page body (headings, paragraphs, lists, callouts). Executable tags are stripped automatically.',
+          },
+          seoTitle: {
+            type: 'string',
+            description: 'Optional SEO meta title.',
+          },
+          seoDescription: {
+            type: 'string',
+            description: 'Optional SEO meta description.',
+          },
+          templateType: {
+            type: 'string',
+            description: 'Page layout template.',
+            enum: ['standard', 'landing', 'full_width', 'contact', 'faq'],
+          },
+          ctaText: {
+            type: 'string',
+            description: 'Optional CTA button label.',
+          },
+          ctaLink: {
+            type: 'string',
+            description: 'Optional CTA link path or https URL.',
+          },
+          status: {
+            type: 'string',
+            description: 'Publish status (default draft unless Super Admin asks to publish).',
+            enum: ['draft', 'published'],
+          },
+        },
+        required: ['title'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'reply_to_live_chat',
+      description:
+        'Super Admin only: sends an official admin reply directly into a customer live-chat conversation (mod_live_chat_messages) and marks unread messages as read.',
+      parameters: {
+        type: 'object',
+        properties: {
+          sessionId: {
+            type: 'string',
+            description: 'Exact chat session ID obtained from read_live_chat_messages.',
+          },
+          replyText: {
+            type: 'string',
+            description: 'Official Persian reply message to send to the visitor/customer.',
+          },
+          senderName: {
+            type: 'string',
+            description: 'Optional display name for the operator (default مدیریت پشتیبانی).',
+          },
+        },
+        required: ['sessionId', 'replyText'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'manage_site_modules',
+      description:
+        'Super Admin only: lists, enables, or disables non-core CMS modules safely with audit logging (refuses to disable protected core/auth/admin modules).',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: {
+            type: 'string',
+            description: 'Operation to perform.',
+            enum: ['list', 'enable', 'disable'],
+          },
+          moduleId: {
+            type: 'string',
+            description: 'Target module ID (required for enable/disable).',
+          },
+        },
+        required: ['action'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'manage_knowledge_cache',
+      description:
+        'Super Admin only: lists, adds, edits, approves, disables, or deletes zero-token Knowledge Base answers in mod_ai_knowledge_cache.',
+      parameters: {
+        type: 'object',
+        properties: {
+          action: {
+            type: 'string',
+            description: 'KB operation to run.',
+            enum: ['list', 'add', 'update', 'approve', 'disable', 'delete'],
+          },
+          id: {
+            type: 'string',
+            description: 'KB entry ID (required for update, approve, disable, delete).',
+          },
+          questionPattern: {
+            type: 'string',
+            description: 'Question pattern in Persian (required for add/update).',
+          },
+          normalizedKeywords: {
+            type: 'string',
+            description: 'Optional space-separated keywords for matching.',
+          },
+          answerText: {
+            type: 'string',
+            description: 'Zero-token Persian answer text (supports {siteTitle} variable).',
+          },
+          category: {
+            type: 'string',
+            description: 'KB entry category.',
+            enum: ['greeting', 'faq', 'catalog', 'auto_learned'],
+          },
+          status: {
+            type: 'string',
+            description: 'Entry status.',
+            enum: ['active', 'pending_review', 'disabled'],
+          },
+        },
+        required: ['action'],
+      },
+    },
+  },
 ];
 
 function getAllowedToolsForContext(ctx: AgentToolContext): OpenAiToolDef[] {
@@ -477,6 +681,8 @@ function getAllowedToolsForContext(ctx: AgentToolContext): OpenAiToolDef[] {
   ]);
   if (ctx.actorRole === 'super_admin') {
     allowedNames.add('read_system_logs');
+    allowedNames.add('read_live_chat_messages');
+    allowedNames.add('diagnose_site_config');
     allowedNames.add('save_learned_skill');
     allowedNames.add('create_site_form');
     allowedNames.add('create_or_submit_user_request');
@@ -484,6 +690,10 @@ function getAllowedToolsForContext(ctx: AgentToolContext): OpenAiToolDef[] {
     allowedNames.add('audit_missing_seo_and_media');
     allowedNames.add('fix_item_seo_and_media');
     allowedNames.add('publish_or_draft_social_post');
+    allowedNames.add('create_or_update_page');
+    allowedNames.add('reply_to_live_chat');
+    allowedNames.add('manage_site_modules');
+    allowedNames.add('manage_knowledge_cache');
   } else if (ctx.actorRole === 'admin') {
     allowedNames.add('create_site_form');
     allowedNames.add('create_or_submit_user_request');
@@ -550,13 +760,43 @@ export async function executeCmsTool(
         ]);
 
         const fileModules = readRegistryFileModules();
-        const dbMap = new Map(dbReg.map((m) => [m.id, m]));
-        const mergedModules = (fileModules.length > 0 ? fileModules : dbReg).map((m) => {
+        const dbList = Array.isArray(dbReg) ? dbReg : [];
+        const dbMap = new Map(dbList.map((m) => [m.id, m]));
+        const mergedById = new Map<string, { id: string; titleFa: string; enabled: boolean }>();
+
+        // Seed from built-in default registry first (guarantees accurate count even in minimal Docker images)
+        for (const m of DEFAULT_SITE_MODULES_REGISTRY) {
+          mergedById.set(m.id, {
+            id: m.id,
+            titleFa: m.titleFa || m.id,
+            enabled: Boolean(m.enabled),
+          });
+        }
+        // Layer modules/registry.json when present
+        for (const m of fileModules) {
+          const prev = mergedById.get(m.id);
+          mergedById.set(m.id, {
+            id: m.id,
+            titleFa: m.titleFa || prev?.titleFa || m.id,
+            enabled: typeof m.enabled === 'boolean' ? m.enabled : prev?.enabled ?? true,
+          });
+        }
+        // Apply live DB overrides from site_modules_registry (highest priority)
+        for (const m of dbList) {
+          const prev = mergedById.get(m.id);
+          mergedById.set(m.id, {
+            id: m.id,
+            titleFa: m.titleFa || prev?.titleFa || m.id,
+            enabled: typeof m.enabled === 'boolean' ? m.enabled : prev?.enabled ?? true,
+          });
+        }
+
+        const mergedModules = Array.from(mergedById.values()).map((m) => {
           const override = dbMap.get(m.id);
           return {
             id: m.id,
             titleFa: override?.titleFa || m.titleFa || m.id,
-            enabled: override ? Boolean(override.enabled) : Boolean(m.enabled ?? true),
+            enabled: override ? Boolean(override.enabled) : Boolean(m.enabled),
           };
         });
         const visibleModules = includeInactive
@@ -564,7 +804,7 @@ export async function executeCmsTool(
           : mergedModules.filter((m) => m.enabled);
 
         const data = {
-          cmsName: 'Skill 98 / DPATech Final Base CMS (v2.9.0)',
+          cmsName: 'DPATech Final Base CMS (v2.9.2)',
           activeTheme: themeCfg?.activeThemeId || 'default',
           siteTitle: themeCfg?.siteTitle || 'اسکیل ۹۸',
           counts: {
@@ -574,6 +814,7 @@ export async function executeCmsTool(
             activeForms: formsRows.length,
           },
           activeModulesCount: mergedModules.filter((m) => m.enabled).length,
+          totalModulesCount: mergedModules.length,
           modules: visibleModules,
           forms: formsRows.map((f) => ({
             id: f.id,
@@ -586,7 +827,7 @@ export async function executeCmsTool(
           tool: toolName,
           args,
           ok: true,
-          summary: `بازرسی زنده سامانه: ${data.counts.products} محصول، ${data.counts.articles} مقاله، ${data.counts.pages} برگه، ${data.forms.length} فرم فعال و ${data.activeModulesCount} ماژول روشن.`,
+          summary: `بازرسی زنده سامانه: ${data.counts.products} محصول، ${data.counts.articles} مقاله، ${data.counts.pages} برگه، ${data.forms.length} فرم فعال و ${data.activeModulesCount} ماژول روشن از ${data.totalModulesCount} ماژول.`,
           data,
         };
       }
@@ -691,18 +932,29 @@ export async function executeCmsTool(
           };
         }
 
-        const source = String(args.source || 'all');
-        const filterVal = String(args.levelOrStatus || '').trim().toLowerCase();
-        const limit = Math.min(30, Math.max(1, Number(args.limit || 12)));
+        const source = String(args.source || 'all').trim().toLowerCase();
+        const rawFilter = String(args.levelOrStatus || '').trim().toLowerCase();
+        const filterVal = ['all', 'any', 'recent', 'همه', '*'].includes(rawFilter) ? '' : rawFilter;
+        const isErrorFamily = ['error', 'errors', 'err', 'fail', 'failed', 'warning', 'خطا', 'ناموفق'].includes(filterVal);
+        const limit = Math.min(30, Math.max(1, Number(args.limit || 15)));
         const out: Record<string, unknown> = {};
 
         if (source === 'all' || source === 'system_logs') {
-          const logs = filterVal
+          const logs = isErrorFamily
             ? await dbQuery<Record<string, unknown>>(
                 `SELECT id, level, category, title, detail, sql_or_endpoint, created_at_fa
-                 FROM system_logs WHERE LOWER(level) = $1 OR LOWER(category) = $1
+                 FROM system_logs
+                 WHERE LOWER(level) IN ('error', 'warning')
+                 ORDER BY created_at DESC LIMIT $1`,
+                [limit]
+              ).catch(() => [])
+            : filterVal
+            ? await dbQuery<Record<string, unknown>>(
+                `SELECT id, level, category, title, detail, sql_or_endpoint, created_at_fa
+                 FROM system_logs
+                 WHERE LOWER(level) LIKE $1 OR LOWER(category) LIKE $1 OR LOWER(title) LIKE $1
                  ORDER BY created_at DESC LIMIT $2`,
-                [filterVal, limit]
+                [`%${filterVal}%`, limit]
               ).catch(() => [])
             : await dbQuery<Record<string, unknown>>(
                 `SELECT id, level, category, title, detail, sql_or_endpoint, created_at_fa
@@ -713,7 +965,15 @@ export async function executeCmsTool(
         }
 
         if (source === 'all' || source === 'orders') {
-          const orders = filterVal
+          const orders = isErrorFamily
+            ? await dbQuery<Record<string, unknown>>(
+                `SELECT id, buyer_phone, buyer_name, total_amount, payment_method, status, created_at_label
+                 FROM orders
+                 WHERE LOWER(status) IN ('failed', 'pending', 'cancelled', 'unpaid')
+                 ORDER BY created_at DESC LIMIT $1`,
+                [limit]
+              ).catch(() => [])
+            : filterVal
             ? await dbQuery<Record<string, unknown>>(
                 `SELECT id, buyer_phone, buyer_name, total_amount, payment_method, status, created_at_label
                  FROM orders WHERE LOWER(status) LIKE $1
@@ -729,12 +989,20 @@ export async function executeCmsTool(
         }
 
         if (source === 'all' || source === 'delivery_logs') {
-          const deliveries = filterVal
+          const deliveries = isErrorFamily
             ? await dbQuery<Record<string, unknown>>(
                 `SELECT id, channel, provider, recipient, event_key, status, error_message, created_at_fa
-                 FROM mod_delivery_logs WHERE LOWER(status) = $1 OR LOWER(channel) = $1
+                 FROM mod_delivery_logs
+                 WHERE LOWER(status) IN ('failed', 'error')
+                 ORDER BY created_at DESC LIMIT $1`,
+                [limit]
+              ).catch(() => [])
+            : filterVal
+            ? await dbQuery<Record<string, unknown>>(
+                `SELECT id, channel, provider, recipient, event_key, status, error_message, created_at_fa
+                 FROM mod_delivery_logs WHERE LOWER(status) LIKE $1 OR LOWER(channel) LIKE $1
                  ORDER BY created_at DESC LIMIT $2`,
-                [filterVal, limit]
+                [`%${filterVal}%`, limit]
               ).catch(() => [])
             : await dbQuery<Record<string, unknown>>(
                 `SELECT id, channel, provider, recipient, event_key, status, error_message, created_at_fa
@@ -744,11 +1012,16 @@ export async function executeCmsTool(
           out.deliveryLogs = deliveries;
         }
 
+        const totalRows =
+          (Array.isArray(out.systemLogs) ? out.systemLogs.length : 0) +
+          (Array.isArray(out.orders) ? out.orders.length : 0) +
+          (Array.isArray(out.deliveryLogs) ? out.deliveryLogs.length : 0);
+
         return {
           tool: toolName,
           args,
           ok: true,
-          summary: `خواندن لاگ‌های زنده سامانه (${source}) با موفقیت انجام شد.`,
+          summary: `خواندن لاگ‌های زنده سامانه (${source}${filterVal ? ` · فیلتر: ${filterVal}` : ''}): ${totalRows} رکورد یافت شد.`,
           data: out,
         };
       }
@@ -1308,6 +1581,317 @@ export async function executeCmsTool(
       case 'publish_or_draft_social_post':
         return runPublishOrDraftSocialPostTool(args, ctx);
 
+      case 'read_live_chat_messages': {
+        if (ctx.actorRole !== 'super_admin') {
+          return {
+            tool: toolName,
+            args,
+            ok: false,
+            summary: 'دسترسی رد شد: ابزار read_live_chat_messages فقط مخصوص سوپر ادمین است.',
+          };
+        }
+        const onlyUnread = Boolean(args.onlyUnread);
+        const priorityFilter = ['urgent', 'high', 'normal'].includes(String(args.priority || ''))
+          ? String(args.priority)
+          : '';
+        const limit = Math.min(15, Math.max(1, Number(args.limit || 8)));
+
+        const whereClauses: string[] = [];
+        const paramsArr: unknown[] = [];
+        if (onlyUnread) {
+          whereClauses.push('unread_admin_count > 0');
+        }
+        if (priorityFilter) {
+          paramsArr.push(priorityFilter);
+          whereClauses.push(`priority = $${paramsArr.length}`);
+        }
+        paramsArr.push(limit);
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        const sessions = await dbQuery<{
+          id: string;
+          visitor_name: string;
+          visitor_phone: string;
+          subject: string;
+          department: string;
+          status: string;
+          priority: string;
+          unread_admin_count: number;
+          last_message_preview: string;
+          created_at_fa: string;
+          updated_at: string;
+        }>(
+          `SELECT id, visitor_name, visitor_phone, subject, department, status, priority,
+                  unread_admin_count, last_message_preview, created_at_fa, updated_at
+           FROM mod_live_chat_sessions
+           ${whereSql}
+           ORDER BY unread_admin_count DESC, updated_at DESC
+           LIMIT $${paramsArr.length}`,
+          paramsArr
+        ).catch(() => []);
+
+        const threads = await Promise.all(
+          sessions.map(async (s) => {
+            const msgs = await dbQuery<{
+              sender_role: string;
+              sender_name: string;
+              message_text: string;
+              created_at_fa: string;
+            }>(
+              `SELECT sender_role, sender_name, message_text, created_at_fa
+               FROM mod_live_chat_messages
+               WHERE session_id = $1
+               ORDER BY created_at DESC LIMIT 8`,
+              [s.id]
+            ).catch(() => []);
+            return {
+              sessionId: s.id,
+              visitorName: s.visitor_name || 'بازدیدکننده مهمان',
+              visitorPhone: s.visitor_phone || '-',
+              subject: s.subject || '-',
+              department: s.department || '-',
+              status: s.status,
+              priority: s.priority,
+              unreadAdminCount: Number(s.unread_admin_count || 0),
+              createdAtFa: s.created_at_fa,
+              recentMessages: msgs.reverse().map((m) => ({
+                role: m.sender_role,
+                sender: m.sender_name,
+                text: String(m.message_text || '').slice(0, 420),
+                at: m.created_at_fa,
+              })),
+            };
+          })
+        );
+
+        const totalUnread = threads.reduce((acc, t) => acc + t.unreadAdminCount, 0);
+        return {
+          tool: toolName,
+          args,
+          ok: true,
+          summary: `${threads.length} رشته چت زنده مشتریان بازیابی شد (مجموع پیام‌های خوانده‌نشده: ${totalUnread}).`,
+          data: {
+            threadsCount: threads.length,
+            totalUnreadMessages: totalUnread,
+            threads,
+          },
+        };
+      }
+
+      case 'diagnose_site_config': {
+        if (ctx.actorRole !== 'super_admin') {
+          return {
+            tool: toolName,
+            args,
+            ok: false,
+            summary: 'دسترسی رد شد: ابزار diagnose_site_config فقط مخصوص سوپر ادمین است.',
+          };
+        }
+        const includeRecentErrors = args.includeRecentErrors !== false;
+
+        const [
+          hubSettings,
+          baleTokenInfo,
+          smsCfg,
+          backupCfg,
+          slotRows,
+          dbReg,
+          recentErrors,
+          failedOrders,
+          activeSkillsRows,
+        ] = await Promise.all([
+          getAiHubSettings(),
+          resolveBaleBotTokenOnly(),
+          getSetting<Record<string, unknown>>('sms_gateway_config', {}),
+          getSetting<Record<string, unknown>>('backup_schedule_config', {}),
+          dbQuery<{
+            slot_key: string;
+            provider_kind: string;
+            base_url: string;
+            model_name: string;
+            api_key_enc: string;
+            enabled: number;
+          }>('SELECT slot_key, provider_kind, base_url, model_name, api_key_enc, enabled FROM mod_ai_provider_configs').catch(
+            () => []
+          ),
+          getSetting<{ id: string; enabled?: boolean }[]>('site_modules_registry', []),
+          includeRecentErrors
+            ? dbQuery<{
+                level: string;
+                category: string;
+                title: string;
+                detail: string;
+                sql_or_endpoint: string;
+                created_at_fa: string;
+              }>(
+                `SELECT level, category, title, detail, sql_or_endpoint, created_at_fa
+                 FROM system_logs
+                 WHERE LOWER(level) IN ('error', 'warning')
+                 ORDER BY created_at DESC LIMIT 10`
+              ).catch(() => [])
+            : Promise.resolve([]),
+          dbQuery<{ cnt: number | string }>(
+            `SELECT COUNT(*) AS cnt FROM orders WHERE LOWER(status) IN ('failed', 'pending', 'cancelled', 'unpaid')`
+          ).catch(() => [{ cnt: 0 }]),
+          getAllActiveAgentSkills().catch(() => []),
+        ]);
+
+        const envCfg = getEnvConfig();
+        const slotsStatus = slotRows.map((r) => ({
+          slotKey: r.slot_key,
+          enabled: Boolean(r.enabled),
+          provider: r.provider_kind,
+          model: r.model_name,
+          baseUrl: r.base_url || '(پیش‌فرض ارائه‌دهنده)',
+          hasSavedApiKey: Boolean(r.api_key_enc),
+          hasEnvFallbackKey:
+            r.provider_kind === 'gemini'
+              ? Boolean((process.env.GEMINI_API_KEY || '').trim() || envCfg.geminiApiKey)
+              : r.provider_kind === 'openai_compatible'
+              ? Boolean((process.env.OPENAI_API_KEY || '').trim())
+              : true,
+        }));
+
+        const fileModules = readRegistryFileModules();
+        const modMap = new Map<string, boolean>();
+        for (const m of DEFAULT_SITE_MODULES_REGISTRY) modMap.set(m.id, Boolean(m.enabled));
+        for (const m of fileModules) if (typeof m.enabled === 'boolean') modMap.set(m.id, m.enabled);
+        for (const m of Array.isArray(dbReg) ? dbReg : []) {
+          if (typeof m.enabled === 'boolean') modMap.set(m.id, m.enabled);
+        }
+        const activeModulesCount = Array.from(modMap.values()).filter(Boolean).length;
+
+        const hasSmtpHost = Boolean(
+          String(backupCfg?.smtpHost || process.env.SMTP_HOST || '').trim()
+        );
+        const hasSmtpAuth = Boolean(
+          String(backupCfg?.smtpUser || process.env.SMTP_USER || '').trim() &&
+            String(backupCfg?.smtpPass || process.env.SMTP_PASS || '').trim()
+        );
+
+        const baleMapCred =
+          smsCfg &&
+          typeof smsCfg.providersMap === 'object' &&
+          smsCfg.providersMap !== null &&
+          typeof (smsCfg.providersMap as Record<string, unknown>).bale === 'object'
+            ? ((smsCfg.providersMap as Record<string, Record<string, unknown>>).bale || {})
+            : {};
+
+        const data = {
+          baleBot: {
+            hasBotToken: Boolean(baleTokenInfo?.botToken),
+            tokenSource: baleTokenInfo?.source || 'تنظیم نشده',
+            hasDirectBaleBotToken: Boolean(hubSettings.baleAlerts?.baleBotTokenEnc),
+            hasSuperAdminChatId: Boolean(
+              String(hubSettings.baleAlerts?.overrideChatId || '').trim() ||
+                String(baleTokenInfo?.defaultChatId || '').trim() ||
+                String(baleMapCred.baleChatId || '').trim()
+            ),
+            baleAlertsEnabled: Boolean(hubSettings.baleAlerts?.enabled),
+            dailyBriefingEnabled: Boolean(hubSettings.baleAlerts?.dailyBriefingEnabled),
+          },
+          baleSafirOtp: {
+            activeSmsProvider: String(smsCfg?.provider || 'melipayamak'),
+            baleMode: String(baleMapCred.baleMode || 'auto'),
+            safirVersion: String(baleMapCred.baleSafirVersion || 'v3'),
+            hasSafirV3AccessKey: Boolean(String(baleMapCred.baleSafirApiAccessKey || '').trim()),
+            hasSafirV3BotId: Boolean(String(baleMapCred.baleSafirBotId || '').trim()),
+            hasSafirV2ClientId: Boolean(String(baleMapCred.baleClientId || '').trim()),
+            hasSafirV2ClientSecret: Boolean(String(baleMapCred.baleClientSecret || '').trim()),
+            hasSmsApiKey: Boolean(String(smsCfg?.apiKey || '').trim()),
+          },
+          aiHubSlots: slotsStatus,
+          jarvisSwitches: {
+            agentEnabled: Boolean(hubSettings.jarvisSettings?.enabled),
+            mascotEnabled: Boolean(hubSettings.jarvisSettings?.mascotEnabled),
+            liveChatAutoReply: Boolean(hubSettings.liveChatAutoReply),
+            voiceReplyEnabled: Boolean(hubSettings.jarvisSettings?.voiceReplyEnabled),
+            allowSkillToProduct: Boolean(hubSettings.jarvisSettings?.allowSkillToProduct),
+            allowSocialPublisher: Boolean(hubSettings.jarvisSettings?.allowSocialPublisher),
+          },
+          smtpEmail: {
+            configured: hasSmtpHost && hasSmtpAuth,
+            hasHost: hasSmtpHost,
+            hasCredentials: hasSmtpAuth,
+            targetEmailSet: Boolean(String(backupCfg?.smtpTargetEmail || '').trim()),
+          },
+          modules: {
+            activeCount: activeModulesCount,
+            totalCount: modMap.size,
+          },
+          activeInjectedSkillsCount: activeSkillsRows.length,
+          failedOrPendingOrdersCount: Number(failedOrders[0]?.cnt || 0),
+          recentSystemErrors: recentErrors.map((e) => ({
+            level: e.level,
+            category: e.category,
+            title: e.title,
+            detail: String(e.detail || '').slice(0, 220),
+            endpoint: e.sql_or_endpoint,
+            at: e.created_at_fa,
+          })),
+        };
+
+        return {
+          tool: toolName,
+          args,
+          ok: true,
+          summary: `عیب‌یابی پیکربندی انجام شد: توکن بله (${data.baleBot.hasBotToken ? `فعال از ${data.baleBot.tokenSource}` : 'تنظیم نشده'})، ماژول‌های روشن (${activeModulesCount}/${modMap.size})، مهارت‌های تزریق‌شده (${activeSkillsRows.length})، خطاهای اخیر (${recentErrors.length}).`,
+          data,
+        };
+      }
+
+      case 'create_or_update_page': {
+        if (ctx.actorRole !== 'super_admin') {
+          return {
+            tool: toolName,
+            args,
+            ok: false,
+            summary: 'دسترسی رد شد: ابزار create_or_update_page فقط مخصوص سوپر ادمین است.',
+          };
+        }
+        const res = await runCreateOrUpdatePageTool(args);
+        return { tool: toolName, args, ...res };
+      }
+
+      case 'reply_to_live_chat': {
+        if (ctx.actorRole !== 'super_admin') {
+          return {
+            tool: toolName,
+            args,
+            ok: false,
+            summary: 'دسترسی رد شد: ابزار reply_to_live_chat فقط مخصوص سوپر ادمین است.',
+          };
+        }
+        const res = await runReplyToLiveChatTool(args);
+        return { tool: toolName, args, ...res };
+      }
+
+      case 'manage_site_modules': {
+        if (ctx.actorRole !== 'super_admin') {
+          return {
+            tool: toolName,
+            args,
+            ok: false,
+            summary: 'دسترسی رد شد: ابزار manage_site_modules فقط مخصوص سوپر ادمین است.',
+          };
+        }
+        const res = await runManageSiteModulesTool(args);
+        return { tool: toolName, args, ...res };
+      }
+
+      case 'manage_knowledge_cache': {
+        if (ctx.actorRole !== 'super_admin') {
+          return {
+            tool: toolName,
+            args,
+            ok: false,
+            summary: 'دسترسی رد شد: ابزار manage_knowledge_cache فقط مخصوص سوپر ادمین است.',
+          };
+        }
+        const res = await runManageKnowledgeCacheTool(args);
+        return { tool: toolName, args, ...res };
+      }
+
       default:
         return {
           tool: toolName,
@@ -1332,7 +1916,7 @@ export async function buildGroundedSystemPrompt(params: {
   extraContext?: string;
   includeJsonFallbackProtocol?: boolean;
 }): Promise<string> {
-  const [skills, memories, hubSettings] = await Promise.all([
+  const [skills, memories, hubSettings, themeCfg, prodCats, artCats, sampleProds] = await Promise.all([
     getAllActiveAgentSkills(),
     readScopedAgentMemories({
       actorRole: params.ctx.actorRole,
@@ -1341,14 +1925,41 @@ export async function buildGroundedSystemPrompt(params: {
       limit: 35,
     }),
     getAiHubSettings(),
+    getSetting<Record<string, unknown>>('theme_config', {}),
+    dbQuery<{ category: string }>(
+      "SELECT DISTINCT category FROM products WHERE category != '' LIMIT 16"
+    ).catch(() => []),
+    dbQuery<{ category: string }>(
+      "SELECT DISTINCT category FROM articles WHERE category != '' LIMIT 12"
+    ).catch(() => []),
+    dbQuery<{ title: string; category: string }>(
+      "SELECT title, category FROM products WHERE status = 'published' ORDER BY updated_at DESC LIMIT 8"
+    ).catch(() => []),
   ]);
 
   const roleLabels: Record<AgentActorRole, string> = {
-    super_admin: 'سوپر ادمین (دسترسی کامل به فرماندهی ۲۴/۷، لاگ‌ها، ساخت فرم و یادگیری SKILL.md)',
+    super_admin:
+      'سوپر ادمین (فرماندهی کل سامانه از طریق جارویس — ناظر ارشد تمام زیر-ایجنت‌ها، ساخت برگه/فرم/محصول، عیب‌یابی، چت مشتریان، ماژول‌ها و بانک دانش صفرتوکن)',
     admin: 'ادمین سایت',
     customer: 'کاربر احراز هویت‌شده (عضو سایت)',
     guest: 'کاربر مهمان (احراز هویت نشده)',
   };
+
+  const liveSiteTitle = String(
+    themeCfg?.brandNameFa || themeCfg?.siteTitle || 'این وب‌سایت'
+  ).trim();
+  const liveSiteDescription = String(
+    themeCfg?.heroSubtitle || themeCfg?.footerDescription || ''
+  )
+    .trim()
+    .slice(0, 260);
+  const productCategoriesStr =
+    prodCats.map((c) => c.category).filter(Boolean).join('، ') || 'محصولات و خدمات اصلی سایت';
+  const articleCategoriesStr =
+    artCats.map((c) => c.category).filter(Boolean).join('، ') || 'مقالات و راهنماهای آموزشی سایت';
+  const sampleProductsStr = sampleProds
+    .map((p) => `${p.title}${p.category ? ` (${p.category})` : ''}`)
+    .join(' | ');
 
   const skillsSection =
     skills.length > 0
@@ -1374,12 +1985,8 @@ export async function buildGroundedSystemPrompt(params: {
     : '';
 
   const jarvisCfg = hubSettings.jarvisSettings;
-  const mascotPersonaLine =
-    params.ctx.actorRole === 'super_admin'
-      ? `نام دستیار اختصاصی سوپر ادمین: «${jarvisCfg.mascotName || 'جارویس'}»${
-          jarvisCfg.mascotPersona ? ` · شخصیت و لحن مورد نظر سوپر ادمین: ${jarvisCfg.mascotPersona}` : ''
-        }`
-      : '';
+  const jarvisName = jarvisCfg.mascotName || 'جارویس';
+  const isLiveChatChannel = params.ctx.channel === 'live_chat';
 
   const pageCtx = params.ctx.pageContext;
   const pageContextBlock = pageCtx
@@ -1388,28 +1995,60 @@ export async function buildGroundedSystemPrompt(params: {
       }${pageCtx.entitySlug ? `\n- اسلاگ (entitySlug): ${pageCtx.entitySlug}` : ''}\nاگر سوپر ادمین گفت «همین صفحه»، «همین محصول»، «همین مقاله» یا «همین سفارش»، دقیقاً منظورش همین موجودیت بالاست.`
     : '';
 
+  // Strict hierarchy & role-specific constitution
+  const roleConstitution = isLiveChatChannel
+    ? [
+        `تو زیر-ایجنت گفتگوی آنلاین فروشگاه (Storefront Live Chat Sub-Agent) تحت نظارت ارشد «${jarvisName}» در وب‌سایت **«${liveSiteTitle}»** (اجراشده بر بستر DPATech Final Base CMS v2.9.2) هستی.`,
+        `## هویت زنده این وب‌سایت (به‌صورت پویا از دیتابیس خوانده شده):`,
+        `- نام برند/سایت: **${liveSiteTitle}**`,
+        liveSiteDescription ? `- معرفی و حوزه فعالیت سایت: ${liveSiteDescription}` : '',
+        `- دسته‌بندی واقعی محصولات/خدمات: ${productCategoriesStr}`,
+        `- دسته‌بندی واقعی مقالات: ${articleCategoriesStr}`,
+        sampleProductsStr ? `- نمونه موارد موجود در کاتالوگ: ${sampleProductsStr}` : '',
+        `## قوانین حیاتی و غیرقابل‌نقض چت آنلاین (Anti-Free-Labor & Conversion Guardrail):
+1. نقش تو **صرفاً مشاور فروش، راهنمای استفاده از سایت و ثبت‌کننده سرنخ/درخواست مشتریان «${liveSiteTitle}»** است.
+2. **ممنوعیت مطلق کار رایگان (Anti-Free-Labor):** هرگز نقش ChatGPT عمومی بازی نکن! هرگز برای بازدیدکننده کد، مقاله، کاتالوگ، پرامپت اختصاصی، ترجمه، تمرین درسی یا هر کار رایگان بیرونی تولید نکن.
+3. **پاسخ‌های کوتاه و کم‌مصرف:** پاسخ‌های خود را بسیار خلاصه، دقیق و محترمانه در حداکثر **۲ تا ۴ جمله کوتاه فارسی** بنویس تا مصرف توکن به حداقل برسد.
+4. **جریان هوشمند تبدیل مورد ناموجود به سرنخ (Dynamic Missing-Item Conversion):** اگر بازدیدکننده محصول، دوره، فایل یا خدمتی متناسب با حوزه فعالیت «${liveSiteTitle}» خواست، ابتدا حتماً \`search_site_catalog\` را صدا بزن. اگر مورد دقیق در کاتالوگ پیدا نشد، **هرگز پیشنهاد نده کارش را رایگان انجام دهی**؛ محترمانه بگو در حال حاضر این مورد در کاتالوگ «${liveSiteTitle}» موجود نیست، پیشنهاد بده درخواست اختصاصی‌اش ثبت شود تا تیم ما نسخه اختصاصی آماده کند و **بلافاصله** برای مهمان ابزار \`trigger_chat_otp_box\` را اجرا کن تا کادر ورود با موبایل و OTP همینجا باز شود (و اگر وارد شده است، با تاییدش ابزار \`create_or_submit_user_request\` را اجرا کن).
+5. **موضوعات خارج از حوزه سایت:** اگر سوال بازدیدکننده کاملاً بی‌ربط به حوزه فعالیت و خدمات «${liveSiteTitle}» بود (مثلاً سوال عمومی، آشپزی، کدنویسی متفرقه یا پرامپت رایگان)، محترمانه عذرخواهی کن و گفتگو را به محصولات و خدمات واقعی «${liveSiteTitle}» هدایت کن.
+6. اگر کاربر وارد شده است و نام واقعی خود را اعلام کرد، بلافاصله ابزار \`update_visitor_user_profile\` را صدا بزن.
+7. اگر مشکل فوری خرید/پرداخت یا سوال حساس بی‌پاسخ پیش آمد، ابزار \`notify_super_admin_bale\` را اجرا کن.`,
+      ]
+        .filter(Boolean)
+        .join('\n')
+    : [
+        `تو **«${jarvisName}»**، ارکستراتور ارشد سوپر ادمین (Master Orchestrator) و ناظر کل زیر-ایجنت‌های سامانه **«${liveSiteTitle}»** (DPATech Final Base CMS v2.9.2) هستی. زیر-ایجنت‌های چت آنلاین ویترین، تولید محتوا و سئو، انتشار شبکه‌های اجتماعی و پایش سلامت سیستم همگی تحت نظارت و فرمان تو عمل می‌کنند.`,
+        jarvisCfg.mascotPersona ? `شخصیت و لحن مورد نظر سوپر ادمین: ${jarvisCfg.mascotPersona}` : '',
+        `هویت زنده این وب‌سایت: نام سایت «${liveSiteTitle}»${
+          liveSiteDescription ? ` · معرفی: ${liveSiteDescription}` : ''
+        } · دسته‌بندی محصولات: ${productCategoriesStr} · دسته‌بندی مقالات: ${articleCategoriesStr}.`,
+        `قانون امنیتی و هویت: هرگز نگو «من دسترسی به دیتابیس یا سایت ندارم» و هرگز نپرس «آیا سایت وردپرس یا شاپیفای است؟». این CMS اختصاصی DPATech است و تمام کارها باید منحصراً از طریق ابزارهای ایمن و اعتبارسنجی‌شده همین سامانه انجام شود (هرگز کد منبع خام یا SQL خام اجرا نکن).`,
+        `## قوانین فرماندهی ارکستراتور (${jarvisName} — سوپر ادمین):
+1. تمام پاسخ‌ها را دقیق، مستند به خروجی واقعی ابزارها و به زبان فارسی روان بنویس.
+2. برای **ساخت یا ویرایش برگه‌های پویا** (مثل «یک برگه جدید برای ... بساز») مستقیماً ابزار \`create_or_update_page\` را اجرا کن (به‌صورت پیش‌فرض \`draft\` مگر اینکه سوپر ادمین صراحتاً انتشار فوری بخواهد).
+3. برای **نظارت و پاسخ مستقیم به مشتریان چت آنلاین** ابتدا با \`read_live_chat_messages\` مکالمات واقعی را بخوان و با دستور سوپر ادمین از طریق \`reply_to_live_chat\` پاسخ رسمی ارسال و خوانده‌نشده‌ها را صفر کن.
+4. برای **روشن یا خاموش کردن ماژول‌های غیرهسته‌ای CMS** با ثبت لاگ ممیزی از \`manage_site_modules\` استفاده کن.
+5. برای **مدیریت بانک دانش صفرتوکن چت** (مشاهده، افزودن، ویرایش، تایید، غیرفعال‌سازی یا حذف پاسخ‌های صفرتوکن) از \`manage_knowledge_cache\` استفاده کن.
+6. برای **عیب‌یابی خطاها، اتصال بله/سفیر/اسلات‌های AI یا سفارش‌های ناموفق** حتماً \`diagnose_site_config\` و \`read_system_logs\` را اجرا کن و بر اساس داده واقعی گزارش بده.
+7. برای **تبدیل فایل .md، لینک یا توضیحات به محصول/مقاله سئوشده** از \`skill_to_product\`، برای **ممیزی و رفع نقص سئو/تصویر** از \`audit_missing_seo_and_media\` و \`fix_item_seo_and_media\`، و برای **انتشار شبکه‌های اجتماعی** از \`publish_or_draft_social_post\` استفاده کن.
+8. برای **آموزش قانون یا دستورالعمل دائمی جدید** به سیستم (مثل «یاد بگیر...» یا «از این به بعد...») ابزار \`save_learned_skill\` را صدا بزن.`,
+      ]
+        .filter(Boolean)
+        .join('\n');
+
   return [
-    `تو ایجنت هوشمند بومی و ادمین داخلی سامانه **Skill 98 / DPATech Final Base CMS (v2.9.0)** هستی و دسترسی زنده و واقعی به دیتابیس و ابزارهای داخلی (Tools) این سایت داری.`,
-    mascotPersonaLine,
-    `قانون حیاتی هویت: هرگز نگو «من دسترسی به دیتابیس یا سایت ندارم» و هرگز نپرس «آیا سایت شما وردپرس یا شاپیفای است؟». این سامانه CMS اختصاصی Skill 98 / DPATech است و هر زمان اطلاعات زنده نیاز بود، مستقیماً ابزار مربوطه را صدا بزن.`,
-    `کانال فعلی: ${params.ctx.channel === 'command_center' ? 'مرکز فرماندهی سوپر ادمین (Command Center / Jarvis)' : 'گفتگوی آنلاین فروشگاه (Storefront Live Chat)'}`,
+    roleConstitution,
+    `کانال فعلی: ${
+      params.ctx.channel === 'command_center'
+        ? `مرکز فرماندهی سوپر ادمین (${jarvisName} Master Orchestrator)`
+        : 'گفتگوی آنلاین فروشگاه (Storefront Live Chat Sub-Agent)'
+    }`,
     `نقش مخاطب فعلی: ${roleLabels[params.ctx.actorRole]}${
       params.ctx.userDisplayName ? ` | نام فعلی: ${params.ctx.userDisplayName}` : ''
     }${params.ctx.userId ? ` | شناسه/موبایل: ${params.ctx.userId}` : ''}`,
-    `قوانین رفتاری کلیدی:
-1. تمام پاسخ‌ها را دقیق، حرفه‌ای، شفاف و به زبان فارسی روان بنویس.
-2. اگر کاربر مهمان در چت آنلاین قصد ثبت درخواست، مشاوره، خرید سفارشی یا دریافت اولویت فوری داشت و هنوز وارد نشده است، حتماً ابزار \`trigger_chat_otp_box\` را صدا بزن تا کادر ورود سریع با موبایل و OTP همین داخل چت برایش باز شود.
-3. اگر کاربر وارد شده است و نام واقعی خود را اعلام کرد، بلافاصله ابزار \`update_visitor_user_profile\` را صدا بزن.
-4. اگر کاربر تایید کرد درخواستش ثبت شود و احراز هویت شده است، ابزار \`create_or_submit_user_request\` را اجرا کن و کد پیگیری واقعی برگردانده‌شده توسط ابزار را به او اعلام کن.
-5. اگر سوپر ادمین در مرکز فرماندهی دستور یا قانون دائمی آموزش داد (مثل «یاد بگیر...» یا «از این به بعد...»)، ابزار \`save_learned_skill\` را اجرا کن.
-6. اگر سوپر ادمین درباره وضعیت سایت، فرم‌ها، ماژول‌ها، خطاها یا سفارش‌های ناموفق پرسید، ابتدا \`inspect_site_capabilities\` یا \`read_system_logs\` را اجرا کن و بر اساس داده واقعی گزارش بده.
-7. اگر سوپر ادمین فایل .md پیوست کرد یا لینک داد و خواست آن را به محصول یا مقاله سئوشده تبدیل کنی، ابزار \`skill_to_product\` را اجرا کن (به‌صورت پیش‌فرض پیش‌نویس مگر آنکه صراحتاً انتشار فوری بخواهد).
-8. اگر سوپر ادمین خواست محصولات/مقالات بدون تصویر یا بدون سئو را پیدا یا اصلاح کنی، از \`audit_missing_seo_and_media\` و سپس \`fix_item_seo_and_media\` استفاده کن.
-9. اگر سوپر ادمین خواست محصول، مقاله یا موضوعی را برای کانال بله، کانال تلگرام یا اینستاگرام (پست/کاروسل/ریلز/استوری) آماده یا منتشر کنی، ابزار \`publish_or_draft_social_post\` را اجرا کن و خروجی کامل (از جمله بسته آماده کپی اینستاگرام و لینک دانلود تصویر) را شفاف در پاسخ نمایش بده.
-10. اگر در غیاب سوپر ادمین با سوال تخصصی بی‌پاسخ، مشکل فوری خرید/پرداخت یا درخواست حساس مواجه شدی، ابزار \`notify_super_admin_bale\` را صدا بزن تا فوری به بله سوپر ادمین اطلاع داده شود.`,
     pageContextBlock,
     `## ابزارهای مجاز برای این نشست:\n${toolNamesList}`,
-    `## حافظه دائمی مهارت‌ها و دستورالعمل‌های فعال (SKILL.md — همیشه فعال):\n${skillsSection}`,
+    `## حافظه دائمی مهارت‌ها و دستورالعمل‌های فعال (${skills.length} مهارت فعال SKILL.md — همیشه تزریق‌شده):\n${skillsSection}`,
     `## حافظه اختصاصی و مجاز این نشست (Scoped Memory — کاملاً ایزوله):\n${memorySection}`,
     params.extraContext ? `## اطلاعات تکمیلی نشست:\n${params.extraContext}` : '',
     jsonFallbackGuide,

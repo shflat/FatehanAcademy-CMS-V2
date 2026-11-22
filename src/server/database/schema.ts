@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { CmsRoleDefinition } from '../../core/types.js';
+import type { CmsRoleDefinition, PaymentDisplayConfig } from '../../core/types.js';
 import {
   DEFAULT_AI_ENGINE_CONFIG,
   DEFAULT_BACKUP_SCHEDULE_CONFIG,
@@ -550,6 +550,40 @@ async function seedInitialData(): Promise<void> {
        VALUES ($1, $2, $3)
        ON CONFLICT (key) DO NOTHING`,
       [k, JSON.stringify(v), nowIso]
+    );
+  }
+
+  // One-time idempotent migration: keep ONLY NovinoPay enabled & default; disable all other payment gateways
+  const novinoMigrationRows = await dbQuery<{ key: string }>(
+    `SELECT key FROM site_settings WHERE key = 'migration_only_novinopay_enabled_v292' LIMIT 1`
+  );
+  if (novinoMigrationRows.length === 0) {
+    await dbExec(
+      `UPDATE payment_gateways SET enabled = CASE WHEN id = 'novinopay' THEN 1 ELSE 0 END`
+    );
+    const currentPayDisplay = await getSetting<PaymentDisplayConfig>(
+      'payment_display_config',
+      DEFAULT_PAYMENT_DISPLAY_CONFIG
+    );
+    await dbExec(
+      `INSERT INTO site_settings (key, value_json, updated_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = EXCLUDED.updated_at`,
+      [
+        'payment_display_config',
+        JSON.stringify({
+          ...DEFAULT_PAYMENT_DISPLAY_CONFIG,
+          ...currentPayDisplay,
+          defaultGatewayId: 'novinopay',
+        }),
+        nowIso,
+      ]
+    );
+    await dbExec(
+      `INSERT INTO site_settings (key, value_json, updated_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = EXCLUDED.updated_at`,
+      ['migration_only_novinopay_enabled_v292', JSON.stringify({ appliedAt: nowIso }), nowIso]
     );
   }
 

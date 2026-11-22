@@ -7,6 +7,7 @@ import {
   isMaskedPlaceholder,
   maskSecret,
 } from '../../src/server/core/secretVault.js';
+import { seedDefaultKnowledgeCache } from './knowledgeCacheEngine.js';
 
 export type AiSlotKey = 'text_seo' | 'image_visual' | 'agent_core' | 'voice_audio';
 export type AiProviderKind = 'gemini' | 'openai_compatible' | 'ollama';
@@ -55,9 +56,16 @@ export interface BaleAdminAlertsConfig {
   notifyCriticalErrors: boolean;
   notifyAgentEscalations: boolean;
   overrideChatId: string;
+  baleBotTokenEnc?: string;
   dailyBriefingEnabled: boolean;
   dailyBriefingTime: string;
   lastBriefingDate: string;
+}
+
+export interface BaleAdminAlertsPublicConfig
+  extends Omit<BaleAdminAlertsConfig, 'baleBotTokenEnc'> {
+  baleBotTokenMasked: string;
+  hasDirectBaleBotToken: boolean;
 }
 
 export const DEFAULT_BALE_ADMIN_ALERTS: BaleAdminAlertsConfig = {
@@ -68,6 +76,7 @@ export const DEFAULT_BALE_ADMIN_ALERTS: BaleAdminAlertsConfig = {
   notifyCriticalErrors: true,
   notifyAgentEscalations: true,
   overrideChatId: '',
+  baleBotTokenEnc: '',
   dailyBriefingEnabled: false,
   dailyBriefingTime: '09:00',
   lastBriefingDate: '',
@@ -153,6 +162,8 @@ export const DEFAULT_JARVIS_SETTINGS: JarvisSettingsConfig = {
   allowSocialPublisher: false,
 };
 
+export type KnowledgeAutoLearnMode = 'pending_review' | 'auto_active';
+
 export interface AiHubRuntimeSettings {
   agentMode: 'light' | 'autonomous_24_7';
   liveChatAutoReply: boolean;
@@ -160,6 +171,8 @@ export interface AiHubRuntimeSettings {
   botBridgeEnabled: boolean;
   botBridgePlatforms: ('bale' | 'eitaa' | 'telegram')[];
   superAdminPhone: string;
+  kbAutoLearnMode: KnowledgeAutoLearnMode;
+  guestMaxLlmReplies: number;
   baleAlerts: BaleAdminAlertsConfig;
   jarvisSettings: JarvisSettingsConfig;
 }
@@ -171,6 +184,8 @@ export const DEFAULT_AI_HUB_SETTINGS: AiHubRuntimeSettings = {
   botBridgeEnabled: false,
   botBridgePlatforms: ['bale', 'eitaa', 'telegram'],
   superAdminPhone: '09122685759',
+  kbAutoLearnMode: 'pending_review',
+  guestMaxLlmReplies: 4,
   baleAlerts: DEFAULT_BALE_ADMIN_ALERTS,
   jarvisSettings: DEFAULT_JARVIS_SETTINGS,
 };
@@ -279,12 +294,30 @@ export async function ensureAiHubSchema(): Promise<void> {
     )
   `);
 
+  await dbExec(`
+    CREATE TABLE IF NOT EXISTS mod_ai_knowledge_cache (
+      id TEXT PRIMARY KEY,
+      question_pattern TEXT NOT NULL,
+      normalized_keywords TEXT NOT NULL DEFAULT '',
+      answer_text TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'faq',
+      status TEXT NOT NULL DEFAULT 'active',
+      hit_count INTEGER NOT NULL DEFAULT 0,
+      source TEXT NOT NULL DEFAULT 'seed',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+
   try {
     await dbExec(
       'CREATE INDEX IF NOT EXISTS idx_ai_mem_scope_user ON mod_ai_agent_memory (scope_type, user_id)'
     );
     await dbExec(
       'CREATE INDEX IF NOT EXISTS idx_ai_mem_scope_visitor ON mod_ai_agent_memory (scope_type, visitor_session_id)'
+    );
+    await dbExec(
+      'CREATE INDEX IF NOT EXISTS idx_ai_kb_status_hits ON mod_ai_knowledge_cache (status, hit_count)'
     );
   } catch {
     // ignore index creation notice on existing DB
@@ -362,6 +395,110 @@ export async function ensureAiHubSchema(): Promise<void> {
       ]
     );
   }
+
+  // Idempotently seed the 5 curated Site-Admin core skills (v2.9.1) — editable & deletable by Super Admin
+  const seededSlugs = await getSetting<string[]>('mod_ai_seeded_core_skills_v291', []);
+  const seededSet = new Set(Array.isArray(seededSlugs) ? seededSlugs : []);
+  const coreAdminSkills: {
+    id: string;
+    slug: string;
+    titleFa: string;
+    category: string;
+    markdown: string;
+  }[] = [
+    {
+      id: 'skill_site_self_awareness',
+      slug: 'site_self_awareness',
+      titleFa: 'خودآگاهی پویا از هویت و کاتالوگ واقعی سایت',
+      category: 'operations',
+      markdown:
+        '# SKILL: خودآگاهی پویا از هویت، حوزه فعالیت و کاتالوگ واقعی سایت\n' +
+        '- این سامانه بر پایه هسته **DPATech Final Base CMS** اجرا می‌شود و هویت، برند، دسته‌بندی‌ها و محصولات/خدمات آن به‌صورت زنده از دیتابیس خوانده می‌شود.\n' +
+        '- هرگز درباره امکانات سایت، ماژول‌های فعال، قیمت یا موجودی کاتالوگ حدس نزن و هرگز نگو «دسترسی ندارم».\n' +
+        '- قبل از پاسخ به هر سوال درباره امکانات، محصولات، دوره‌ها یا برگه‌ها، حتماً ابزارهای زنده `inspect_site_capabilities` و `search_site_catalog` را اجرا کن و صرفاً بر اساس داده‌های واقعی همین سایت پاسخ بده.',
+    },
+    {
+      id: 'skill_guest_otp_and_lead_flow',
+      slug: 'guest_otp_and_lead_flow',
+      titleFa: 'مشاوره فروش، جلوگیری از کار رایگان و تبدیل سرنخ با OTP درون چت',
+      category: 'support',
+      markdown:
+        '# SKILL: مشاوره فروش، جلوگیری از کار رایگان و ثبت درخواست با OTP درون چت\n' +
+        '- نقش دستیار چت آنلاین صرفاً «مشاور فروش، راهنمای سایت و ثبت‌کننده سرنخ/درخواست» است؛ هرگز نقش ChatGPT عمومی بازی نکن و کد، مقاله، پرامپت یا کار رایگان خارج از کاتالوگ برای بازدیدکننده انجام نده.\n' +
+        '- اگر بازدیدکننده محصول، دوره، فایل یا خدمتی متناسب با حوزه فعالیت همین سایت خواست و در `search_site_catalog` پیدا نشد، محترمانه بگو در حال حاضر این مورد در کاتالوگ موجود نیست، ثبت درخواست اختصاصی توسط تیم ما را پیشنهاد بده و بلافاصله ابزار `trigger_chat_otp_box` را صدا بزن تا کادر ورود با موبایل و کد تایید OTP داخل چت باز شود.\n' +
+        '- پس از احراز هویت و تایید کاربر، درخواست او را با ابزار `create_or_submit_user_request` ثبت کن و کد پیگیری واقعی را اعلام نما.',
+    },
+    {
+      id: 'skill_admin_diagnostics_and_logs',
+      slug: 'admin_diagnostics_and_logs',
+      titleFa: 'عیب‌یابی فنی، خواندن لاگ‌ها و رفع خطای پیکربندی',
+      category: 'operations',
+      markdown:
+        '# SKILL: عیب‌یابی فنی و تحلیل خطاهای سامانه برای سوپر ادمین\n' +
+        '- هر زمان سوپر ادمین در مرکز فرماندهی یا دستیار جارویس گزارشی از خطا (مثل خطای بله، سفیر OTP، ویس، ایمیل، پرداخت یا ماژول‌ها) داد، بلافاصله ابزارهای `diagnose_site_config` و `read_system_logs` را اجرا کن.\n' +
+        '- علت ریشه‌ای خطا را شفاف، مستند به وضعیت واقعی پیکربندی و لاگ‌ها، همراه با راه‌حل دقیق گام‌به‌گام فارسی گزارش بده.',
+    },
+    {
+      id: 'skill_support_and_failed_orders',
+      slug: 'support_and_failed_orders',
+      titleFa: 'مدیریت چت‌های زنده و پیگیری خریدهای ناموفق',
+      category: 'sales',
+      markdown:
+        '# SKILL: پایش چت‌های زنده مشتریان و پیگیری سفارش‌های ناموفق\n' +
+        '- هر زمان سوپر ادمین درباره پیام‌های مشتریان، چت‌های خوانده‌نشده یا وضعیت فروش/خریدهای ناموفق پرسید، حتماً ابزار `read_live_chat_messages` را برای خواندن متن واقعی مکالمات و ابزار `read_system_logs` (منبع `orders`) را برای بررسی سفارش‌های ناموفق/در انتظار پرداخت اجرا کن.\n' +
+        '- خلاصه‌ای ساختاریافته از سوالات مشتریان، شماره تماس و پیشنهاد پیگیری سریع ارائه بده و در صورت دستور سوپر ادمین، با ابزار `reply_to_live_chat` مستقیماً به مشتری پاسخ بده.',
+    },
+    {
+      id: 'skill_product_and_social_ops',
+      slug: 'skill_product_and_social_ops',
+      titleFa: 'تولید محتوا، ساخت برگه، سئو و انتشار شبکه‌های اجتماعی',
+      category: 'seo',
+      markdown:
+        '# SKILL: تولید محصول/مقاله/برگه سئوشده و انتشار هوشمند شبکه‌های اجتماعی\n' +
+        '- برای ساخت یا ویرایش برگه‌های پویا در سایت از ابزار `create_or_update_page` و برای تبدیل فایل `.md`، لینک عمومی یا توضیحات به محصول یا مقاله سئوشده همراه با FAQ و کاور WebP از ابزار `skill_to_product` استفاده کن (به‌صورت پیش‌فرض `draft` مگر آنکه سوپر ادمین صراحتاً انتشار فوری بخواهد).\n' +
+        '- برای تولید و انتشار پست اختصاصی کانال بله، کانال تلگرام و بسته آماده اینستاگرام (قلاب، کپشن، سناریو، هشتگ و لینک مستقیم CTA) از ابزار `publish_or_draft_social_post` با رعایت کلید تایید قبل از انتشار استفاده کن.',
+    },
+  ];
+
+  let seededChanged = false;
+  for (const sk of coreAdminSkills) {
+    if (seededSet.has(sk.slug)) continue;
+    const exists = await dbQuery<{ id: string }>(
+      'SELECT id FROM mod_ai_agent_skills WHERE slug = $1 OR title_fa = $2 LIMIT 1',
+      [sk.slug, sk.titleFa]
+    );
+    if (exists.length === 0) {
+      await dbExec(
+        `INSERT INTO mod_ai_agent_skills
+         (id, slug, title_fa, category, skill_markdown, source_type, usage_count, enabled, updated_at)
+         VALUES ($1, $2, $3, $4, $5, 'core', 1, 1, $6)`,
+        [sk.id, sk.slug, sk.titleFa, sk.category, sk.markdown, nowIso]
+      );
+    }
+    seededSet.add(sk.slug);
+    seededChanged = true;
+  }
+  if (seededChanged) {
+    await setSetting('mod_ai_seeded_core_skills_v291', Array.from(seededSet));
+  }
+
+  // One-time v2.9.2 migration: refresh untouched core skills to be 100% domain-agnostic (no hardcoded niche)
+  const agnosticUpgraded = await getSetting<boolean>('mod_ai_core_skills_agnostic_v292', false);
+  if (!agnosticUpgraded) {
+    for (const sk of coreAdminSkills.filter((s) =>
+      ['site_self_awareness', 'guest_otp_and_lead_flow', 'support_and_failed_orders', 'product_and_social_ops'].includes(s.slug)
+    )) {
+      await dbExec(
+        `UPDATE mod_ai_agent_skills
+         SET title_fa = $1, skill_markdown = $2, updated_at = $3
+         WHERE slug = $4 AND source_type = 'core'`,
+        [sk.titleFa, sk.markdown, nowIso, sk.slug]
+      ).catch(() => {});
+    }
+    await setSetting('mod_ai_core_skills_agnostic_v292', true);
+  }
+
+  await seedDefaultKnowledgeCache();
 
   const taskCountRows = await dbQuery<{ cnt: number | string }>(
     'SELECT COUNT(*) AS cnt FROM mod_ai_agent_tasks'
@@ -446,9 +583,13 @@ export async function getAiHubSettings(): Promise<AiHubRuntimeSettings> {
     DEFAULT_AI_HUB_SETTINGS
   );
   const savedBale = saved?.baleAlerts;
+  const rawQuota = Number(saved?.guestMaxLlmReplies);
   return {
     ...DEFAULT_AI_HUB_SETTINGS,
     ...(saved || {}),
+    kbAutoLearnMode: saved?.kbAutoLearnMode === 'auto_active' ? 'auto_active' : 'pending_review',
+    guestMaxLlmReplies:
+      Number.isFinite(rawQuota) && rawQuota >= 1 && rawQuota <= 20 ? Math.round(rawQuota) : 4,
     baleAlerts: {
       ...DEFAULT_BALE_ADMIN_ALERTS,
       ...(savedBale || {}),
@@ -463,18 +604,48 @@ export async function getAiHubSettings(): Promise<AiHubRuntimeSettings> {
   };
 }
 
+export function maskAiHubSettingsForClient(settings: AiHubRuntimeSettings): Omit<
+  AiHubRuntimeSettings,
+  'baleAlerts'
+> & { baleAlerts: BaleAdminAlertsPublicConfig } {
+  const { baleBotTokenEnc, ...restBale } = settings.baleAlerts;
+  return {
+    ...settings,
+    baleAlerts: {
+      ...restBale,
+      baleBotTokenMasked: maskSecret(baleBotTokenEnc || ''),
+      hasDirectBaleBotToken: Boolean(baleBotTokenEnc),
+    },
+  };
+}
+
 export async function saveAiHubSettings(
   next: Omit<Partial<AiHubRuntimeSettings>, 'baleAlerts' | 'jarvisSettings'> & {
-    baleAlerts?: Partial<BaleAdminAlertsConfig>;
+    baleAlerts?: Partial<BaleAdminAlertsConfig> & { baleBotToken?: string };
     jarvisSettings?: Partial<JarvisSettingsConfig>;
   }
 ): Promise<AiHubRuntimeSettings> {
   const current = await getAiHubSettings();
+  let nextBaleBotTokenEnc = current.baleAlerts?.baleBotTokenEnc || '';
+  if (typeof next.baleAlerts?.baleBotToken === 'string') {
+    const trimmed = next.baleAlerts.baleBotToken.trim();
+    if (trimmed === '') {
+      nextBaleBotTokenEnc = '';
+    } else if (!isMaskedPlaceholder(trimmed)) {
+      nextBaleBotTokenEnc = encryptSecret(trimmed);
+    }
+  }
+
+  const nextBaleRest = { ...(next.baleAlerts || {}) };
+  delete nextBaleRest.baleBotToken;
+
   const mergedBaleRaw = {
     ...DEFAULT_BALE_ADMIN_ALERTS,
     ...(current.baleAlerts || {}),
-    ...(next.baleAlerts || {}),
+    ...nextBaleRest,
+    baleBotTokenEnc: nextBaleBotTokenEnc,
   };
+  const nextQuotaRaw = Number(next.guestMaxLlmReplies);
   const merged: AiHubRuntimeSettings = {
     ...current,
     ...next,
@@ -484,6 +655,16 @@ export async function saveAiHubSettings(
         : next.agentMode === 'light'
         ? 'light'
         : current.agentMode,
+    kbAutoLearnMode:
+      next.kbAutoLearnMode === 'auto_active'
+        ? 'auto_active'
+        : next.kbAutoLearnMode === 'pending_review'
+        ? 'pending_review'
+        : current.kbAutoLearnMode,
+    guestMaxLlmReplies:
+      Number.isFinite(nextQuotaRaw) && nextQuotaRaw >= 1 && nextQuotaRaw <= 20
+        ? Math.round(nextQuotaRaw)
+        : current.guestMaxLlmReplies,
     baleAlerts: {
       ...mergedBaleRaw,
       dailyBriefingEnabled: Boolean(mergedBaleRaw.dailyBriefingEnabled),

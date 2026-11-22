@@ -660,13 +660,16 @@ export async function transcribeAudioViaVoiceSlot(params: {
   }
 
   const { ext, cleanMime } = inferAudioExtension(params.mimeType, params.filename);
-  const uploadFilename =
-    params.filename && /\.(webm|ogg|mp3|wav|m4a|mp4|mpeg|flac)$/i.test(params.filename)
-      ? params.filename
-      : `voice_command_${Date.now()}.${ext}`;
+  const isWav = ext === 'wav' || cleanMime === 'audio/wav';
+  const effectiveMime = isWav ? 'audio/wav' : cleanMime;
+  const uploadFilename = isWav
+    ? 'voice.wav'
+    : params.filename && /\.(webm|ogg|mp3|wav|m4a|mp4|mpeg|flac)$/i.test(params.filename)
+    ? params.filename
+    : `voice_command_${Date.now()}.${ext}`;
 
   const form = new FormData();
-  const audioBlob = new Blob([new Uint8Array(params.audioBuffer)], { type: cleanMime });
+  const audioBlob = new Blob([new Uint8Array(params.audioBuffer)], { type: effectiveMime });
   form.append('file', audioBlob, uploadFilename);
   form.append('model', model);
   form.append('language', (params.language || 'fa').trim() || 'fa');

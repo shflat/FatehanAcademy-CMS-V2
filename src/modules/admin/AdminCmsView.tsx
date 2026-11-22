@@ -98,6 +98,9 @@ const ModulesControlCenterPanel = lazy(() =>
 const UnifiedSettingsHubPanel = lazy(() =>
   import('./panels/UnifiedSettingsHubPanel').then((m) => ({ default: m.UnifiedSettingsHubPanel }))
 );
+const UnifiedBaleHubPanel = lazy(() =>
+  import('./panels/UnifiedBaleHubPanel').then((m) => ({ default: m.UnifiedBaleHubPanel }))
+);
 const PayzitoPaymentHubPanel = lazy(() =>
   import('../../../modules/mod_payment_hub/PayzitoPaymentHubPanel').then((m) => ({
     default: m.PayzitoPaymentHubPanel,
@@ -302,6 +305,7 @@ export type AdminSection =
   | 'super_ai'
   | 'modules_manager'
   | 'settings_hub'
+  | 'bale_hub'
   | 'mod_subscriptions'
   | 'mod_smart_crm'
   | 'mod_academy_suite'
@@ -649,6 +653,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
             ? `${siteModules.filter((m) => m.enabled).length.toLocaleString('fa-IR')}`
             : '۱۵',
         },
+        { id: 'bale_hub', label: 'تنظیمات یکپارچه بله', badge: 'v2/v3' },
         { id: 'settings_hub', label: 'تنظیمات عمومی و سیستم' },
       ],
     },
@@ -1356,6 +1361,13 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
               }
               onNavigateSection={(sec) => handleSelectSection(sec)}
               onRefreshFromServer={onRefreshFromServer}
+              onNotice={showNotice}
+            />
+          )}
+
+          {section === 'bale_hub' && (
+            <UnifiedBaleHubPanel
+              isSuperAdmin={isSuperAdmin}
               onNotice={showNotice}
             />
           )}

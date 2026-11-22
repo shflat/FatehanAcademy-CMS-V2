@@ -177,4 +177,14 @@
 - [x] **14.3.1 Multi-Channel Social Publisher (Bale Channel, Telegram Channel + Proxy URL, Instagram Package/API)** (platform-specific copy/emojis/CTA links + optional approval-before-publish switch).
 - [x] **14.3.2 1-Click Bale Bot Pairing (`/start pair_<code>`) & Daily Morning Briefing** (auto-captures Super Admin `chat_id` + scheduled daily sales/errors/leads digest to Bale).
 
+---
+
+## PHASE 15: v2.9.2 — JARVIS MASTER ORCHESTRATOR, FULL SAFE CMS BUILDER TOOLS, BASE-CMS AGNOSTIC LIVE CHAT & ZERO-TOKEN SELF-LEARNING KB
+- [x] **15.1.1 Jarvis Master Orchestrator & 4 Safe Super Admin CMS Tools** (`create_or_update_page` with HTML sanitizer + ComposerRow builder, `reply_to_live_chat`, `manage_site_modules` protecting core modules, `manage_knowledge_cache`; zero raw-SQL or raw-source-code modification risk).
+- [x] **15.1.2 Unified `read_system_logs` Filter Alignment** (aligns `'all'` / `'error'` / `'warning'` queries with `diagnose_site_config` across `system_logs`, failed orders, and `mod_delivery_logs`).
+- [x] **15.2.1 100% Domain-Agnostic Base-CMS Live Chat Grounding + Anti-Free-Labor Guardrail** (dynamic `brandNameFa || siteTitle`, live DB categories/products, domain-agnostic core `SKILL.md` skills, crisp 2–4 sentence sales/onboarding responses, automatic Missing-Item → `OPEN_INLINE_OTP` lead conversion).
+- [x] **15.2.2 Guest AI Token Quota (Anti-Drain Protection)** (configurable `guestMaxLlmReplies`, default `4` paid LLM turns per unauthenticated `visitor_session_id` before switching to inline OTP signup).
+- [x] **15.3.1 Zero-Token Local Knowledge Base & Safe Self-Learning Cache (`mod_ai_knowledge_cache`)** (SQLite + PostgreSQL table auto-included in backup & DB Inspector, 8 dynamic `{siteTitle}` Persian seeds, Persian normalizer + `>= 0.72` matcher, strict PII/secret sanitizer, configurable `pending_review` / `auto_active` learning mode, and Super Admin UI tab «بانک دانش صفرتوکن» with 1-click approve/reject & token-savings KPIs).
+
+
 

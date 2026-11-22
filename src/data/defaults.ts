@@ -16,7 +16,7 @@ import type {
 } from '../core/types.js';
 import { EMPTY_ROLE_PERMISSIONS, FULL_ROLE_PERMISSIONS } from '../core/permissions.js';
 
-export const APP_VERSION = 'v2.9.0';
+export const APP_VERSION = 'v2.9.2';
 
 export const IMAGES = {
   heroStudio: '/src/assets/images/skill98_ai_architecture_hero_1795088218603.jpg',
@@ -248,7 +248,7 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
 };
 
 export const DEFAULT_PAYMENT_DISPLAY_CONFIG: PaymentDisplayConfig = {
-  defaultGatewayId: 'irankish',
+  defaultGatewayId: 'novinopay',
   displayMode: 'all_enabled',
   enablePaymentSimulator: true,
 };
@@ -448,7 +448,7 @@ export const INITIAL_PAYMENT_GATEWAYS: PaymentGatewayOption[] = [
     id: 'irankish',
     title: 'ایران‌کیش (IranKish - شاپرک)',
     subtitle: 'درگاه مستقیم شاپرک با رمزگذاری PassPhrase/RSA و روتر هاست IP',
-    enabled: true,
+    enabled: false,
     gatewayKind: 'cash',
     cashDiscountPercent: 0,
     merchantId: '',
@@ -479,7 +479,7 @@ export const INITIAL_PAYMENT_GATEWAYS: PaymentGatewayOption[] = [
     id: 'zarinpal_online',
     title: 'زرین‌پال هوشمند (REST v4)',
     subtitle: 'مسیردهی هوشمند شاپرکی با وریفای خودکار و سندباکس',
-    enabled: true,
+    enabled: false,
     gatewayKind: 'cash',
     cashDiscountPercent: 0,
     merchantId: '',
@@ -575,7 +575,7 @@ export const INITIAL_PAYMENT_GATEWAYS: PaymentGatewayOption[] = [
     id: 'snapppay_bnpl',
     title: 'اسنپ‌پی اقساطی (SnappPay BNPL)',
     subtitle: 'خرید اقساطی ۴ قسطه بدون سود و چک ویژه مشتریان اسنپ‌پی',
-    enabled: true,
+    enabled: false,
     gatewayKind: 'bnpl',
     installmentMonths: 4,
     bnplFeePercent: 0,
@@ -631,7 +631,7 @@ export const INITIAL_PAYMENT_GATEWAYS: PaymentGatewayOption[] = [
     id: 'wallet_credit',
     title: 'کیف پول اعتباری پیشخوان',
     subtitle: 'کسر مستقیم و بدون کارمزد از موجودی شارژشده حساب کاربری',
-    enabled: true,
+    enabled: false,
     gatewayKind: 'wallet',
     merchantId: 'INTERNAL-WALLET',
     terminalId: 'WL-01',

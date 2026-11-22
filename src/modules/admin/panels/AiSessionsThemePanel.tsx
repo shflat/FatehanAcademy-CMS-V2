@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Crown,
   Sliders,
@@ -66,6 +66,15 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
   const [uploadingBrandAsset, setUploadingBrandAsset] = useState<'logo' | 'favicon' | null>(null);
   const [isSavingTheme, setIsSavingTheme] = useState(false);
   const [isTestingAiEngine, setIsTestingAiEngine] = useState(false);
+  const [isSavingAiSlot, setIsSavingAiSlot] = useState(false);
+  const [slot1Loaded, setSlot1Loaded] = useState(false);
+  const [slot1Provider, setSlot1Provider] = useState<'gemini' | 'openai_compatible' | 'ollama'>(
+    aiConfig.activeProvider === 'gemini' ? 'gemini' : 'openai_compatible'
+  );
+  const [slot1BaseUrl, setSlot1BaseUrl] = useState(aiConfig.customBaseUrl || '');
+  const [slot1ModelName, setSlot1ModelName] = useState(aiConfig.modelName || 'gemini-4-hydrogen');
+  const [slot1ApiKey, setSlot1ApiKey] = useState('');
+  const [slot1HasSavedKey, setSlot1HasSavedKey] = useState(false);
   const [aiEngineTestResult, setAiEngineTestResult] = useState<{
     ok: boolean;
     message: string;
@@ -74,12 +83,88 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
     modelName?: string;
   } | null>(null);
 
+  // Sync legacy "تنظیمات موتور هوش مصنوعی" panel directly with AI Hub Slot 1 (text_seo)
+  useEffect(() => {
+    if (mode !== 'super_ai') return;
+    let active = true;
+    void apiJson<{
+      ok?: boolean;
+      slots?: {
+        slotKey: string;
+        providerKind: 'gemini' | 'openai_compatible' | 'ollama';
+        baseUrl: string;
+        modelName: string;
+        apiKeyMasked: string;
+        hasApiKey: boolean;
+      }[];
+    }>('/api/v1/modules/ai-hub/config').then(({ ok, data }) => {
+      if (!active || !ok || !Array.isArray(data.slots)) return;
+      const textSlot = data.slots.find((s) => s.slotKey === 'text_seo');
+      if (!textSlot) return;
+      setSlot1Provider(textSlot.providerKind || 'gemini');
+      setSlot1BaseUrl(textSlot.baseUrl || '');
+      setSlot1ModelName(textSlot.modelName || 'gemini-4-hydrogen');
+      setSlot1ApiKey(textSlot.apiKeyMasked || '');
+      setSlot1HasSavedKey(Boolean(textSlot.hasApiKey));
+      setSlot1Loaded(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [mode]);
+
+  const handleSaveUnifiedSlot1 = async () => {
+    setIsSavingAiSlot(true);
+    try {
+      const { ok, data } = await apiJson<{
+        ok?: boolean;
+        apiKeyMasked?: string;
+        error?: string;
+      }>('/api/v1/modules/ai-hub/slots/save', {
+        method: 'POST',
+        body: JSON.stringify({
+          slotKey: 'text_seo',
+          providerKind: slot1Provider,
+          baseUrl: slot1BaseUrl.trim(),
+          modelName: slot1ModelName.trim() || 'gemini-4-hydrogen',
+          apiKey: slot1ApiKey.trim(),
+          enabled: true,
+        }),
+      });
+      if (!ok) {
+        onNotice('error', data.error || 'خطا در ذخیره تنظیمات اسلات ۱ (text_seo)');
+        return;
+      }
+      const mappedLegacyProvider: AiProviderId =
+        slot1Provider === 'gemini' ? 'gemini' : 'custom_openai';
+      onUpdateAiConfig({
+        ...aiConfig,
+        activeProvider: mappedLegacyProvider,
+        modelName: slot1ModelName.trim() || aiConfig.modelName,
+        customBaseUrl: slot1BaseUrl.trim(),
+      });
+      if (typeof data.apiKeyMasked === 'string') {
+        setSlot1ApiKey(data.apiKeyMasked);
+        setSlot1HasSavedKey(Boolean(data.apiKeyMasked));
+      }
+      onNotice(
+        'success',
+        'تنظیمات یکپارچه موتور هوش مصنوعی (اسلات ۱ متن و سئو) با رمزنگاری AES-256-GCM ذخیره شد.'
+      );
+    } finally {
+      setIsSavingAiSlot(false);
+    }
+  };
+
   const handleTestAiEngineConnection = async () => {
     setIsTestingAiEngine(true);
     setAiEngineTestResult(null);
     try {
+      const trimmedKey = slot1ApiKey.trim();
+      const looksMasked = trimmedKey.includes('•') || trimmedKey.includes('***');
       const { ok, data } = await apiJson<{
         ok?: boolean;
+        connected?: boolean;
         message?: string;
         hint?: string;
         latencyMs?: number;
@@ -88,17 +173,18 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
       }>('/api/v1/modules/ai-hub/slots/test', {
         method: 'POST',
         body: JSON.stringify({
-          slotKey: 'custom_probe',
-          providerKind: aiConfig.activeProvider,
-          modelName: aiConfig.modelName,
-          baseUrl: aiConfig.customBaseUrl,
+          slotKey: 'text_seo',
+          providerKind: slot1Provider,
+          modelName: slot1ModelName.trim(),
+          baseUrl: slot1BaseUrl.trim(),
+          ...(!looksMasked && trimmedKey ? { apiKey: trimmedKey } : {}),
         }),
       });
-      const isOk = Boolean(ok && data.ok);
+      const isOk = Boolean(ok && (data.ok || data.connected));
       const msg =
         data.message ||
         data.error ||
-        (isOk ? 'اتصال به موتور هوش مصنوعی برقرار است.' : 'اتصال به سرویس هوش مصنوعی برقرار نشد.');
+        (isOk ? 'اتصال به اسلات ۱ موتور هوش مصنوعی برقرار است.' : 'اتصال به سرویس هوش مصنوعی برقرار نشد.');
       setAiEngineTestResult({
         ok: isOk,
         message: msg,
@@ -236,69 +322,75 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
   if (mode === 'super_ai') {
     return (
       <div className="border border-stone-200 dark:border-stone-800 rounded-2xl bg-white dark:bg-stone-900 p-6 sm:p-8 space-y-6 shadow-sm">
-        <div className="border-b border-stone-200 dark:border-stone-800 pb-4">
-          <div className="text-xs font-extrabold text-amber-600 flex items-center gap-1.5 mb-1">
-            <Crown className="w-4 h-4" />
-            <span>ویژه سوپر ادمین · اتصال هوش مصنوعی و مجوز سئو</span>
+        <div className="border-b border-stone-200 dark:border-stone-800 pb-4 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-extrabold text-amber-600 flex items-center gap-1.5 mb-1">
+              <Crown className="w-4 h-4" />
+              <span>ویژه سوپر ادمین · همگام‌سازی زنده با اسلات ۱ هاب AI (text_seo)</span>
+            </div>
+            <h2 className="text-lg font-extrabold text-stone-900 dark:text-white flex items-center gap-2">
+              <Sliders className="w-5 h-5 text-[#1D4ED8]" />
+              <span>تنظیمات یکپارچه موتور هوش مصنوعی (متن و سئو — اسلات ۱)</span>
+            </h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              تمامی تغییرات این بخش مستقیماً با «اسلات ۱ (تولید متن و سئو)» در هاب هوش مصنوعی همگام است و کلید API با AES-256-GCM ذخیره می‌شود.
+            </p>
           </div>
-          <h2 className="text-lg font-extrabold text-stone-900 dark:text-white flex items-center gap-2">
-            <Sliders className="w-5 h-5 text-[#1D4ED8]" />
-            <span>
-              تنظیمات موتور هوش مصنوعی (OpenAI / Claude / Gemini / Custom)
+          {slot1Loaded && (
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[11px] font-extrabold">
+              متصل به اسلات ۱ (text_seo)
             </span>
-          </h2>
-          <p className="text-xs text-stone-500 mt-0.5">
-            انتخاب سرویس هوش مصنوعی متصل به CMS و تعیین مجوز دسترسی ادمین‌ها به
-            دکمه «سئو کردن با هوش مصنوعی»
-          </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {(
             [
               {
-                id: 'openai',
-                title: 'OpenAI (ChatGPT)',
-                sub: 'مدل‌های GPT-4o / o3-mini',
-                defaultModel: 'gpt-4o',
-              },
-              {
-                id: 'claude',
-                title: 'Anthropic Claude',
-                sub: 'مدل Claude 3.7 Sonnet',
-                defaultModel: 'claude-3-7-sonnet',
-              },
-              {
                 id: 'gemini',
                 title: 'Google Gemini',
-                sub: 'مدل Gemini 4 Hydrogen (سریع و پایدار)',
+                sub: 'مدل Gemini 4 Hydrogen (پیشنهادی)',
                 defaultModel: 'gemini-4-hydrogen',
+                defaultBase: '',
               },
               {
-                id: 'custom_openai',
-                title: 'Custom (OpenAI Base)',
-                sub: 'سرویس سفارشی بر پایه OpenAI',
-                defaultModel: 'custom-gpt-model',
+                id: 'openai_compatible',
+                title: 'OpenAI-Compatible (GapGPT / AvalAI / OpenAI)',
+                sub: 'سازگار با گپ‌جی‌پی‌تی، اول‌ای‌آی، OpenRouter و OpenAI',
+                defaultModel: 'gpt-4o-mini',
+                defaultBase: 'https://api.gapgpt.app/v1',
+              },
+              {
+                id: 'ollama',
+                title: 'Ollama (لوکال / سرور اختصاصی)',
+                sub: 'اجرای آفلاین مدل‌های متن‌باز روی سرور خودتان',
+                defaultModel: 'llama3.1',
+                defaultBase: 'http://127.0.0.1:11434',
               },
             ] as {
-              id: AiProviderId;
+              id: 'gemini' | 'openai_compatible' | 'ollama';
               title: string;
               sub: string;
               defaultModel: string;
+              defaultBase: string;
             }[]
           ).map((prov) => {
-            const active = aiConfig.activeProvider === prov.id;
+            const active = slot1Provider === prov.id;
             return (
               <button
                 key={prov.id}
                 type="button"
-                onClick={() =>
-                  onUpdateAiConfig({
-                    ...aiConfig,
-                    activeProvider: prov.id,
-                    modelName: prov.defaultModel,
-                  })
-                }
+                onClick={() => {
+                  setSlot1Provider(prov.id);
+                  if (!slot1ModelName.trim() || slot1Provider !== prov.id) {
+                    setSlot1ModelName(prov.defaultModel);
+                  }
+                  if (prov.id === 'gemini') {
+                    setSlot1BaseUrl('');
+                  } else if (!slot1BaseUrl.trim() || slot1Provider !== prov.id) {
+                    setSlot1BaseUrl(prov.defaultBase);
+                  }
+                }}
                 className={`p-4 rounded-xl border text-right transition-all cursor-pointer ${
                   active
                     ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30 ring-1 ring-blue-600'
@@ -317,20 +409,55 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-              شناسه مدل فعال (Model ID)
+              شناسه مدل فعال اسلات ۱ (Model ID)
             </label>
             <input
               type="text"
               dir="ltr"
-              value={aiConfig.modelName}
-              onChange={(e) =>
-                onUpdateAiConfig({ ...aiConfig, modelName: e.target.value })
-              }
+              value={slot1ModelName}
+              onChange={(e) => setSlot1ModelName(e.target.value)}
+              placeholder="gemini-4-hydrogen یا gpt-4o-mini"
               className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
             />
           </div>
 
           <div>
+            <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1 flex items-center justify-between">
+              <span>کلید API اسلات ۱ (ذخیره امن AES-256-GCM)</span>
+              {slot1HasSavedKey && (
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold">
+                  کلید ذخیره شده
+                </span>
+              )}
+            </label>
+            <input
+              type="password"
+              dir="ltr"
+              autoComplete="off"
+              value={slot1ApiKey}
+              onChange={(e) => setSlot1ApiKey(e.target.value)}
+              placeholder="کلید جدید وارد کنید یا برای حفظ کلید فعلی دست نزنید"
+              className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+            />
+          </div>
+
+          {slot1Provider !== 'gemini' && (
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                آدرس پایه وب‌سرویس (Base URL — مثلاً https://api.gapgpt.app/v1)
+              </label>
+              <input
+                type="text"
+                dir="ltr"
+                value={slot1BaseUrl}
+                onChange={(e) => setSlot1BaseUrl(e.target.value)}
+                placeholder="https://api.gapgpt.app/v1"
+                className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+              />
+            </div>
+          )}
+
+          <div className="sm:col-span-2">
             <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
               لحن پیش‌فرض تولید محتوا و سئو
             </label>
@@ -343,26 +470,6 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
               className="w-full px-3.5 py-2 text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
             />
           </div>
-
-          {aiConfig.activeProvider === 'custom_openai' && (
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                آدرس سرور سازگار با OpenAI (Custom Base URL)
-              </label>
-              <input
-                type="text"
-                dir="ltr"
-                value={aiConfig.customBaseUrl}
-                onChange={(e) =>
-                  onUpdateAiConfig({
-                    ...aiConfig,
-                    customBaseUrl: e.target.value,
-                  })
-                }
-                className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
-              />
-            </div>
-          )}
         </div>
 
         <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
@@ -419,21 +526,23 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
               )}
               <span>
                 {isTestingAiEngine
-                  ? 'در حال بررسی اتصال واقعی...'
-                  : 'تست اتصال سرویس انتخابی (Check Connection)'}
+                  ? 'در حال بررسی اتصال واقعی اسلات ۱...'
+                  : 'تست اتصال اسلات ۱ (Check Connection)'}
               </span>
             </button>
 
             <button
               type="button"
-              onClick={() => {
-                onUpdateAiConfig({ ...aiConfig });
-                onNotice('success', 'تنظیمات موتور هوش مصنوعی با موفقیت ذخیره و اعمال شد.');
-              }}
-              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+              disabled={isSavingAiSlot}
+              onClick={() => void handleSaveUnifiedSlot1()}
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
             >
-              <Save className="w-4 h-4" />
-              <span>ذخیره تنظیمات موتور AI</span>
+              {isSavingAiSlot ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              <span>{isSavingAiSlot ? 'در حال ذخیره...' : 'ذخیره یکپارچه اسلات ۱ موتور AI'}</span>
             </button>
           </div>
 

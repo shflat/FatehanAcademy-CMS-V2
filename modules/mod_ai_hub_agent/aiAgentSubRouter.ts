@@ -5,6 +5,7 @@ import {
   ensureAiHubSchema,
   getAiHubSettings,
   getMaskedSocialPublisherConfig,
+  maskAiHubSettingsForClient,
   readScopedAgentMemories,
   requireStrictSuperAdmin,
   saveAiHubSettings,
@@ -37,6 +38,15 @@ import {
   testSocialChannelConnection,
 } from './agentSocialPublisher.js';
 import { assertSafePublicUrl } from './agentContentFactory.js';
+import {
+  deleteKnowledgeCacheEntry,
+  getKnowledgeCacheStats,
+  listKnowledgeCache,
+  updateKnowledgeCacheStatus,
+  upsertKnowledgeCacheEntry,
+  type KnowledgeCacheCategory,
+  type KnowledgeCacheStatus,
+} from './knowledgeCacheEngine.js';
 
 /**
  * STRICT SUPER ADMIN ONLY sub-router (HTTP 403 for Regular Site Admins).
@@ -47,7 +57,7 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
   router.get('/api/v1/modules/ai-hub/agent/overview', requireStrictSuperAdmin, async (req, res) => {
     try {
       await ensureAiHubSchema();
-      const [settings, skills, tasks, approvals, conversations, memories] = await Promise.all([
+      const [settings, skills, tasks, approvals, conversations, memories, kbStats] = await Promise.all([
         getAiHubSettings(),
         dbQuery<Record<string, unknown>>(
           'SELECT * FROM mod_ai_agent_skills ORDER BY updated_at DESC LIMIT 50'
@@ -66,14 +76,16 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
           userId: req.authUser?.phone || 'super_admin',
           limit: 30,
         }),
+        getKnowledgeCacheStats(),
       ]);
       res.json({
         ok: true,
-        settings,
+        settings: maskAiHubSettingsForClient(settings),
         skills,
         tasks,
         approvals,
         memories,
+        kbStats,
         conversations: conversations.reverse(),
       });
     } catch (err) {
@@ -129,6 +141,10 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
                 typeof b.baleAlerts.overrideChatId === 'string'
                   ? b.baleAlerts.overrideChatId.trim().slice(0, 80)
                   : undefined,
+              baleBotToken:
+                typeof b.baleAlerts.baleBotToken === 'string'
+                  ? b.baleAlerts.baleBotToken.trim().slice(0, 260)
+                  : undefined,
               dailyBriefingEnabled:
                 typeof b.baleAlerts.dailyBriefingEnabled === 'boolean'
                   ? b.baleAlerts.dailyBriefingEnabled
@@ -143,7 +159,7 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
       const cleanedBaleAlerts = baleAlertsPatch
         ? (Object.fromEntries(
             Object.entries(baleAlertsPatch).filter(([, v]) => v !== undefined)
-          ) as Partial<BaleAdminAlertsConfig>)
+          ) as Partial<BaleAdminAlertsConfig> & { baleBotToken?: string })
         : undefined;
 
       const validAvatars: JarvisAvatarPreset[] = ['orb_cyber', 'bot_minimal', 'shield_ai'];
@@ -204,6 +220,11 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
           ) as Partial<JarvisSettingsConfig>)
         : undefined;
 
+      const parsedGuestLimit =
+        typeof b.guestMaxLlmReplies === 'number' && Number.isFinite(b.guestMaxLlmReplies)
+          ? Math.max(1, Math.min(20, Math.round(b.guestMaxLlmReplies)))
+          : undefined;
+
       const updated = await saveAiHubSettings({
         agentMode:
           b.agentMode === 'autonomous_24_7'
@@ -215,9 +236,14 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
         autoProfileCompletion:
           typeof b.autoProfileCompletion === 'boolean' ? b.autoProfileCompletion : undefined,
         botBridgeEnabled: typeof b.botBridgeEnabled === 'boolean' ? b.botBridgeEnabled : undefined,
-        ...(cleanedBaleAlerts
-          ? { baleAlerts: cleanedBaleAlerts as BaleAdminAlertsConfig }
-          : {}),
+        kbAutoLearnMode:
+          b.kbAutoLearnMode === 'auto_active'
+            ? 'auto_active'
+            : b.kbAutoLearnMode === 'pending_review'
+            ? 'pending_review'
+            : undefined,
+        guestMaxLlmReplies: parsedGuestLimit,
+        ...(cleanedBaleAlerts ? { baleAlerts: cleanedBaleAlerts } : {}),
         ...(cleanedJarvisSettings ? { jarvisSettings: cleanedJarvisSettings } : {}),
       });
       await writeSystemLog({
@@ -227,7 +253,7 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
         detail: `کلید اصلی: ${updated.jarvisSettings.enabled} · ماسکات: ${updated.jarvisSettings.mascotEnabled} (${updated.jarvisSettings.mascotName}) · TTS: ${updated.jarvisSettings.voiceReplyEnabled} (${updated.jarvisSettings.voiceReplyProvider})`,
         sqlOrEndpoint: 'POST /api/v1/modules/ai-hub/agent/mode',
       });
-      res.json({ ok: true, settings: updated });
+      res.json({ ok: true, settings: maskAiHubSettingsForClient(updated) });
     } catch (err) {
       res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'Mode update error' });
     }
@@ -622,7 +648,7 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
           title: 'تایید اتصال پل هشدار هوشمند ایجنت ۲۴/۷ به بله',
           lines: [
             'هشدارهای صف تایید، درخواست کاربران، سفارش‌ها/خریدهای ناموفق، خطاهای بحرانی و ارجاع سوالات بی‌پاسخ آماده ارسال هستند.',
-            'نسخه سامانه: Skill 98 / DPATech CMS v2.9.0 (Jarvis Edition)',
+            'نسخه سامانه: DPATech Final Base CMS v2.9.2 (Jarvis Orchestrator + Zero-Token KB)',
           ],
         });
         res.status(result.ok ? 200 : 400).json(result);
@@ -976,6 +1002,134 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
           sqlOrEndpoint: 'POST /api/v1/modules/ai-hub/agent/speak',
         }).catch(() => {});
         res.status(400).json({ ok: false, error: msg });
+      }
+    }
+  );
+
+  // Phase 15 (v2.9.2) — Super Admin ONLY: Zero-Token Local Knowledge Base & Self-Learning Cache
+  router.get(
+    '/api/v1/modules/ai-hub/agent/knowledge-cache',
+    requireStrictSuperAdmin,
+    async (_req, res) => {
+      try {
+        await ensureAiHubSchema();
+        const [entries, stats, settings] = await Promise.all([
+          listKnowledgeCache(),
+          getKnowledgeCacheStats(),
+          getAiHubSettings(),
+        ]);
+        res.json({
+          ok: true,
+          entries,
+          stats,
+          kbAutoLearnMode: settings.kbAutoLearnMode,
+          guestMaxLlmReplies: settings.guestMaxLlmReplies,
+        });
+      } catch (err) {
+        res.status(500).json({
+          ok: false,
+          error: err instanceof Error ? err.message : 'خطا در دریافت بانک دانش صفرتوکن',
+        });
+      }
+    }
+  );
+
+  router.post(
+    '/api/v1/modules/ai-hub/agent/knowledge-cache',
+    requireStrictSuperAdmin,
+    async (req, res) => {
+      try {
+        await ensureAiHubSchema();
+        const b = (req.body || {}) as {
+          id?: string;
+          questionPattern?: string;
+          normalizedKeywords?: string;
+          answerText?: string;
+          category?: KnowledgeCacheCategory;
+          status?: KnowledgeCacheStatus;
+        };
+        const entry = await upsertKnowledgeCacheEntry({
+          id: b.id,
+          questionPattern: String(b.questionPattern || ''),
+          normalizedKeywords: b.normalizedKeywords,
+          answerText: String(b.answerText || ''),
+          category: b.category,
+          status: b.status,
+          source: 'admin',
+        });
+        await writeSystemLog({
+          level: 'success',
+          category: 'system',
+          title: `ثبت/ویرایش ورودی بانک دانش صفرتوکن (${entry.id})`,
+          detail: `${entry.question_pattern.slice(0, 80)} · وضعیت: ${entry.status}`,
+          sqlOrEndpoint: 'POST /api/v1/modules/ai-hub/agent/knowledge-cache',
+        });
+        res.json({ ok: true, entry });
+      } catch (err) {
+        res.status(400).json({
+          ok: false,
+          error: err instanceof Error ? err.message : 'خطا در ذخیره ورودی بانک دانش',
+        });
+      }
+    }
+  );
+
+  router.post(
+    '/api/v1/modules/ai-hub/agent/knowledge-cache/:id/status',
+    requireStrictSuperAdmin,
+    async (req, res) => {
+      try {
+        await ensureAiHubSchema();
+        const id = String(req.params.id || '').trim();
+        const rawStatus = String(req.body?.status || '').trim();
+        const validStatuses: KnowledgeCacheStatus[] = ['active', 'pending_review', 'disabled'];
+        if (!id || !validStatuses.includes(rawStatus as KnowledgeCacheStatus)) {
+          res.status(400).json({ ok: false, error: 'شناسه یا وضعیت انتخاب‌شده نامعتبر است.' });
+          return;
+        }
+        await updateKnowledgeCacheStatus(id, rawStatus as KnowledgeCacheStatus);
+        await writeSystemLog({
+          level: 'success',
+          category: 'system',
+          title: `تغییر وضعیت بانک دانش صفرتوکن (${id}) → ${rawStatus}`,
+          detail: `توسط ${req.authUser?.phone || 'super_admin'}`,
+          sqlOrEndpoint: `POST /api/v1/modules/ai-hub/agent/knowledge-cache/${id}/status`,
+        });
+        res.json({ ok: true, id, status: rawStatus });
+      } catch (err) {
+        res.status(500).json({
+          ok: false,
+          error: err instanceof Error ? err.message : 'خطا در تغییر وضعیت ورودی بانک دانش',
+        });
+      }
+    }
+  );
+
+  router.delete(
+    '/api/v1/modules/ai-hub/agent/knowledge-cache/:id',
+    requireStrictSuperAdmin,
+    async (req, res) => {
+      try {
+        await ensureAiHubSchema();
+        const id = String(req.params.id || '').trim();
+        if (!id) {
+          res.status(400).json({ ok: false, error: 'شناسه ورودی الزامی است.' });
+          return;
+        }
+        await deleteKnowledgeCacheEntry(id);
+        await writeSystemLog({
+          level: 'warning',
+          category: 'system',
+          title: `حذف ورودی از بانک دانش صفرتوکن (${id})`,
+          detail: `توسط ${req.authUser?.phone || 'super_admin'}`,
+          sqlOrEndpoint: `DELETE /api/v1/modules/ai-hub/agent/knowledge-cache/${id}`,
+        });
+        res.json({ ok: true, id });
+      } catch (err) {
+        res.status(500).json({
+          ok: false,
+          error: err instanceof Error ? err.message : 'خطا در حذف ورودی بانک دانش',
+        });
       }
     }
   );

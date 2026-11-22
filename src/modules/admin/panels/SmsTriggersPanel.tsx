@@ -16,6 +16,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import type {
+  BaleSafirApiVersion,
   BaleSendMode,
   SmsGatewaySettings,
   SmsProviderCredential,
@@ -1049,54 +1050,117 @@ export const SmsTriggersPanel: React.FC<SmsTriggersPanelProps> = ({
 
                     {(baleMode === 'auto' || baleMode === 'safir_otp') && (
                       <div className="p-4 rounded-xl border border-teal-500/35 bg-teal-50/40 dark:bg-teal-950/25 space-y-3">
-                        <div className="space-y-1">
-                          <div className="text-xs font-extrabold text-teal-800 dark:text-teal-300">
-                            شناسه و کلید سفیر بله (Safir API: Client ID &amp; Client Secret — ارسال OTP به موبایل)
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="space-y-1">
+                            <div className="text-xs font-extrabold text-teal-800 dark:text-teal-300">
+                              وب‌سرویس سفیر بله (Safir API — ارسال OTP مستقیم به شماره موبایل)
+                            </div>
+                            <p className="text-[10.5px] text-stone-600 dark:text-stone-400 leading-relaxed">
+                              نسخه API سفیر را انتخاب کنید (همه تنظیمات بله در تب اختصاصی «تنظیمات یکپارچه بله» نیز در دسترس است).
+                            </p>
                           </div>
-                          <p className="text-[10.5px] text-stone-600 dark:text-stone-400 leading-relaxed">
-                            این بخش صرفاً برای ارسال کد تایید (OTP) به شماره موبایل از طریق احراز هویت OAuth2 در{' '}
-                            <span className="font-mono font-bold" dir="ltr">safir.bale.ai/api/v2/auth/token</span>{' '}
-                            است و با توکن ربات @BotFather متفاوت است.
-                          </p>
+                          <div className="inline-flex rounded-xl border border-stone-300 dark:border-stone-700 overflow-hidden bg-white dark:bg-stone-900">
+                            {(['v3', 'v2'] as BaleSafirApiVersion[]).map((ver) => {
+                              const currentVer: BaleSafirApiVersion =
+                                cred.baleSafirVersion === 'v2' ? 'v2' : 'v3';
+                              const active = currentVer === ver;
+                              return (
+                                <button
+                                  key={ver}
+                                  type="button"
+                                  onClick={() =>
+                                    updateProviderCred('bale', { baleSafirVersion: ver })
+                                  }
+                                  className={`px-3 py-1.5 text-[11px] font-extrabold cursor-pointer transition-colors ${
+                                    active
+                                      ? 'bg-teal-600 text-white'
+                                      : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+                                  }`}
+                                >
+                                  {ver === 'v3' ? 'نسخه ۳ (جدید — api-access-key)' : 'نسخه ۲ (OAuth2)'}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                        {(/^\d{5,}:/.test(String(cred.baleClientId || '').trim()) ||
-                          /^\d{5,}:/.test(String(cred.baleClientSecret || '').trim())) && (
-                          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-[11px] font-bold">
-                            ⚠️ هشدار: مقدار واردشده شبیه توکن ربات بله (دارای «:») است! توکن ربات باید در کادر پایینی (Bot API) وارد شود و اینجا فقط Client ID و Client Secret پنل سفیر بله را قرار دهید تا خطای HTTP 401 رخ ندهد.
+
+                        {(cred.baleSafirVersion || 'v3') === 'v3' ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
+                                کلید دسترسی سفیر v3 (<span className="font-mono" dir="ltr">api-access-key</span>)
+                              </label>
+                              <input
+                                type="password"
+                                dir="ltr"
+                                value={cred.baleSafirApiAccessKey || ''}
+                                onChange={(e) =>
+                                  updateProviderCred('bale', { baleSafirApiAccessKey: e.target.value })
+                                }
+                                placeholder="کلید api-access-key از پنل کسب‌وکار بله"
+                                className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
+                                شناسه عددی بازو (<span className="font-mono" dir="ltr">bot_id</span>)
+                              </label>
+                              <input
+                                type="text"
+                                dir="ltr"
+                                value={cred.baleSafirBotId || ''}
+                                onChange={(e) =>
+                                  updateProviderCred('bale', {
+                                    baleSafirBotId: e.target.value.replace(/[^0-9]/g, ''),
+                                  })
+                                }
+                                placeholder="123456789 (یا خودکار از ابتدای توکن بازو)"
+                                className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                              />
+                            </div>
                           </div>
+                        ) : (
+                          <>
+                            {(/^\d{5,}:/.test(String(cred.baleClientId || '').trim()) ||
+                              /^\d{5,}:/.test(String(cred.baleClientSecret || '').trim())) && (
+                              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-[11px] font-bold">
+                                ⚠️ هشدار: مقدار واردشده شبیه توکن ربات بله (دارای «:») است! توکن ربات باید در کادر پایینی (Bot API) وارد شود و اینجا فقط Client ID و Client Secret پنل سفیر v2 را قرار دهید.
+                              </div>
+                            )}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
+                                  شناسه کلاینت سفیر بله v2 (Safir Client ID)
+                                </label>
+                                <input
+                                  type="text"
+                                  dir="ltr"
+                                  value={cred.baleClientId || ''}
+                                  onChange={(e) =>
+                                    updateProviderCred('bale', { baleClientId: e.target.value })
+                                  }
+                                  placeholder="safir_client_id"
+                                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
+                                  کلید محرمانه سفیر بله v2 (Safir Client Secret)
+                                </label>
+                                <input
+                                  type="password"
+                                  dir="ltr"
+                                  value={cred.baleClientSecret || ''}
+                                  onChange={(e) =>
+                                    updateProviderCred('bale', { baleClientSecret: e.target.value })
+                                  }
+                                  placeholder="••••••••••••••••"
+                                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                                />
+                              </div>
+                            </div>
+                          </>
                         )}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
-                              شناسه کلاینت سفیر بله (Safir Client ID)
-                            </label>
-                            <input
-                              type="text"
-                              dir="ltr"
-                              value={cred.baleClientId || ''}
-                              onChange={(e) =>
-                                updateProviderCred('bale', { baleClientId: e.target.value })
-                              }
-                              placeholder="safir_client_id"
-                              className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
-                              کلید محرمانه سفیر بله (Safir Client Secret)
-                            </label>
-                            <input
-                              type="password"
-                              dir="ltr"
-                              value={cred.baleClientSecret || ''}
-                              onChange={(e) =>
-                                updateProviderCred('bale', { baleClientSecret: e.target.value })
-                              }
-                              placeholder="••••••••••••••••"
-                              className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
-                            />
-                          </div>
-                        </div>
                       </div>
                     )}
 

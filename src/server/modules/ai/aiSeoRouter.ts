@@ -57,14 +57,19 @@ export function createAiSeoRouter(): express.Router {
             : `برای یک مقاله تخصصی آموزشی با عنوان «${targetTopic}» در دسته‌بندی «${category}» محتوا و سئو تولید کن.`;
 
         const slotCfg = await getSlotConfig('text_seo');
-        if (slotCfg && slotCfg.provider_kind !== 'gemini') {
+        if (slotCfg && (slotCfg.provider_kind !== 'gemini' || Boolean(slotCfg.api_key_enc))) {
           const slotRes = await generateTextViaSlot({
             slot: 'text_seo',
             systemPrompt: systemInstruction,
             userPrompt: prompt,
             jsonMode: true,
           });
-          const parsed = JSON.parse(slotRes.text || '{}');
+          const rawClean = String(slotRes.text || '{}')
+            .trim()
+            .replace(/^```(?:json)?\s*/i, '')
+            .replace(/\s*```$/i, '')
+            .trim();
+          const parsed = JSON.parse(rawClean || '{}');
           res.json({ ...parsed, providerUsed: slotRes.providerUsed, modelUsed: slotRes.modelUsed });
           return;
         }

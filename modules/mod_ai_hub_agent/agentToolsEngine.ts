@@ -17,6 +17,13 @@ import {
   type ExecutedToolRecord,
 } from './agentToolCallingEngine.js';
 import { sendSuperAdminBaleAlert } from './baleAlertBridge.js';
+import {
+  getGuestLlmQuotaUsage,
+  getLiveSiteTitleAndDesc,
+  incrementGuestLlmQuotaUsage,
+  matchKnowledgeCache,
+  tryLearnToKnowledgeCache,
+} from './knowledgeCacheEngine.js';
 
 const GENERIC_NAME_PATTERNS = [
   /^کاربر\s*\d{3,5}$/,
@@ -283,6 +290,9 @@ export async function handleLiveChatAgentAutomation(params: {
   executedTools?: ExecutedToolRecord[];
   uiAction?: AgentUiActionType;
   uiActionPayload?: Record<string, unknown>;
+  tokenSaved?: boolean;
+  kbEntryId?: string;
+  quotaExceeded?: boolean;
 }> {
   const enabled = await isAiHubModuleEnabled();
   if (!enabled) return {};
@@ -332,12 +342,72 @@ export async function handleLiveChatAgentAutomation(params: {
 
   const effectiveDisplayName = detectedUpdatedName || currentName || '';
 
+  // STEP 1 — Zero-Token Local Knowledge Base Intercept (runs BEFORE any paid LLM call!)
+  if (settings.liveChatAutoReply && !params.isPostLoginContinuation && !detectedUpdatedName) {
+    const { siteTitle } = await getLiveSiteTitleAndDesc();
+    const kbHit = await matchKnowledgeCache({
+      messageText: params.messageText,
+      siteTitle,
+    }).catch(() => ({ matched: false as const }));
+
+    if (kbHit.matched && kbHit.answerText) {
+      let kbUiAction: AgentUiActionType | undefined;
+      let kbUiPayload: Record<string, unknown> | undefined;
+      if (isGuest && kbHit.triggerOtpForGuest) {
+        kbUiAction = 'OPEN_INLINE_OTP';
+        kbUiPayload = {
+          reasonFa: 'تایید شماره موبایل برای ثبت رسمی درخواست و دریافت کد پیگیری',
+          pendingRequestSummary: params.messageText.slice(0, 320),
+        };
+        await upsertAgentMemory({
+          scopeType: 'guest',
+          visitorSessionId: params.sessionId,
+          memoryKey: 'pending_request_draft',
+          memoryValue: params.messageText.slice(0, 500),
+        }).catch(() => {});
+      }
+      return {
+        agentReply: kbHit.answerText,
+        toolExecuted: 'zero_token_kb_cache',
+        uiAction: kbUiAction,
+        uiActionPayload: kbUiPayload,
+        tokenSaved: true,
+        kbEntryId: kbHit.entryId,
+      };
+    }
+  }
+
+  // STEP 2 — Guest AI Token Quota Guard (Anti-Drain Protection, default max 4 paid LLM replies per guest session)
+  const guestQuotaLimit = Math.max(1, Math.min(20, Number(settings.guestMaxLlmReplies || 4)));
+  if (isGuest && settings.liveChatAutoReply && !params.isPostLoginContinuation) {
+    const usedGuestReplies = await getGuestLlmQuotaUsage(params.sessionId);
+    if (usedGuestReplies >= guestQuotaLimit) {
+      await upsertAgentMemory({
+        scopeType: 'guest',
+        visitorSessionId: params.sessionId,
+        memoryKey: 'pending_request_draft',
+        memoryValue: params.messageText.slice(0, 500),
+      }).catch(() => {});
+      return {
+        agentReply: `سقف گفتگوی مهمان (${guestQuotaLimit.toLocaleString('fa-IR')} پیام هوشمند) به پایان رسید. برای ادامه گفتگو، دریافت مشاوره اختصاصی و ثبت رسمی درخواست، لطفاً با شماره موبایل و کد تایید در کادر زیر وارد شوید.`,
+        uiAction: 'OPEN_INLINE_OTP',
+        uiActionPayload: {
+          reasonFa: 'تایید شماره موبایل برای ادامه گفتگوی هوشمند و ثبت درخواست',
+          pendingRequestSummary: params.messageText.slice(0, 320),
+        },
+        toolExecuted: 'guest_quota_gate',
+        tokenSaved: true,
+        quotaExceeded: true,
+      };
+    }
+  }
+
   // Autonomous 24/7 mode: run real Multi-Step Tool-Calling Engine (up to 4 steps)
   if (settings.liveChatAutoReply && settings.agentMode === 'autonomous_24_7') {
     const extraLines: string[] = [];
     if (isGuest) {
       extraLines.push(
-        'کاربر فعلی مهمان است. اگر کاربر درخواست ثبت سفارش، فرم، مشاوره رسمی یا اولویت فوری دارد، حتماً ابزار `trigger_chat_otp_box` را فراخوانی کن تا کادر ورود/ثبت‌نام سریع با موبایل و OTP همینجا داخل چت باز شود و خلاصه درخواستش را در `pendingRequestSummary` ذخیره کن.'
+        'کاربر فعلی مهمان است. اگر کاربر درخواست ثبت سفارش، فرم، مشاوره رسمی، کالای ناموجود در کاتالوگ یا اولویت فوری دارد، حتماً ابزار `trigger_chat_otp_box` را فراخوانی کن تا کادر ورود/ثبت‌نام سریع با موبایل و OTP همینجا داخل چت باز شود و خلاصه درخواستش را در `pendingRequestSummary` ذخیره کن.'
       );
     } else {
       extraLines.push(
@@ -374,6 +444,10 @@ export async function handleLiveChatAgentAutomation(params: {
         maxSteps: 4,
       });
 
+      if (isGuest && !turn.usedFallback) {
+        await incrementGuestLlmQuotaUsage(params.sessionId);
+      }
+
       // Safety net: if guest clearly asked to submit a request/form/urgent ticket and model didn't call OTP trigger
       let finalUiAction = turn.uiAction;
       let finalUiPayload = turn.uiActionPayload;
@@ -393,6 +467,20 @@ export async function handleLiveChatAgentAutomation(params: {
       }
 
       if (turn.replyText) {
+        // STEP 3 — Safe Self-Learning Cache Pipeline (strict PII/secret sanitizer, skips personal/account turns)
+        const touchedPersonalTool = turn.executedTools.some((t) =>
+          ['update_visitor_user_profile', 'create_or_submit_user_request', 'notify_super_admin_bale'].includes(
+            t.tool
+          )
+        );
+        if (!params.isPostLoginContinuation && !detectedUpdatedName && !touchedPersonalTool && !finalUiAction) {
+          void tryLearnToKnowledgeCache({
+            question: params.messageText,
+            answer: turn.replyText,
+            autoLearnMode: settings.kbAutoLearnMode || 'pending_review',
+          }).catch(() => {});
+        }
+
         return {
           agentReply: turn.replyText,
           updatedDisplayName: turn.updatedDisplayName || detectedUpdatedName,
@@ -400,6 +488,7 @@ export async function handleLiveChatAgentAutomation(params: {
           executedTools: turn.executedTools,
           uiAction: finalUiAction,
           uiActionPayload: finalUiPayload,
+          tokenSaved: false,
         };
       }
     } catch (err) {

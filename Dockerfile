@@ -52,6 +52,7 @@ RUN npm install --omit=dev --legacy-peer-deps && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/server.js ./server.js
+COPY --from=builder /app/modules/registry.json ./modules/registry.json
 COPY --from=builder /app/vite.config.* ./
 COPY --from=builder /app/firebase-applet-config.* ./
 

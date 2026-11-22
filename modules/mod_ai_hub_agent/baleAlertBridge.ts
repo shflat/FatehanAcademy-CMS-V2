@@ -59,7 +59,50 @@ export async function resolveBaleBotTokenOnly(): Promise<{
   defaultChatId: string;
   source: string;
 } | null> {
-  // 1) Primary source: enabled Bale Bot channel in `mod_bot_channels`
+  // (a) Direct encrypted Bale Bot token saved inside Bale Admin Alerts card
+  try {
+    const hubCfg = await getAiHubSettings();
+    const directEnc = hubCfg.baleAlerts?.baleBotTokenEnc || '';
+    const directToken = sanitizeBaleBotToken(decryptSecret(directEnc));
+    if (directToken) {
+      return {
+        botToken: directToken,
+        defaultChatId: String(hubCfg.baleAlerts?.overrideChatId || '').trim(),
+        source: 'bale_admin_alerts (توکن مستقیم کارت هشدارهای بله)',
+      };
+    }
+  } catch {
+    // ignore
+  }
+
+  // (b) mod_sms_hub Bale Bot API token (`site_settings: sms_gateway_config`, plus legacy `sms_gateway_settings` fallback)
+  for (const settingKey of ['sms_gateway_config', 'sms_gateway_settings'] as const) {
+    try {
+      const smsCfg = await getSetting<{
+        baleBotToken?: string;
+        baleChatId?: string;
+        providersMap?: {
+          bale?: {
+            baleBotToken?: string;
+            baleChatId?: string;
+          };
+        };
+      }>(settingKey, {});
+      const bale = smsCfg?.providersMap?.bale;
+      const token = sanitizeBaleBotToken(bale?.baleBotToken || smsCfg?.baleBotToken || '');
+      if (token) {
+        return {
+          botToken: token,
+          defaultChatId: String(bale?.baleChatId || smsCfg?.baleChatId || '').trim(),
+          source: `mod_sms_hub (${settingKey})`,
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  // (c) mod_bots_webhooks enabled Bale Bot channel (`mod_bot_channels`)
   try {
     const bots = await dbQuery<{
       title_fa: string;
@@ -76,7 +119,7 @@ export async function resolveBaleBotTokenOnly(): Promise<{
         return {
           botToken: token,
           defaultChatId: String(bot.chat_id || '').trim(),
-          source: `mod_bot_channels (${bot.title_fa || 'بله'})`,
+          source: `mod_bots_webhooks (${bot.title_fa || 'بله'})`,
         };
       }
     }
@@ -84,30 +127,7 @@ export async function resolveBaleBotTokenOnly(): Promise<{
     // mod_bot_channels table may not exist yet
   }
 
-  // 2) Secondary source: SMS Gateway Hub Bale Bot API credentials (`site_settings: sms_gateway_settings`)
-  try {
-    const smsCfg = await getSetting<{
-      providersMap?: {
-        bale?: {
-          baleBotToken?: string;
-          baleChatId?: string;
-        };
-      };
-    }>('sms_gateway_settings', {});
-    const bale = smsCfg?.providersMap?.bale;
-    const token = sanitizeBaleBotToken(bale?.baleBotToken || '');
-    if (token) {
-      return {
-        botToken: token,
-        defaultChatId: String(bale?.baleChatId || '').trim(),
-        source: 'sms_gateway_settings (تنظیمات ربات بله)',
-      };
-    }
-  } catch {
-    // ignore
-  }
-
-  // 3) Tertiary source: Auto-Backup Bale configuration (`site_settings: backup_schedule_config`)
+  // (d) Fallback: Auto-Backup Bale configuration (`site_settings: backup_schedule_config`)
   try {
     const backupCfg = await getSetting<{
       baleBotToken?: string;

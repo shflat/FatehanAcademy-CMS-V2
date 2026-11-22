@@ -413,6 +413,7 @@ export type SmsProviderId =
   | 'eitaa';
 
 export type BaleSendMode = 'auto' | 'safir_otp' | 'bot_api';
+export type BaleSafirApiVersion = 'v2' | 'v3';
 
 export interface SmsProviderCredential {
   provider: SmsProviderId;
@@ -425,8 +426,11 @@ export interface SmsProviderCredential {
   domain?: string;
   patternVarName?: string;
   baleMode?: BaleSendMode;
+  baleSafirVersion?: BaleSafirApiVersion;
   baleClientId?: string;
   baleClientSecret?: string;
+  baleSafirApiAccessKey?: string;
+  baleSafirBotId?: string;
   baleBotToken?: string;
   baleChatId?: string;
   eitaaToken?: string;

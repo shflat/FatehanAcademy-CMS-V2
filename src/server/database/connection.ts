@@ -220,6 +220,11 @@ export const TABLE_METADATA: { name: string; description: string; defaultQuery: 
     description: 'تاریخچه فرمان‌ها و ابزارهای اجراشده توسط ایجنت ۲۴/۷',
     defaultQuery: 'SELECT id, channel, sender_phone, role, message_text, created_at_fa FROM mod_ai_agent_conversations ORDER BY created_at DESC LIMIT 50;',
   },
+  {
+    name: 'mod_ai_knowledge_cache',
+    description: 'بانک دانش صفرتوکن و حافظه خودیادگیری ایمن چت آنلاین (Zero-Token KB)',
+    defaultQuery: 'SELECT id, question_pattern, category, status, hit_count, source, updated_at FROM mod_ai_knowledge_cache ORDER BY hit_count DESC, updated_at DESC LIMIT 100;',
+  },
 ];
 
 let activeEngine: SqlEngineKind = 'sqlite';

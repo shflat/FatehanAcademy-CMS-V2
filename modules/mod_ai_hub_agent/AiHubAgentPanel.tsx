@@ -9,18 +9,20 @@ import {
   RefreshCw,
   Sliders,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 import { apiJson } from '../../src/core/apiClient';
 import { AiSlotsConfigCard, type AiSlotItem } from './AiSlotsConfigCard';
 import { AiCommandCenterCard } from './AiCommandCenterCard';
 import { AiSkillsApprovalsCard } from './AiSkillsApprovalsCard';
 import { AiImageStudioWidget } from './AiImageStudioWidget';
+import { AiKnowledgeCacheCard } from './AiKnowledgeCacheCard';
 import {
   DEFAULT_JARVIS_UI_SETTINGS,
   type JarvisSettingsUiConfig,
 } from './AiJarvisSettingsCard';
 
-type HubTab = 'slots' | 'command' | 'skills' | 'approvals' | 'studio';
+type HubTab = 'slots' | 'command' | 'skills' | 'knowledge' | 'approvals' | 'studio';
 
 export const AiHubAgentPanel: React.FC<{
   isSuperAdmin: boolean;
@@ -43,6 +45,8 @@ export const AiHubAgentPanel: React.FC<{
       notifyCriticalErrors: boolean;
       notifyAgentEscalations: boolean;
       overrideChatId: string;
+      baleBotTokenMasked?: string;
+      hasDirectBaleBotToken?: boolean;
       dailyBriefingEnabled?: boolean;
       dailyBriefingTime?: string;
       lastBriefingDate?: string;
@@ -61,6 +65,8 @@ export const AiHubAgentPanel: React.FC<{
       notifyCriticalErrors: true,
       notifyAgentEscalations: true,
       overrideChatId: '',
+      baleBotTokenMasked: '',
+      hasDirectBaleBotToken: false,
       dailyBriefingEnabled: false,
       dailyBriefingTime: '09:00',
       lastBriefingDate: '',
@@ -68,7 +74,16 @@ export const AiHubAgentPanel: React.FC<{
     jarvisSettings: DEFAULT_JARVIS_UI_SETTINGS,
   });
   const [skills, setSkills] = useState<
-    { id: string; slug: string; title_fa: string; category: string; skill_markdown: string; updated_at: string }[]
+    {
+      id: string;
+      slug: string;
+      title_fa: string;
+      category: string;
+      skill_markdown: string;
+      source_type?: string;
+      enabled?: number;
+      updated_at: string;
+    }[]
   >([]);
   const [tasks, setTasks] = useState<
     { id: string; title_fa: string; task_type: string; schedule_cron: string; status: string; last_run_at: string; last_result_summary: string }[]
@@ -79,6 +94,7 @@ export const AiHubAgentPanel: React.FC<{
   const [conversations, setConversations] = useState<
     { id: string; channel: string; role: string; message_text: string; tool_calls_json?: string; created_at_fa: string }[]
   >([]);
+  const [kbPendingCount, setKbPendingCount] = useState<number>(0);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -104,6 +120,7 @@ export const AiHubAgentPanel: React.FC<{
             tasks?: typeof tasks;
             approvals?: typeof approvals;
             conversations?: typeof conversations;
+            kbStats?: { pendingCount?: number };
           }>('/api/v1/modules/ai-hub/agent/overview');
           if (agRes.ok) {
             if (agRes.data.settings) setSettings(agRes.data.settings);
@@ -111,6 +128,7 @@ export const AiHubAgentPanel: React.FC<{
             setTasks(agRes.data.tasks || []);
             setApprovals(agRes.data.approvals || []);
             setConversations(agRes.data.conversations || []);
+            setKbPendingCount(Number(agRes.data.kbStats?.pendingCount || 0));
           }
         }
       }
@@ -131,6 +149,7 @@ export const AiHubAgentPanel: React.FC<{
     { id: 'studio', label: 'استودیو پرامپت و تصویر', icon: <ImageIcon className="w-3.5 h-3.5" /> },
     { id: 'command', label: 'مرکز فرماندهی ۲۴/۷ و ویس', icon: <Bot className="w-3.5 h-3.5" />, superOnly: true },
     { id: 'skills', label: 'حافظه SKILL.md', icon: <BookOpen className="w-3.5 h-3.5" />, superOnly: true },
+    { id: 'knowledge', label: 'بانک دانش صفرتوکن', icon: <Zap className="w-3.5 h-3.5" />, superOnly: true, badge: kbPendingCount },
     { id: 'approvals', label: 'صف تایید ۱-کلیکی', icon: <CheckCircle2 className="w-3.5 h-3.5" />, superOnly: true, badge: pendingCount },
   ];
 
@@ -247,6 +266,10 @@ export const AiHubAgentPanel: React.FC<{
           onRefresh={() => void loadAll()}
           onNotice={onNotice}
         />
+      )}
+
+      {tab === 'knowledge' && effectiveSuper && (
+        <AiKnowledgeCacheCard onRefreshParent={() => void loadAll()} onNotice={onNotice} />
       )}
     </div>
   );

@@ -8,6 +8,8 @@ interface SkillRow {
   title_fa: string;
   category: string;
   skill_markdown: string;
+  source_type?: string;
+  enabled?: number;
   updated_at: string;
 }
 
@@ -157,8 +159,22 @@ export const AiSkillsApprovalsCard: React.FC<{
     );
   }
 
+  const activeSkillsCount = skills.filter((s) => s.enabled !== 0).length;
+
   return (
     <div className="space-y-4">
+      <div className="p-3.5 rounded-2xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/25 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 font-extrabold text-emerald-900 dark:text-emerald-200">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <span className="smooth-nums">
+            {activeSkillsCount.toLocaleString('fa-IR')} مهارت فعال در حافظه زنده ایجنت
+          </span>
+        </div>
+        <span className="text-[11px] text-emerald-800/85 dark:text-emerald-300/85">
+          تمامی مهارت‌های فعال (پیش‌فرض + سفارشی شما) بدون کش و به‌صورت زنده در هر پیام چت فروشگاه، مرکز فرماندهی و جارویس تزریق می‌شوند.
+        </span>
+      </div>
+
       <form
         onSubmit={(e) => void handleSaveSkill(e)}
         className="p-4 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/60 space-y-3 text-xs"
