@@ -11,6 +11,7 @@ interface ChatMessageRecord {
   message_text: string;
   attachment_url?: string;
   attachment_name?: string;
+  ui_action?: string;
   created_at_fa: string;
 }
 
@@ -51,14 +52,25 @@ export const GoftinoLiveChatWidget: React.FC<{
   const [operatorOnline, setOperatorOnline] = useState(true);
   const [operatorTitle, setOperatorTitle] = useState('پشتیبانی آنلاین اسکیل ۹۸ (گفتینو بومی)');
   const [sending, setSending] = useState(false);
+  const [otpPromptReason, setOtpPromptReason] = useState<string>('');
 
   const isAuthenticated = Boolean(loggedInPhone);
   const listRef = useRef<HTMLDivElement | null>(null);
   const lastSeenOperatorCountRef = useRef(0);
 
+  // Identify latest operator message that triggered inline OTP (when still guest)
+  const latestInlineOtpMsgId = !isAuthenticated
+    ? [...messages]
+        .reverse()
+        .find((m) => m.sender_role === 'operator' && m.ui_action === 'OPEN_INLINE_OTP')?.id || ''
+    : '';
+
   useEffect(() => {
     if (loggedInName) setVisitorName(loggedInName);
-    if (loggedInPhone) setVisitorPhone(loggedInPhone);
+    if (loggedInPhone) {
+      setVisitorPhone(loggedInPhone);
+      setOtpPromptReason('');
+    }
   }, [loggedInName, loggedInPhone]);
 
   const loadChatStatus = useCallback(
@@ -104,7 +116,7 @@ export const GoftinoLiveChatWidget: React.FC<{
     if (isOpen && listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages.length, isOpen]);
+  }, [messages.length, isOpen, latestInlineOtpMsgId]);
 
   const handleOpenChat = () => {
     setIsOpen(true);
@@ -144,6 +156,8 @@ export const GoftinoLiveChatWidget: React.FC<{
         sessionId?: string;
         messages?: ChatMessageRecord[];
         updatedDisplayName?: string;
+        uiAction?: string | null;
+        uiActionPayload?: { reasonFa?: string } | null;
       }>('/api/v1/modules/live-chat/visitor-message', {
         method: 'POST',
         body: JSON.stringify({
@@ -169,6 +183,14 @@ export const GoftinoLiveChatWidget: React.FC<{
           setVisitorName(data.updatedDisplayName);
           onDisplayNameUpdated?.(data.updatedDisplayName);
         }
+        if (data.uiAction === 'OPEN_INLINE_OTP') {
+          setOtpPromptReason(
+            String(
+              data.uiActionPayload?.reasonFa ||
+                'برای ثبت رسمی درخواست و دریافت کد پیگیری، لطفاً شماره موبایل خود را تایید کنید.'
+            )
+          );
+        }
         if (Array.isArray(data.messages)) {
           setMessages(data.messages);
         }
@@ -181,6 +203,28 @@ export const GoftinoLiveChatWidget: React.FC<{
     } finally {
       setSending(false);
     }
+  };
+
+  const handleVerifiedFromOtp = (
+    role: Exclude<UserRoleType, 'guest'>,
+    phone: string,
+    displayName?: string,
+    roleId?: string,
+    token?: string
+  ) => {
+    setVisitorPhone(phone);
+    if (displayName) setVisitorName(displayName);
+    setRequestUrgent(true);
+    setOtpPromptReason('');
+    onInlineLoginSuccess?.(role, phone, displayName, roleId, token);
+  };
+
+  const handleLinkedFromOtp = (linkedMsgs?: unknown[]) => {
+    if (Array.isArray(linkedMsgs)) {
+      setMessages(linkedMsgs as ChatMessageRecord[]);
+    }
+    setRequestUrgent(true);
+    setOtpPromptReason('');
   };
 
   return (
@@ -257,23 +301,15 @@ export const GoftinoLiveChatWidget: React.FC<{
           </div>
 
           {!isAuthenticated ? (
-            <div className="shrink-0">
-              <ChatInlineOtpCard
-                sessionId={sessionId}
-                onVerifiedLogin={(role, phone, displayName, roleId, token) => {
-                  setVisitorPhone(phone);
-                  if (displayName) setVisitorName(displayName);
-                  setRequestUrgent(true);
-                  onInlineLoginSuccess?.(role, phone, displayName, roleId, token);
-                }}
-                onSessionLinked={(linkedMsgs) => {
-                  if (Array.isArray(linkedMsgs)) {
-                    setMessages(linkedMsgs as ChatMessageRecord[]);
-                  }
-                  setRequestUrgent(true);
-                }}
-              />
-            </div>
+            !latestInlineOtpMsgId && (
+              <div className="shrink-0">
+                <ChatInlineOtpCard
+                  sessionId={sessionId}
+                  onVerifiedLogin={handleVerifiedFromOtp}
+                  onSessionLinked={handleLinkedFromOtp}
+                />
+              </div>
+            )
           ) : (
             <div className="px-3 py-1.5 bg-emerald-50/80 dark:bg-emerald-950/30 border-b border-emerald-200/70 dark:border-emerald-900 flex items-center justify-between gap-2 text-[11px] shrink-0">
               <span className="font-bold text-emerald-800 dark:text-emerald-300 truncate">
@@ -310,6 +346,7 @@ export const GoftinoLiveChatWidget: React.FC<{
             ) : (
               messages.map((m) => {
                 const isOperator = m.sender_role === 'operator';
+                const showInlineOtpHere = !isAuthenticated && m.id === latestInlineOtpMsgId;
                 return (
                   <div
                     key={m.id}
@@ -337,6 +374,20 @@ export const GoftinoLiveChatWidget: React.FC<{
                         </a>
                       )}
                     </div>
+                    {showInlineOtpHere && (
+                      <ChatInlineOtpCard
+                        sessionId={sessionId}
+                        inlineMode
+                        forceExpanded
+                        autoContinueRequest
+                        promptReason={
+                          otpPromptReason ||
+                          'برای ثبت رسمی درخواست و دریافت کد پیگیری، شماره موبایل خود را همینجا تایید کنید:'
+                        }
+                        onVerifiedLogin={handleVerifiedFromOtp}
+                        onSessionLinked={handleLinkedFromOtp}
+                      />
+                    )}
                     <span className="text-[9px] text-stone-400 mt-0.5 px-1">{m.created_at_fa}</span>
                   </div>
                 );

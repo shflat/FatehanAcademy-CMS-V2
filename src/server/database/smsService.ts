@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type {
   BaleSendMode,
   SmsGatewaySettings,
@@ -290,6 +291,126 @@ async function sendViaMeliPayamak(params: {
   };
 }
 
+const BALE_SAFIR_TOKEN_CACHE = new Map<string, { accessToken: string; expiresAtMs: number }>();
+
+function hashSafirCacheKey(clientId: string, clientSecret: string): string {
+  return crypto.createHash('sha256').update(`${clientId}\0${clientSecret}`).digest('hex');
+}
+
+function looksLikeBaleBotToken(val: string): boolean {
+  // Bale BotFather tokens follow "<digits>:<alphanumeric>" e.g. "123456789:ABCdef..."
+  return /^\d{5,}:[A-Za-z0-9_-]{12,}$/.test(val.trim().replace(/^bot/i, ''));
+}
+
+async function fetchBaleSafirAccessToken(params: {
+  clientId: string;
+  clientSecret: string;
+  forceRefresh?: boolean;
+}): Promise<{
+  ok: boolean;
+  accessToken?: string;
+  cached?: boolean;
+  httpStatus?: number;
+  raw?: Record<string, unknown>;
+  errorMessage?: string;
+}> {
+  const cacheKey = hashSafirCacheKey(params.clientId, params.clientSecret);
+  if (!params.forceRefresh) {
+    const cached = BALE_SAFIR_TOKEN_CACHE.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAtMs - 60_000) {
+      return { ok: true, accessToken: cached.accessToken, cached: true };
+    }
+  } else {
+    BALE_SAFIR_TOKEN_CACHE.delete(cacheKey);
+  }
+
+  const tokenEndpoint = 'https://safir.bale.ai/api/v2/auth/token';
+
+  const requestToken = async (useBasicAuth: boolean) => {
+    const body = useBasicAuth
+      ? new URLSearchParams({
+          grant_type: 'client_credentials',
+          scope: 'read',
+        })
+      : new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: params.clientId,
+          client_secret: params.clientSecret,
+          scope: 'read',
+        });
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Accept: 'application/json',
+    };
+    if (useBasicAuth) {
+      const basic = Buffer.from(`${params.clientId}:${params.clientSecret}`, 'utf-8').toString('base64');
+      headers.Authorization = `Basic ${basic}`;
+    }
+
+    const resp = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers,
+      body: body.toString(),
+    });
+    const rawText = await resp.text().catch(() => '');
+    let parsed: {
+      access_token?: string;
+      expires_in?: number;
+      token_type?: string;
+      error?: string;
+      error_description?: string;
+      message?: string;
+    } = {};
+    try {
+      parsed = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      parsed = { error: rawText.slice(0, 220) };
+    }
+    return { resp, parsed };
+  };
+
+  // Official OAuth2 client_credentials exchange (client_secret_post, with RFC 6749 Basic fallback on 401)
+  let attempt = await requestToken(false);
+  if (attempt.resp.status === 401 && !attempt.parsed.access_token) {
+    const basicAttempt = await requestToken(true);
+    if (basicAttempt.resp.ok && basicAttempt.parsed.access_token) {
+      attempt = basicAttempt;
+    }
+  }
+
+  if (!attempt.resp.ok || !attempt.parsed.access_token) {
+    const detail =
+      attempt.parsed.error_description ||
+      attempt.parsed.message ||
+      attempt.parsed.error ||
+      `HTTP ${attempt.resp.status}`;
+    const hint =
+      attempt.resp.status === 401
+        ? ' (توجه: در این بخش حتماً Client ID و Client Secret پنل safir.bale.ai را وارد کنید، نه توکن ربات @BotFather!)'
+        : '';
+    return {
+      ok: false,
+      httpStatus: attempt.resp.status,
+      raw: attempt.parsed as Record<string, unknown>,
+      errorMessage: `خطای احراز هویت OAuth2 سفیر بله (HTTP ${attempt.resp.status}): ${detail}${hint}`,
+    };
+  }
+
+  const expiresInSec = Math.max(120, Number(attempt.parsed.expires_in || 3600));
+  BALE_SAFIR_TOKEN_CACHE.set(cacheKey, {
+    accessToken: attempt.parsed.access_token,
+    expiresAtMs: Date.now() + expiresInSec * 1000,
+  });
+
+  return {
+    ok: true,
+    accessToken: attempt.parsed.access_token,
+    cached: false,
+    httpStatus: attempt.resp.status,
+  };
+}
+
 async function sendViaBaleMessenger(params: {
   cred: SmsProviderCredential;
   phone: string;
@@ -301,8 +422,9 @@ async function sendViaBaleMessenger(params: {
 }): Promise<ProviderDispatchResult> {
   const { cred, phone, finalMessage, vars, matchedTitle, baleChatIdOverride, baleTestChannel } = params;
   const mode: BaleSendMode = baleTestChannel || cred.baleMode || 'auto';
-  const clientId = (cred.baleClientId || cred.username || '').trim();
-  const clientSecret = (cred.baleClientSecret || cred.apiKey || '').trim();
+  // Strictly separate Bale Safir OAuth2 credentials from Bot API tokens & unrelated SMS fields
+  const clientId = (cred.baleClientId || '').trim();
+  const clientSecret = (cred.baleClientSecret || '').trim();
   const botToken = sanitizeBaleTokenForUrl(cred.baleBotToken || '');
   const targetChatId = (baleChatIdOverride || cred.baleChatId || '').trim();
   const otpRaw = vars.code !== undefined ? String(vars.code).replace(/[^0-9]/g, '') : '';
@@ -319,9 +441,20 @@ async function sendViaBaleMessenger(params: {
         ok: false,
         endpoint: 'https://safir.bale.ai/api/v2/send_otp',
         response: { error: 'missing_safir_credentials' },
-        errorMessage: 'شناسه کلاینت (Client ID) و کلید محرمانه (Client Secret) سفیر بله وارد نشده است.',
+        errorMessage:
+          'شناسه کلاینت (Client ID) و کلید محرمانه (Client Secret) سفیر بله (safir.bale.ai) وارد نشده است.',
       };
     }
+    if (looksLikeBaleBotToken(clientId) || looksLikeBaleBotToken(clientSecret)) {
+      return {
+        ok: false,
+        endpoint: 'https://safir.bale.ai/api/v2/auth/token',
+        response: { error: 'bot_token_used_in_safir_fields' },
+        errorMessage:
+          'مقدار واردشده شبیه «توکن ربات بله (Bot API)» است. برای ارسال OTP از سفیر بله، باید Client ID و Client Secret اختصاصی پنل safir.bale.ai را وارد کنید (نه توکن @BotFather).',
+      };
+    }
+
     const intlPhone = normalizeBaleSafirPhone(phone);
     if (!/^989\d{9}$/.test(intlPhone)) {
       return {
@@ -332,74 +465,66 @@ async function sendViaBaleMessenger(params: {
       };
     }
 
-    const tokenEndpoint = 'https://safir.bale.ai/api/v2/auth/token';
-    const tokenBody = new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: clientId,
-      client_secret: clientSecret,
-      scope: 'read',
-    });
-
-    const tokenResp = await fetch(tokenEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: tokenBody.toString(),
-    });
-    const tokenRaw = await tokenResp.text().catch(() => '');
-    let tokenJson: {
-      access_token?: string;
-      error?: string;
-      error_description?: string;
-    } = {};
-    try {
-      tokenJson = tokenRaw ? JSON.parse(tokenRaw) : {};
-    } catch {
-      tokenJson = { error: tokenRaw.slice(0, 200) };
-    }
-
-    if (!tokenResp.ok || !tokenJson.access_token) {
+    const tokenRes = await fetchBaleSafirAccessToken({ clientId, clientSecret });
+    if (!tokenRes.ok || !tokenRes.accessToken) {
       return {
         ok: false,
-        endpoint: tokenEndpoint,
-        response: { httpStatus: tokenResp.status, ...tokenJson },
-        errorMessage:
-          tokenJson.error_description ||
-          tokenJson.error ||
-          `خطای احراز هویت سفیر بله (HTTP ${tokenResp.status})`,
+        endpoint: 'https://safir.bale.ai/api/v2/auth/token',
+        response: { httpStatus: tokenRes.httpStatus || 401, ...(tokenRes.raw || {}) },
+        errorMessage: tokenRes.errorMessage || 'خطای احراز هویت سفیر بله (HTTP 401)',
       };
     }
 
     const otpEndpoint = 'https://safir.bale.ai/api/v2/send_otp';
     const otpNumeric = Number(otpRaw || '54321');
-    const otpResp = await fetch(otpEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${tokenJson.access_token}`,
-      },
-      body: JSON.stringify({
-        phone: intlPhone,
-        otp: Number.isFinite(otpNumeric) ? otpNumeric : 54321,
-      }),
-    });
-    const otpRawText = await otpResp.text().catch(() => '');
-    let otpJson: {
-      balance?: number;
-      message?: string;
-      code?: number;
-    } = {};
-    try {
-      otpJson = otpRawText ? JSON.parse(otpRawText) : {};
-    } catch {
-      otpJson = { message: otpRawText.slice(0, 200) };
+    const postOtp = async (bearerToken: string) => {
+      const resp = await fetch(otpEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${bearerToken}`,
+        },
+        body: JSON.stringify({
+          phone: intlPhone,
+          otp: Number.isFinite(otpNumeric) ? otpNumeric : 54321,
+        }),
+      });
+      const rawText = await resp.text().catch(() => '');
+      let parsed: { balance?: number; message?: string; code?: number } = {};
+      try {
+        parsed = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        parsed = { message: rawText.slice(0, 200) };
+      }
+      return { resp, parsed };
+    };
+
+    let otpAttempt = await postOtp(tokenRes.accessToken);
+    // If cached token expired/revoked on Safir side (HTTP 401), refresh token once and retry
+    if (otpAttempt.resp.status === 401 && tokenRes.cached) {
+      const refreshed = await fetchBaleSafirAccessToken({
+        clientId,
+        clientSecret,
+        forceRefresh: true,
+      });
+      if (refreshed.ok && refreshed.accessToken) {
+        otpAttempt = await postOtp(refreshed.accessToken);
+      }
     }
+
     return {
-      ok: otpResp.ok,
+      ok: otpAttempt.resp.ok,
       endpoint: otpEndpoint,
-      response: { mode: 'bale_safir_otp', httpStatus: otpResp.status, ...otpJson },
-      errorMessage: otpResp.ok
+      response: {
+        mode: 'bale_safir_otp',
+        oauthCached: Boolean(tokenRes.cached),
+        httpStatus: otpAttempt.resp.status,
+        ...otpAttempt.parsed,
+      },
+      errorMessage: otpAttempt.resp.ok
         ? undefined
-        : otpJson.message || `خطای ارسال OTP از سفیر بله (HTTP ${otpResp.status})`,
+        : otpAttempt.parsed.message || `خطای ارسال OTP از سفیر بله (HTTP ${otpAttempt.resp.status})`,
     };
   }
 
@@ -412,7 +537,7 @@ async function sendViaBaleMessenger(params: {
       errorMessage:
         mode === 'bot_api'
           ? 'توکن ربات بله (Bot Token) و شناسه چت مقصد (chat_id) وارد نشده‌اند.'
-          : 'برای ارسال از پیام‌رسان بله، اطلاعات سفیر بله (برای OTP) یا توکن ربات و chat_id (برای پیام متنی) را تکمیل کنید.',
+          : 'برای ارسال از پیام‌رسان بله، اطلاعات سفیر بله (Client ID & Client Secret برای OTP) یا توکن ربات و chat_id (برای پیام متنی) را تکمیل کنید.',
     };
   }
 

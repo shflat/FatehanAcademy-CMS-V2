@@ -4,6 +4,7 @@ import {
   requirePermission,
 } from '../../src/server/core/permissionsEngine.js';
 import { dbExec, dbQuery, writeSystemLog } from '../../src/server/database/index.js';
+import { sendSuperAdminBaleAlert } from '../mod_ai_hub_agent/baleAlertBridge.js';
 
 export function createModFormsRouter(): express.Router {
   const router = express.Router();
@@ -133,6 +134,16 @@ export function createModFormsRouter(): express.Router {
         title: `ثبت ورودی جدید در فرم چندمرحله‌ای (${formId})`,
         detail: `موبایل: ${b.phone || '-'} | کد ملی: ${b.nationalId || '-'} | مبلغ محاسبه‌شده: ${calculatedPrice} تومان`,
         sqlOrEndpoint: `POST /api/v1/modules/forms/${formId}/submit`,
+      });
+      void sendSuperAdminBaleAlert({
+        category: 'user_request',
+        title: `ثبت ورودی جدید فرم (${formId})`,
+        lines: [
+          `شناسه ثبت: ${subId}`,
+          `شماره موبایل: ${String(b.phone || '-')}`,
+          `استان/شهر: ${String(b.provinceCity || '-')}`,
+          calculatedPrice > 0 ? `مبلغ محاسبه‌شده: ${calculatedPrice.toLocaleString('fa-IR')} تومان` : '',
+        ].filter(Boolean),
       });
       res.json({ ok: true, submissionId: subId, calculatedPrice });
     } catch (err) {

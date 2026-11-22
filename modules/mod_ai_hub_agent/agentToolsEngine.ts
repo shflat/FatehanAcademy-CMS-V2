@@ -7,8 +7,16 @@ import {
   ensureAiHubSchema,
   getAiHubSettings,
   isAiHubModuleEnabled,
+  readScopedAgentMemories,
+  upsertAgentMemory,
 } from './aiHubSchema.js';
-import { generateTextViaSlot } from './aiProviderGateway.js';
+import {
+  executeCmsTool,
+  runMultiStepAgentTurn,
+  type AgentUiActionType,
+  type ExecutedToolRecord,
+} from './agentToolCallingEngine.js';
+import { sendSuperAdminBaleAlert } from './baleAlertBridge.js';
 
 const GENERIC_NAME_PATTERNS = [
   /^کاربر\s*\d{3,5}$/,
@@ -53,7 +61,6 @@ export function extractNameFromChatMessage(text: string, agentAskedForName: bool
     }
   }
 
-  // If the agent explicitly asked for their name in the previous turn and they answered with 1-3 words
   if (agentAskedForName) {
     const words = raw.split(' ').filter(Boolean);
     if (
@@ -69,7 +76,8 @@ export function extractNameFromChatMessage(text: string, agentAskedForName: bool
 
 /**
  * Internal Safe Backend Tool: update_visitor_user_profile
- * Saves the visitor's real Full Name in `users`, active `auth_sessions`, and `mod_live_chat_sessions`.
+ * Saves the visitor's real Full Name in `users`, active `auth_sessions`, `mod_live_chat_sessions`,
+ * and scoped `mod_ai_agent_memory`.
  */
 export async function updateVisitorUserProfileTool(params: {
   phone: string;
@@ -100,6 +108,14 @@ export async function updateVisitorUserProfileTool(params: {
   }
 
   await ensureAiHubSchema();
+  await upsertAgentMemory({
+    scopeType: 'user',
+    userId: cleanPhone,
+    visitorSessionId: params.sessionId || '',
+    memoryKey: 'user_full_name',
+    memoryValue: cleanName,
+  });
+
   await dbExec(
     `INSERT INTO mod_ai_agent_conversations
      (id, channel, sender_phone, role, message_text, tool_calls_json, created_at_fa, created_at)
@@ -147,6 +163,18 @@ export async function queueAgentApproval(params: {
       new Date().toISOString(),
     ]
   );
+
+  void sendSuperAdminBaleAlert({
+    category: 'approval_required',
+    title: params.titleFa.slice(0, 140),
+    lines: [
+      `شناسه تایید: ${id}`,
+      `نوع اقدام: ${params.actionType}`,
+      `خلاصه: ${params.summaryFa.slice(0, 260)}`,
+      'برای تایید یا رد ۱-کلیکی وارد پنل ادمین ← تب «صف تایید ۱-کلیکی» شوید.',
+    ],
+  });
+
   return id;
 }
 
@@ -231,151 +259,63 @@ export async function dispatchAgentBotBridgeAlert(params: {
   return { sentCount, details };
 }
 
-async function generateLiveChatAiReply(params: {
-  addressee: string;
-  isGuest: boolean;
-  messageText: string;
-  existingMessages: { sender_role?: string; message_text?: string }[];
-}): Promise<{ reply?: string; error?: string }> {
-  try {
-    const [skills, products] = await Promise.all([
-      dbQuery<{ title_fa: string; skill_markdown: string }>(
-        'SELECT title_fa, skill_markdown FROM mod_ai_agent_skills WHERE enabled = 1 LIMIT 6'
-      ).catch(() => []),
-      dbQuery<{ title: string; category: string; price: number }>(
-        "SELECT title, category, price FROM products WHERE status = 'published' ORDER BY featured DESC LIMIT 12"
-      ).catch(() => []),
-    ]);
-
-    const skillContext = skills
-      .map((s) => `• ${s.title_fa}: ${String(s.skill_markdown || '').slice(0, 260)}`)
-      .join('\n');
-    const catalogContext = products
-      .map(
-        (p) =>
-          `- ${p.title} (${p.category} · ${
-            Number(p.price) === 0 ? 'رایگان' : `${Number(p.price).toLocaleString('fa-IR')} تومان`
-          })`
-      )
-      .join('\n');
-
-    const recentHistory = params.existingMessages
-      .slice(-8)
-      .map(
-        (m) =>
-          `${m.sender_role === 'visitor' ? 'کاربر' : 'پشتیبان'}: ${String(m.message_text || '').slice(0, 300)}`
-      )
-      .join('\n');
-
-    const systemPrompt = [
-      `شما دستیار هوشمند ۲۴/۷ پشتیبانی سایت «اسکیل ۹۸» هستید.`,
-      `مخاطب فعلی: ${params.addressee} (${params.isGuest ? 'کاربر مهمان' : 'کاربر واردشده به حساب'}).`,
-      `پاسخ را کوتاه، دقیق، محترمانه و کاملاً به زبان فارسی روان بنویسید.`,
-      catalogContext ? `فهرست برخی محصولات و اسکیل‌های موجود در فروشگاه:\n${catalogContext}` : '',
-      skillContext ? `دستورالعمل‌ها و مهارت‌های پشتیبانی:\n${skillContext}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n\n');
-
-    const userPrompt = recentHistory
-      ? `تاریخچه کوتاه گفتگو:\n${recentHistory}\n\nپیام جدید کاربر:\n${params.messageText}`
-      : params.messageText;
-
-    const res = await generateTextViaSlot({
-      slot: 'agent_core',
-      systemPrompt,
-      userPrompt,
-    });
-    return { reply: res.text || undefined };
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    await writeSystemLog({
-      level: 'error',
-      category: 'system',
-      title: 'خطای اتصال دستیار هوشمند ۲۴/۷ در چت آنلاین',
-      detail: errMsg,
-      sqlOrEndpoint: 'LIVE_CHAT_AGENT_24_7 (agent_core)',
-    }).catch(() => {});
-    return { error: errMsg };
-  }
-}
+const GUEST_REQUEST_INTENT_REGEX =
+  /(?:ثبت\s*درخواست|درخواست\s*(?:مشاوره|پشتیبانی|سفارش|فوری|طراحی|همکاری|دمو|قیمت)|سفارش\s*(?:دارم|بدم|بگذارم|ثبت)|فرم\s*(?:پر|ثبت|بفرست)|اولویت\s*فوری|ثبت\s*تیکت|می‌?خواهم\s*(?:ثبت|سفارش|خرید|درخواست)|میخوام\s*(?:ثبت|سفارش|خرید|درخواست)|تماس\s*بگیرید|شماره\s*(?:بدم|بدهم)|عضویت|ورود\s*با\s*موبایل)/i;
 
 /**
- * Live Chat AI Agent Hook:
- * - In autonomous_24_7 mode (or with liveChatAutoReply): answers both guests and logged-in users using live AI + store catalog + SKILL.md rules.
- * - For logged-in users: detects & saves their Full Name via `update_visitor_user_profile`, or gently asks for their name if still missing.
+ * Live Chat AI Agent Hook (Phase 13.2):
+ * - Runs multi-step tool-calling engine with always-on SKILL.md + strictly isolated per-user/guest memory.
+ * - Guests NEVER see Super Admin or other users' data; when guests want to submit a request or upgrade priority,
+ *   the agent triggers `uiAction: 'OPEN_INLINE_OTP'` so Mobile + OTP signup opens directly inside chat.
+ * - Authenticated customers can update their profile name and submit real requests/forms with tracking codes.
+ * - On post-login continuation (`isPostLoginContinuation`), resumes the visitor's confirmed request seamlessly.
  */
 export async function handleLiveChatAgentAutomation(params: {
   sessionId: string;
   messageText: string;
   authenticatedPhone?: string;
   existingMessages: { sender_role?: string; message_text?: string }[];
+  isPostLoginContinuation?: boolean;
 }): Promise<{
   agentReply?: string;
   updatedDisplayName?: string;
   toolExecuted?: string;
+  executedTools?: ExecutedToolRecord[];
+  uiAction?: AgentUiActionType;
+  uiActionPayload?: Record<string, unknown>;
 }> {
   const enabled = await isAiHubModuleEnabled();
   if (!enabled) return {};
   const settings = await getAiHubSettings();
+  if (settings.jarvisSettings?.enabled === false) return {};
   if (!settings.liveChatAutoReply && !settings.autoProfileCompletion) return {};
 
+  await ensureAiHubSchema();
   const isGuest = !params.authenticatedPhone;
-  const alreadyPromptedGuest = params.existingMessages.some(
-    (m) =>
-      m.sender_role === 'operator' &&
-      String(m.message_text || '').includes('اولویت فوری')
-  );
-
-  if (isGuest) {
-    if (settings.liveChatAutoReply && settings.agentMode === 'autonomous_24_7') {
-      const aiAttempt = await generateLiveChatAiReply({
-        addressee: 'کاربر گرامی',
-        isGuest: true,
-        messageText: params.messageText,
-        existingMessages: params.existingMessages,
-      });
-      if (aiAttempt.reply) {
-        const suffix = !alreadyPromptedGuest
-          ? '\n\n💡 برای ثبت درخواست با «اولویت فوری» می‌توانید شماره موبایل خود را در بالای همین پنجره تایید کنید.'
-          : '';
-        return { agentReply: `${aiAttempt.reply}${suffix}` };
-      }
-      if (!alreadyPromptedGuest) {
-        return {
-          agentReply:
-            'سلام و خوش آمدید! پیام شما با موفقیت ثبت شد و برای اپراتور پشتیبانی ارسال گردید. برای دریافت پاسخ با «اولویت فوری»، شماره موبایل خود را در بالای همین پنجره وارد کنید.',
-        };
-      }
-      return {
-        agentReply:
-          'پیام شما در صف پشتیبانی ثبت شد. همکاران ما در کوتاه‌ترین زمان پاسخ شما را ارسال خواهند کرد.',
-      };
-    }
-
-    if (!alreadyPromptedGuest) {
-      return {
-        agentReply:
-          'سلام و خوش آمدید! پیام شما دریافت شد. برای دریافت پاسخ سریع‌تر و ثبت درخواست با اولویت فوری، شماره موبایل خود را همینجا وارد کنید یا وارد حساب کاربری شوید.',
-      };
-    }
-    return {};
-  }
-
-  // Logged-in visitor: inspect user profile in DB
-  const userRow = await findUserByPhone(params.authenticatedPhone!);
+  const userRow = params.authenticatedPhone ? await findUserByPhone(params.authenticatedPhone) : null;
   const currentName = userRow?.full_name || '';
-  const needsName = isGenericDisplayName(currentName);
+  const needsName = !isGuest && isGenericDisplayName(currentName);
 
   const lastOperatorMsg = [...params.existingMessages]
     .reverse()
     .find((m) => m.sender_role === 'operator');
   const agentAskedForName = Boolean(
-    lastOperatorMsg &&
-      /نام|اسم/.test(String(lastOperatorMsg.message_text || ''))
+    lastOperatorMsg && /نام|اسم/.test(String(lastOperatorMsg.message_text || ''))
   );
 
-  if (settings.autoProfileCompletion) {
+  // Strict per-session conversation history only (never cross-user or Command Center)
+  const history = params.existingMessages
+    .slice(-10)
+    .filter((m) => Boolean(String(m.message_text || '').trim()))
+    .map((m) => ({
+      role: (m.sender_role === 'visitor' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: String(m.message_text || '').slice(0, 600),
+    }));
+
+  // Deterministic pre-check for explicit name introduction by authenticated user
+  let detectedUpdatedName: string | undefined;
+  let preExecutedToolName: string | undefined;
+  if (!isGuest && !params.isPostLoginContinuation && settings.autoProfileCompletion) {
     const extractedName = extractNameFromChatMessage(params.messageText, agentAskedForName);
     if (extractedName && (needsName || extractedName !== currentName)) {
       const toolRes = await updateVisitorUserProfileTool({
@@ -384,30 +324,191 @@ export async function handleLiveChatAgentAutomation(params: {
         sessionId: params.sessionId,
       });
       if (toolRes.ok) {
-        return {
-          updatedDisplayName: extractedName,
-          toolExecuted: 'update_visitor_user_profile',
-          agentReply: `خوشبختم ${extractedName} عزیز! نام شما با موفقیت در حساب کاربری‌تان ثبت شد و درخواست شما با اولویت فوری در دست بررسی است. چطور می‌توانم دقیق‌تر کمکتان کنم؟`,
-        };
+        detectedUpdatedName = extractedName;
+        preExecutedToolName = 'update_visitor_user_profile';
       }
     }
   }
 
-  if (settings.agentMode === 'autonomous_24_7' && settings.liveChatAutoReply) {
-    const addressee = needsName ? 'کاربر گرامی' : `${currentName} عزیز`;
-    const aiAttempt = await generateLiveChatAiReply({
-      addressee,
-      isGuest: false,
-      messageText: params.messageText,
-      existingMessages: params.existingMessages,
-    });
-    if (aiAttempt.reply) {
-      const askNameSuffix =
-        settings.autoProfileCompletion && needsName && !agentAskedForName
-          ? '\n\n(برای تکمیل پروفایل و خطاب بهتر، خوشحال می‌شوم نام شریفتان را هم بفرمایید.)'
-          : '';
-      return { agentReply: `${aiAttempt.reply}${askNameSuffix}` };
+  const effectiveDisplayName = detectedUpdatedName || currentName || '';
+
+  // Autonomous 24/7 mode: run real Multi-Step Tool-Calling Engine (up to 4 steps)
+  if (settings.liveChatAutoReply && settings.agentMode === 'autonomous_24_7') {
+    const extraLines: string[] = [];
+    if (isGuest) {
+      extraLines.push(
+        'کاربر فعلی مهمان است. اگر کاربر درخواست ثبت سفارش، فرم، مشاوره رسمی یا اولویت فوری دارد، حتماً ابزار `trigger_chat_otp_box` را فراخوانی کن تا کادر ورود/ثبت‌نام سریع با موبایل و OTP همینجا داخل چت باز شود و خلاصه درخواستش را در `pendingRequestSummary` ذخیره کن.'
+      );
+    } else {
+      extraLines.push(
+        `کاربر احراز هویت شده است (شماره موبایل: ${params.authenticatedPhone} · نام فعلی: ${effectiveDisplayName || 'تکمیل‌نشده'}).`
+      );
+      if (detectedUpdatedName) {
+        extraLines.push(
+          `نام کاربر همین الان با موفقیت به «${detectedUpdatedName}» در پروفایل ذخیره شد؛ در پاسخ محترمانه از او با همین نام استقبال کن و کارش را ادامه بده.`
+        );
+      } else if (settings.autoProfileCompletion && needsName && !agentAskedForName) {
+        extraLines.push(
+          'نام کاربر در پروفایل هنوز عمومی است؛ در پایان پاسخ محترمانه نام شریفش را بپرس.'
+        );
+      }
+      if (params.isPostLoginContinuation) {
+        extraLines.push(
+          'کاربر همین لحظه با موفقیت از طریق کادر OTP داخل چت احراز هویت و وارد حساب کاربری شد و حافظه قبلی نشست او منتقل شده است. اگر در تاریخچه گفتگو یا حافظه (`pending_request_draft`) درخواست تاییدشده‌ای از طرف او وجود دارد، همین حالا ابزار `create_or_submit_user_request` را اجرا کن و کد پیگیری رسمی را به کاربر اعلام کن؛ در غیر این صورت گرم خوش‌آمد بگو و ادامه کمک را پیشنهاد بده.'
+        );
+      }
     }
+
+    try {
+      const turn = await runMultiStepAgentTurn({
+        ctx: {
+          actorRole: isGuest ? 'guest' : 'customer',
+          channel: 'live_chat',
+          userId: params.authenticatedPhone || undefined,
+          userDisplayName: effectiveDisplayName || undefined,
+          visitorSessionId: params.sessionId,
+        },
+        userMessage: params.messageText,
+        history,
+        extraContext: extraLines.join('\n'),
+        maxSteps: 4,
+      });
+
+      // Safety net: if guest clearly asked to submit a request/form/urgent ticket and model didn't call OTP trigger
+      let finalUiAction = turn.uiAction;
+      let finalUiPayload = turn.uiActionPayload;
+      if (isGuest && !finalUiAction && GUEST_REQUEST_INTENT_REGEX.test(params.messageText)) {
+        finalUiAction = 'OPEN_INLINE_OTP';
+        finalUiPayload = {
+          reasonFa:
+            'برای ثبت رسمی درخواست و دریافت کد پیگیری، لطفاً شماره موبایل خود را در کادر زیر تایید کنید.',
+          pendingRequestSummary: params.messageText.slice(0, 320),
+        };
+        await upsertAgentMemory({
+          scopeType: 'guest',
+          visitorSessionId: params.sessionId,
+          memoryKey: 'pending_request_draft',
+          memoryValue: params.messageText.slice(0, 500),
+        });
+      }
+
+      if (turn.replyText) {
+        return {
+          agentReply: turn.replyText,
+          updatedDisplayName: turn.updatedDisplayName || detectedUpdatedName,
+          toolExecuted: turn.executedTools[0]?.tool || preExecutedToolName,
+          executedTools: turn.executedTools,
+          uiAction: finalUiAction,
+          uiActionPayload: finalUiPayload,
+        };
+      }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      await writeSystemLog({
+        level: 'error',
+        category: 'system',
+        title: 'خطای موتور چندمرحله‌ای دستیار ۲۴/۷ در چت آنلاین',
+        detail: errMsg,
+        sqlOrEndpoint: 'LIVE_CHAT_AGENT_MULTI_STEP (agent_core)',
+      }).catch(() => {});
+    }
+  }
+
+  // Deterministic Fallback when AI slot is offline, unconfigured, or in light mode
+  if (isGuest) {
+    const wantsRequestOrOtp = GUEST_REQUEST_INTENT_REGEX.test(params.messageText);
+    if (wantsRequestOrOtp) {
+      await upsertAgentMemory({
+        scopeType: 'guest',
+        visitorSessionId: params.sessionId,
+        memoryKey: 'pending_request_draft',
+        memoryValue: params.messageText.slice(0, 500),
+      });
+      return {
+        agentReply:
+          'با کمال میل درخواست شما را به‌صورت رسمی ثبت و پیگیری می‌کنم. برای ثبت نهایی درخواست و دریافت کد پیگیری، لطفاً شماره موبایل خود را در کادر زیر وارد و کد تایید را ثبت کنید تا بلافاصله درخواستتان ثبت شود.',
+        uiAction: 'OPEN_INLINE_OTP',
+        uiActionPayload: {
+          reasonFa: 'تایید شماره موبایل برای ثبت رسمی درخواست و دریافت کد پیگیری',
+          pendingRequestSummary: params.messageText.slice(0, 320),
+        },
+        toolExecuted: 'trigger_chat_otp_box',
+      };
+    }
+
+    const alreadyPromptedGuest = params.existingMessages.some(
+      (m) =>
+        m.sender_role === 'operator' &&
+        String(m.message_text || '').includes('اولویت فوری')
+    );
+    if (!alreadyPromptedGuest) {
+      return {
+        agentReply:
+          'سلام و خوش آمدید! پیام شما دریافت شد. برای دریافت پاسخ سریع‌تر و ثبت رسمی درخواست با «اولویت فوری»، می‌توانید از کادر بالای همین پنجره با شماره موبایل وارد شوید.',
+      };
+    }
+    return settings.agentMode === 'autonomous_24_7'
+      ? {
+          agentReply:
+            'پیام شما در صف پشتیبانی ثبت شد. همکاران ما در کوتاه‌ترین زمان پاسخ شما را ارسال خواهند کرد.',
+        }
+      : {};
+  }
+
+  // Authenticated post-login continuation deterministic fallback (if pending draft exists in user memory)
+  if (params.isPostLoginContinuation && params.authenticatedPhone) {
+    const userMems = await readScopedAgentMemories({
+      actorRole: 'customer',
+      userId: params.authenticatedPhone,
+      visitorSessionId: params.sessionId,
+      limit: 10,
+    });
+    const pendingDraft = userMems.find((m) => m.memory_key === 'pending_request_draft');
+    if (pendingDraft?.memory_value) {
+      const submitCtx = {
+        actorRole: 'customer' as const,
+        channel: 'live_chat' as const,
+        userId: params.authenticatedPhone,
+        userDisplayName: effectiveDisplayName,
+        visitorSessionId: params.sessionId,
+      };
+      const submitted = await executeCmsTool(
+        'create_or_submit_user_request',
+        {
+          titleFa: 'درخواست تاییدشده کاربر از گفتگوی آنلاین',
+          description: pendingDraft.memory_value,
+          priority: 'urgent',
+        },
+        submitCtx
+      );
+      if (submitted.ok) {
+        const trackingCode = String(submitted.data?.trackingCode || '');
+        const greeting = isGenericDisplayName(effectiveDisplayName)
+          ? 'ورود شما با موفقیت انجام شد!'
+          : `${effectiveDisplayName} عزیز، ورود شما با موفقیت انجام شد!`;
+        return {
+          agentReply: `${greeting} درخواست قبلی شما به‌صورت رسمی و با اولویت فوری ثبت گردید.\nکد پیگیری شما: ${trackingCode}\n${
+            isGenericDisplayName(effectiveDisplayName)
+              ? '\nبرای تکمیل پروفایل و خطاب بهتر، خوشحال می‌شوم نام شریفتان را هم بفرمایید.'
+              : 'همکاران پشتیبانی در کوتاه‌ترین زمان با شما در ارتباط خواهند بود.'
+          }`,
+          toolExecuted: 'create_or_submit_user_request',
+          executedTools: [submitted],
+        };
+      }
+    }
+    return {};
+  }
+
+  if (detectedUpdatedName) {
+    return {
+      updatedDisplayName: detectedUpdatedName,
+      toolExecuted: 'update_visitor_user_profile',
+      agentReply: `خوشبختم ${detectedUpdatedName} عزیز! نام شما با موفقیت در حساب کاربری‌تان ثبت شد و درخواست شما با اولویت فوری در دست بررسی است. چطور می‌توانم دقیق‌تر کمکتان کنم؟`,
+    };
+  }
+
+  if (settings.agentMode === 'autonomous_24_7' && settings.liveChatAutoReply) {
     return {
       agentReply:
         'پیام شما با اولویت فوری ثبت شد. به دلیل عدم اتصال موقت موتور هوش مصنوعی، پیامتان مستقیماً برای اپراتور انسانی ارسال گردید و به‌زودی پاسخ دریافت می‌کنید.',
@@ -423,3 +524,4 @@ export async function handleLiveChatAgentAutomation(params: {
 
   return {};
 }
+

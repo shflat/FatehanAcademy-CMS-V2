@@ -26,6 +26,22 @@ export async function setSetting(key: string, value: unknown): Promise<void> {
   );
 }
 
+export interface SystemLogHookPayload {
+  id: string;
+  level: SystemLogLevel;
+  category: SystemLogCategory;
+  title: string;
+  detail: string;
+  sqlOrEndpoint?: string;
+}
+
+type SystemLogErrorHook = (entry: SystemLogHookPayload) => void | Promise<void>;
+const systemLogErrorHooks = new Set<SystemLogErrorHook>();
+
+export function registerSystemLogErrorHook(hook: SystemLogErrorHook): void {
+  systemLogErrorHooks.add(hook);
+}
+
 export async function writeSystemLog(entry: {
   level: SystemLogLevel;
   category: SystemLogCategory;
@@ -60,6 +76,22 @@ export async function writeSystemLog(entry: {
         nowFa,
       ]
     );
+
+    if (entry.level === 'error' && systemLogErrorHooks.size > 0) {
+      const hookPayload: SystemLogHookPayload = {
+        id,
+        level: entry.level,
+        category: entry.category,
+        title: entry.title.slice(0, 240),
+        detail: entry.detail.slice(0, 1000),
+        sqlOrEndpoint: entry.sqlOrEndpoint,
+      };
+      for (const hook of systemLogErrorHooks) {
+        void Promise.resolve()
+          .then(() => hook(hookPayload))
+          .catch(() => {});
+      }
+    }
   } catch {
     // Prevent log failure from crashing business transactions
   }

@@ -15,6 +15,10 @@ import { AiSlotsConfigCard, type AiSlotItem } from './AiSlotsConfigCard';
 import { AiCommandCenterCard } from './AiCommandCenterCard';
 import { AiSkillsApprovalsCard } from './AiSkillsApprovalsCard';
 import { AiImageStudioWidget } from './AiImageStudioWidget';
+import {
+  DEFAULT_JARVIS_UI_SETTINGS,
+  type JarvisSettingsUiConfig,
+} from './AiJarvisSettingsCard';
 
 type HubTab = 'slots' | 'command' | 'skills' | 'approvals' | 'studio';
 
@@ -31,11 +35,37 @@ export const AiHubAgentPanel: React.FC<{
     liveChatAutoReply: boolean;
     autoProfileCompletion: boolean;
     botBridgeEnabled: boolean;
+    baleAlerts?: {
+      enabled: boolean;
+      notifyApprovals: boolean;
+      notifyUserRequests: boolean;
+      notifyOrdersAndFailures: boolean;
+      notifyCriticalErrors: boolean;
+      notifyAgentEscalations: boolean;
+      overrideChatId: string;
+      dailyBriefingEnabled?: boolean;
+      dailyBriefingTime?: string;
+      lastBriefingDate?: string;
+    };
+    jarvisSettings?: JarvisSettingsUiConfig;
   }>({
     agentMode: 'light',
     liveChatAutoReply: true,
     autoProfileCompletion: true,
     botBridgeEnabled: false,
+    baleAlerts: {
+      enabled: true,
+      notifyApprovals: true,
+      notifyUserRequests: true,
+      notifyOrdersAndFailures: true,
+      notifyCriticalErrors: true,
+      notifyAgentEscalations: true,
+      overrideChatId: '',
+      dailyBriefingEnabled: false,
+      dailyBriefingTime: '09:00',
+      lastBriefingDate: '',
+    },
+    jarvisSettings: DEFAULT_JARVIS_UI_SETTINGS,
   });
   const [skills, setSkills] = useState<
     { id: string; slug: string; title_fa: string; category: string; skill_markdown: string; updated_at: string }[]
@@ -200,6 +230,8 @@ export const AiHubAgentPanel: React.FC<{
           liveChatAutoReply={settings.liveChatAutoReply}
           autoProfileCompletion={settings.autoProfileCompletion}
           botBridgeEnabled={settings.botBridgeEnabled}
+          baleAlerts={settings.baleAlerts}
+          jarvisSettings={settings.jarvisSettings}
           tasks={tasks}
           conversations={conversations}
           onRefresh={() => void loadAll()}

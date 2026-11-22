@@ -18,6 +18,7 @@ import {
   handleLiveChatAgentAutomation,
   isGenericDisplayName,
 } from '../mod_ai_hub_agent/agentToolsEngine.js';
+import { migrateGuestMemoriesToUser } from '../mod_ai_hub_agent/aiHubSchema.js';
 
 export function createModLiveChatRouter(): express.Router {
   const router = express.Router();
@@ -32,10 +33,21 @@ export function createModLiveChatRouter(): express.Router {
     }
   };
 
+  const ensureUiActionColumn = async () => {
+    try {
+      await dbExec(
+        `ALTER TABLE mod_live_chat_messages ADD COLUMN ui_action TEXT NOT NULL DEFAULT ''`
+      );
+    } catch {
+      // column already exists
+    }
+  };
+
   // Public + Admin: Get operator online status & list sessions (or specific visitor session)
   router.get('/api/v1/modules/live-chat/status', async (req, res) => {
     try {
       await ensurePriorityColumn();
+      await ensureUiActionColumn();
       const cfg = await getSetting<{ online: boolean; operatorTitle: string; welcomeText: string }>(
         'mod_live_chat_operator_cfg',
         {
@@ -100,16 +112,19 @@ export function createModLiveChatRouter(): express.Router {
     }
   );
 
-  // Logged-In User: Link guest live-chat thread to authenticated account & unlock Urgent priority
+  // Logged-In User: Link guest live-chat thread to authenticated account, migrate guest memory,
+  // unlock Urgent priority, and trigger AI Agent continuation to submit any confirmed pending request
   router.post(
     '/api/v1/modules/live-chat/link-session',
     requireAuth,
     async (req: AuthenticatedRequest, res) => {
       try {
         await ensurePriorityColumn();
+        await ensureUiActionColumn();
         const session = req.authSession!;
         const sessionId = String(req.body?.sessionId || '').trim();
         const upgradeToUrgent = Boolean(req.body?.upgradeToUrgent);
+        const autoContinueRequest = req.body?.autoContinueRequest !== false;
         if (!sessionId) {
           res.status(400).json({ error: 'شناسه نشست چت الزامی است.' });
           return;
@@ -118,6 +133,11 @@ export function createModLiveChatRouter(): express.Router {
         const displayName = userRow?.full_name || session.user_display || `کاربر ${session.phone.slice(-4)}`;
         const nowIso = new Date().toISOString();
         const nowFa = formatPersianDateTime();
+
+        const priorMessages = await dbQuery<{ sender_role: string; message_text: string }>(
+          'SELECT sender_role, message_text FROM mod_live_chat_messages WHERE session_id = $1 ORDER BY created_at ASC',
+          [sessionId]
+        );
 
         const existing = await dbQuery<{ id: string }>(
           'SELECT id FROM mod_live_chat_sessions WHERE id = $1 LIMIT 1',
@@ -138,14 +158,46 @@ export function createModLiveChatRouter(): express.Router {
           );
         }
 
-        const welcomeAfterLogin = isGenericDisplayName(displayName)
-          ? 'ورود شما با موفقیت انجام شد و ترد گفتگوی شما با «اولویت فوری» به حساب کاربری‌تان متصل گردید. برای تکمیل پروفایل و خطاب بهتر، لطفاً نام خود را بفرمایید؟'
-          : `خوش آمدید ${displayName} عزیز! حساب کاربری شما به این گفتگو متصل شد و درخواست شما با «اولویت فوری» در صف پاسخ‌گویی قرار گرفت.`;
+        // Migrate any guest-scoped memory (such as pending_request_draft) to the verified user account
+        const migratedCount = await migrateGuestMemoriesToUser({
+          visitorSessionId: sessionId,
+          userId: session.phone,
+        }).catch(() => 0);
+
+        // Clear any pending OPEN_INLINE_OTP flags on older messages now that user is logged in
+        await dbExec(
+          `UPDATE mod_live_chat_messages SET ui_action = '' WHERE session_id = $1 AND ui_action = 'OPEN_INLINE_OTP'`,
+          [sessionId]
+        ).catch(() => {});
+
+        let continuationReply = '';
+        let continuationTool: string | undefined;
+
+        if (autoContinueRequest && (migratedCount > 0 || priorMessages.length > 0)) {
+          const continuation = await handleLiveChatAgentAutomation({
+            sessionId,
+            messageText:
+              'کاربر با موفقیت وارد حساب کاربری شد و شماره موبایل خود را تایید کرد. لطفاً گفتگو را ادامه بده و اگر درخواست تاییدشده یا پیش‌نویسی دارد همین الان ثبت کن.',
+            authenticatedPhone: session.phone,
+            existingMessages: priorMessages,
+            isPostLoginContinuation: true,
+          }).catch(() => ({} as { agentReply?: string; toolExecuted?: string }));
+          if (continuation.agentReply) {
+            continuationReply = continuation.agentReply;
+            continuationTool = continuation.toolExecuted;
+          }
+        }
+
+        const replyMessage =
+          continuationReply ||
+          (isGenericDisplayName(displayName)
+            ? 'ورود شما با موفقیت انجام شد و ترد گفتگوی شما با «اولویت فوری» به حساب کاربری‌تان متصل گردید. برای تکمیل پروفایل و خطاب بهتر، لطفاً نام خود را بفرمایید؟'
+            : `خوش آمدید ${displayName} عزیز! حساب کاربری شما به این گفتگو متصل شد و درخواست شما با «اولویت فوری» در صف پاسخ‌گویی قرار گرفت.`);
 
         await dbExec(
-          `INSERT INTO mod_live_chat_messages (id, session_id, sender_role, sender_name, message_text, attachment_url, attachment_name, created_at_fa, created_at)
-           VALUES ($1,$2,'operator','دستیار هوشمند پشتیبانی',$3,'','',$4,$5)`,
-          [`msg_link_${Date.now()}`, sessionId, welcomeAfterLogin, nowFa, nowIso]
+          `INSERT INTO mod_live_chat_messages (id, session_id, sender_role, sender_name, message_text, attachment_url, attachment_name, ui_action, created_at_fa, created_at)
+           VALUES ($1,$2,'operator','دستیار هوشمند پشتیبانی',$3,'','','',$4,$5)`,
+          [`msg_link_${Date.now()}`, sessionId, replyMessage, nowFa, nowIso]
         );
 
         const messages = await dbQuery<Record<string, unknown>>(
@@ -157,6 +209,9 @@ export function createModLiveChatRouter(): express.Router {
           sessionId,
           priority: upgradeToUrgent ? 'urgent' : 'normal',
           displayName,
+          migratedMemories: migratedCount,
+          continuedByAgent: Boolean(continuationReply),
+          toolExecuted: continuationTool,
           messages,
         });
       } catch (err) {
@@ -165,13 +220,14 @@ export function createModLiveChatRouter(): express.Router {
     }
   );
 
-  // Public + Authenticated Customer: Start or send message (+ strict Urgent priority check + AI Agent hook)
+  // Public + Authenticated Customer: Start or send message (+ strict Urgent priority check + Multi-Step AI Agent hook)
   router.post(
     '/api/v1/modules/live-chat/visitor-message',
     attachOptionalAuth,
     async (req: AuthenticatedRequest, res) => {
       try {
         await ensurePriorityColumn();
+        await ensureUiActionColumn();
         const b = req.body || {};
         const nowIso = new Date().toISOString();
         const nowFa = formatPersianDateTime();
@@ -247,12 +303,12 @@ export function createModLiveChatRouter(): express.Router {
 
         const msgId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
         await dbExec(
-          `INSERT INTO mod_live_chat_messages (id, session_id, sender_role, sender_name, message_text, attachment_url, attachment_name, created_at_fa, created_at)
-           VALUES ($1,$2,'visitor',$3,$4,$5,$6,$7,$8)`,
+          `INSERT INTO mod_live_chat_messages (id, session_id, sender_role, sender_name, message_text, attachment_url, attachment_name, ui_action, created_at_fa, created_at)
+           VALUES ($1,$2,'visitor',$3,$4,$5,$6,'',$7,$8)`,
           [msgId, sessionId, visitorName, messageText, attachmentUrl, attachmentName, nowFa, nowIso]
         );
 
-        // AI Agent Automation Hook (guest urgent prompt OR logged-in profile completion via update_visitor_user_profile)
+        // AI Agent Automation Hook (Multi-step tools + inline OTP trigger + profile completion)
         const automation = await handleLiveChatAgentAutomation({
           sessionId,
           messageText,
@@ -263,9 +319,16 @@ export function createModLiveChatRouter(): express.Router {
         if (automation.agentReply) {
           const botNowIso = new Date(Date.now() + 20).toISOString();
           await dbExec(
-            `INSERT INTO mod_live_chat_messages (id, session_id, sender_role, sender_name, message_text, attachment_url, attachment_name, created_at_fa, created_at)
-             VALUES ($1,$2,'operator','دستیار هوشمند پشتیبانی',$3,'','',$4,$5)`,
-            [`msg_ai_${Date.now()}`, sessionId, automation.agentReply, formatPersianDateTime(), botNowIso]
+            `INSERT INTO mod_live_chat_messages (id, session_id, sender_role, sender_name, message_text, attachment_url, attachment_name, ui_action, created_at_fa, created_at)
+             VALUES ($1,$2,'operator','دستیار هوشمند پشتیبانی',$3,'','',$4,$5,$6)`,
+            [
+              `msg_ai_${Date.now()}`,
+              sessionId,
+              automation.agentReply,
+              automation.uiAction || '',
+              formatPersianDateTime(),
+              botNowIso,
+            ]
           );
         }
 
@@ -280,6 +343,9 @@ export function createModLiveChatRouter(): express.Router {
           isAuthenticated: Boolean(authPhone),
           updatedDisplayName: automation.updatedDisplayName,
           toolExecuted: automation.toolExecuted,
+          executedTools: automation.executedTools || [],
+          uiAction: automation.uiAction || null,
+          uiActionPayload: automation.uiActionPayload || null,
           messages,
         });
       } catch (err) {

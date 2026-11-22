@@ -89,7 +89,7 @@ export interface ServerEnvConfig {
 }
 
 let cachedBuildId: string | null = null;
-const SERVER_BOOT_BUILD_ID = `v2.7.0-${Date.now().toString(36)}`;
+const SERVER_BOOT_BUILD_ID = `v2.9.0-${Date.now().toString(36)}`;
 
 export function resolveBuildId(): string {
   if (cachedBuildId) return cachedBuildId;

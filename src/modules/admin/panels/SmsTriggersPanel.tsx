@@ -1048,14 +1048,27 @@ export const SmsTriggersPanel: React.FC<SmsTriggersPanelProps> = ({
                     </div>
 
                     {(baleMode === 'auto' || baleMode === 'safir_otp') && (
-                      <div className="p-4 rounded-xl border border-teal-500/30 bg-teal-50/30 dark:bg-teal-950/20 space-y-3">
-                        <div className="text-xs font-extrabold text-teal-800 dark:text-teal-300">
-                          تنظیمات وب‌سرویس رسمی سفیر بله (safir.bale.ai — ارسال OTP به شماره موبایل)
+                      <div className="p-4 rounded-xl border border-teal-500/35 bg-teal-50/40 dark:bg-teal-950/25 space-y-3">
+                        <div className="space-y-1">
+                          <div className="text-xs font-extrabold text-teal-800 dark:text-teal-300">
+                            شناسه و کلید سفیر بله (Safir API: Client ID &amp; Client Secret — ارسال OTP به موبایل)
+                          </div>
+                          <p className="text-[10.5px] text-stone-600 dark:text-stone-400 leading-relaxed">
+                            این بخش صرفاً برای ارسال کد تایید (OTP) به شماره موبایل از طریق احراز هویت OAuth2 در{' '}
+                            <span className="font-mono font-bold" dir="ltr">safir.bale.ai/api/v2/auth/token</span>{' '}
+                            است و با توکن ربات @BotFather متفاوت است.
+                          </p>
                         </div>
+                        {(/^\d{5,}:/.test(String(cred.baleClientId || '').trim()) ||
+                          /^\d{5,}:/.test(String(cred.baleClientSecret || '').trim())) && (
+                          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-[11px] font-bold">
+                            ⚠️ هشدار: مقدار واردشده شبیه توکن ربات بله (دارای «:») است! توکن ربات باید در کادر پایینی (Bot API) وارد شود و اینجا فقط Client ID و Client Secret پنل سفیر بله را قرار دهید تا خطای HTTP 401 رخ ندهد.
+                          </div>
+                        )}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[11px] font-bold text-stone-500 mb-1">
-                              شناسه کلاینت سفیر بله (Client ID)
+                            <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
+                              شناسه کلاینت سفیر بله (Safir Client ID)
                             </label>
                             <input
                               type="text"
@@ -1069,8 +1082,8 @@ export const SmsTriggersPanel: React.FC<SmsTriggersPanelProps> = ({
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-bold text-stone-500 mb-1">
-                              کلید محرمانه سفیر بله (Client Secret)
+                            <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
+                              کلید محرمانه سفیر بله (Safir Client Secret)
                             </label>
                             <input
                               type="password"
@@ -1088,14 +1101,21 @@ export const SmsTriggersPanel: React.FC<SmsTriggersPanelProps> = ({
                     )}
 
                     {(baleMode === 'auto' || baleMode === 'bot_api') && (
-                      <div className="p-4 rounded-xl border border-blue-500/25 bg-blue-50/25 dark:bg-blue-950/15 space-y-3">
-                        <div className="text-xs font-extrabold text-[#1D4ED8] dark:text-sky-300">
-                          تنظیمات ربات پیام‌رسان بله (tapi.bale.ai — ارسال پیام متنی و اطلاع‌رسانی‌ها)
+                      <div className="p-4 rounded-xl border border-blue-500/30 bg-blue-50/30 dark:bg-blue-950/20 space-y-3">
+                        <div className="space-y-1">
+                          <div className="text-xs font-extrabold text-[#1D4ED8] dark:text-sky-300">
+                            توکن ربات بله (Bot API — ارسال به chat_id)
+                          </div>
+                          <p className="text-[10.5px] text-stone-600 dark:text-stone-400 leading-relaxed">
+                            این بخش برای ارسال پیام‌های متنی، گزارش سفارش‌ها و هشدارهای ایجنت ۲۴/۷ از طریق{' '}
+                            <span className="font-mono font-bold" dir="ltr">tapi.bale.ai</span>{' '}
+                            به شناسه چت/گروه (chat_id) است و برای ارسال OTP به شماره موبایل استفاده نمی‌شود.
+                          </p>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-[11px] font-bold text-stone-500 mb-1">
-                              توکن ربات بله (دریافتی از @BotFather در بله)
+                            <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
+                              توکن ربات بله (Bot API Token — دریافتی از @BotFather در بله)
                             </label>
                             <input
                               type="password"
@@ -1109,8 +1129,8 @@ export const SmsTriggersPanel: React.FC<SmsTriggersPanelProps> = ({
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-bold text-stone-500 mb-1">
-                              شناسه چت / کانال / گروه مقصد پیش‌فرض (chat_id)
+                            <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-300 mb-1">
+                              شناسه چت / کانال / گروه مقصد (chat_id)
                             </label>
                             <input
                               type="text"

@@ -200,6 +200,26 @@ export const TABLE_METADATA: { name: string; description: string; defaultQuery: 
     description: 'آرشیو بکاپ‌های خودکار رمزنگاری‌شده ZIP (دیتابیس + /uploads) و ارسال وب‌هوک/S3',
     defaultQuery: 'SELECT id, archive_name, includes_summary, encryption_algo, checksum_sha256, size_bytes, storage_target, cron_expression, status, created_at_fa FROM mod_auto_backup_archives ORDER BY created_at DESC;',
   },
+  {
+    name: 'mod_ai_provider_configs',
+    description: 'تنظیمات ۴ اسلات موتور هوش مصنوعی (متن، تصویر، ایجنت ۲۴/۷ و صوت Whisper)',
+    defaultQuery: 'SELECT slot_key, provider_kind, base_url, model_name, enabled, updated_by, updated_at FROM mod_ai_provider_configs ORDER BY slot_key ASC;',
+  },
+  {
+    name: 'mod_ai_agent_skills',
+    description: 'حافظه مهارت‌ها و دستورالعمل‌های دائمی SKILL.md ایجنت ۲۴/۷',
+    defaultQuery: 'SELECT id, slug, title_fa, category, source_type, usage_count, enabled, updated_at FROM mod_ai_agent_skills ORDER BY updated_at DESC;',
+  },
+  {
+    name: 'mod_ai_agent_memory',
+    description: 'حافظه بلندمدت تفکیک‌شده ایجنت به تفکیک نقش و کاربر (Zero Cross-User Leakage)',
+    defaultQuery: 'SELECT id, scope_type, user_id, visitor_session_id, memory_key, memory_value, updated_at FROM mod_ai_agent_memory ORDER BY updated_at DESC LIMIT 100;',
+  },
+  {
+    name: 'mod_ai_agent_conversations',
+    description: 'تاریخچه فرمان‌ها و ابزارهای اجراشده توسط ایجنت ۲۴/۷',
+    defaultQuery: 'SELECT id, channel, sender_phone, role, message_text, created_at_fa FROM mod_ai_agent_conversations ORDER BY created_at DESC LIMIT 50;',
+  },
 ];
 
 let activeEngine: SqlEngineKind = 'sqlite';

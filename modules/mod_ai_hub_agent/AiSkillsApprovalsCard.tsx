@@ -69,7 +69,7 @@ export const AiSkillsApprovalsCard: React.FC<{
   };
 
   const handleDecideApproval = async (id: string, decision: 'approved' | 'rejected') => {
-    const { ok } = await apiJson(
+    const { ok, data } = await apiJson<{ ok?: boolean; executionSummary?: string; error?: string }>(
       `/api/v1/modules/ai-hub/agent/approvals/${encodeURIComponent(id)}/decide`,
       {
         method: 'POST',
@@ -80,10 +80,14 @@ export const AiSkillsApprovalsCard: React.FC<{
       onNotice?.(
         'success',
         decision === 'approved'
-          ? 'پیشنهاد ایجنت با ۱ کلیک تایید و اعمال شد.'
+          ? data.executionSummary
+            ? `تایید و اجرا شد: ${data.executionSummary}`
+            : 'پیشنهاد ایجنت با ۱ کلیک تایید و اعمال شد.'
           : 'پیشنهاد ایجنت رد شد.'
       );
       onRefresh();
+    } else {
+      onNotice?.('error', data.error || 'خطا در ثبت تصمیم صف تایید');
     }
   };
 

@@ -160,9 +160,21 @@
 ## PHASE 13: v2.8.0 — AUTONOMOUS AGENT TOOLS, MEMORY, VOICE SLOT 4, BALE BRIDGE & BULLETPROOF BACKUP
 - [x] **13.1.1 Bulletproof Schema-Tolerant JSON & SQL Backup/Restore** (PostgreSQL + SQLite, zero silent errors, exact restored rows/tables count, HTTP 422 on 0-row failure).
 - [x] **13.1.2 Add AI Hub Slot 4 (`voice_audio`) & GapGPT Whisper STT** (`gapgpt/whisper-1`, AES-256-GCM key, replace broken browser Web Speech API with `MediaRecorder` + `/api/v1/modules/ai-hub/agent/transcribe`).
-- [ ] **13.2.1 Per-User & Per-Role Agent Memory DB Tables + Always-On `SKILL.md` Injection** (separate memory/history for `super_admin`, `admin`, `customer`, `guest` with zero cross-user leakage).
-- [ ] **13.2.2 Real Multi-Step Tool-Calling Engine (8 CMS Tools)** (`inspect_site_capabilities`, `search_site_catalog`, `read_system_logs`, `save_learned_skill`, `trigger_chat_otp_box`, `update_visitor_user_profile`, `create_or_submit_user_request`, `create_site_form`).
-- [ ] **13.2.3 Interactive Storefront Live Chat Inline OTP Box** (`uiAction: 'OPEN_INLINE_OTP'` renders/expands mobile + OTP signup directly inside chat).
-- [ ] **13.3.1 24/7 Agent ↔ Bale Bot Proactive Alert & Approval Bridge** (push alerts to Super Admin Bale `chat_id` for new requests, successful/failed orders, critical `system_logs` errors, and sensitive action approvals).
-- [ ] **13.3.2 Fix Bale Safir OTP OAuth2 Flow (`HTTP 401`)** (separate Bot API token from Safir `client_id`/`client_secret` OAuth2 token exchange).
+- [x] **13.2.1 Per-User & Per-Role Agent Memory DB Tables + Always-On `SKILL.md` Injection** (separate memory/history for `super_admin`, `admin`, `customer`, `guest` with zero cross-user leakage).
+- [x] **13.2.2 Real Multi-Step Tool-Calling Engine (8 CMS Tools)** (`inspect_site_capabilities`, `search_site_catalog`, `read_system_logs`, `save_learned_skill`, `trigger_chat_otp_box`, `update_visitor_user_profile`, `create_or_submit_user_request`, `create_site_form`).
+- [x] **13.2.3 Interactive Storefront Live Chat Inline OTP Box** (`uiAction: 'OPEN_INLINE_OTP'` renders/expands mobile + OTP signup directly inside chat).
+- [x] **13.3.1 24/7 Agent ↔ Bale Bot Proactive Alert & Approval Bridge** (push alerts to Super Admin Bale `chat_id` for new requests, successful/failed orders, critical `system_logs` errors, and sensitive action approvals).
+- [x] **13.3.2 Fix Bale Safir OTP OAuth2 Flow (`HTTP 401`)** (separate Bot API token from Safir `client_id`/`client_secret` OAuth2 token exchange).
+
+---
+
+## PHASE 14: v2.9.0 — CONTEXT-AWARE JARVIS MASCOT, ZERO-COST TTS, SKILL-TO-PRODUCT & SOCIAL PUBLISHER
+- [x] **14.1.1 Granular Agent & Jarvis Master Feature Switches** (independent on/off toggles for 24/7 Live Chat AI, Super Admin Jarvis Mascot, Voice TTS, Skill-to-Product, Social Publisher; Voice TTS & Social Publishers OFF by default for remixed sites).
+- [x] **14.1.2 Super Admin Floating Context-Aware Mascot ("Jarvis")** (strictly Super Admin only, custom name/persona/avatar, auto-reads current page route + `productId`/`articleId`/`orderId` context, text + Slot 4 Whisper voice input).
+- [x] **14.1.3 Zero-Cost Persian Voice Output (TTS — OFF by Default)** (free Persian voice synthesis via browser Web Speech / free Edge Neural TTS fallback + optional paid Slot 4 TTS, plus manual per-message play button).
+- [x] **14.2.1 Agentic `skill_to_product` (.md / URL / Description → Full SEO Product or Article)** (fetches URL or parses `.md`, generates Persian SEO copy + FAQ via Slot 1, generates WebP cover via Slot 2, saves as draft or published).
+- [x] **14.2.2 Bulk SEO & Missing-Media Auditor Tool** (`audit_missing_seo_and_media` to find & fix products/articles missing images or meta tags).
+- [x] **14.3.1 Multi-Channel Social Publisher (Bale Channel, Telegram Channel + Proxy URL, Instagram Package/API)** (platform-specific copy/emojis/CTA links + optional approval-before-publish switch).
+- [x] **14.3.2 1-Click Bale Bot Pairing (`/start pair_<code>`) & Daily Morning Briefing** (auto-captures Super Admin `chat_id` + scheduled daily sales/errors/leads digest to Bale).
+
 

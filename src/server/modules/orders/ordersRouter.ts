@@ -17,6 +17,7 @@ import {
   getSetting,
   writeSystemLog,
 } from '../../database/index.js';
+import { sendSuperAdminBaleAlert } from '../../../../modules/mod_ai_hub_agent/baleAlertBridge.js';
 
 export function createOrdersRouter(): express.Router {
   const router = express.Router();
@@ -102,6 +103,19 @@ export function createOrdersRouter(): express.Router {
         });
       }
 
+      if (requestedStatus === 'paid') {
+        void sendSuperAdminBaleAlert({
+          category: 'order_paid',
+          title: `سفارش جدید پرداخت شد (${orderId})`,
+          lines: [
+            `خریدار: ${buyerName} (${cleanPhone})`,
+            `مبلغ: ${totalAmount.toLocaleString('fa-IR')} تومان`,
+            `درگاه: ${paymentMethod} · مرجع: ${gatewayRef}`,
+            `اقلام: ${itemsSummary.slice(0, 140)}`,
+          ],
+        });
+      }
+
       res.json({ ok: true, id: orderId, createdAtLabel });
     } catch (error) {
       res.status(500).json({
@@ -150,6 +164,17 @@ export function createOrdersRouter(): express.Router {
               tracking_code: orderId.slice(-6),
               status: statusFa,
             },
+          });
+        }
+
+        if (nextStatus === 'failed' || nextStatus === 'cancelled') {
+          void sendSuperAdminBaleAlert({
+            category: 'order_failed',
+            title: `سفارش ${orderId} با وضعیت «${nextStatus}» ثبت شد`,
+            lines: [
+              `خریدار: ${rows[0]?.buyer_name || '-'} (${rows[0]?.buyer_phone || '-'})`,
+              `وضعیت جدید: ${nextStatus}`,
+            ],
           });
         }
 
@@ -321,6 +346,21 @@ export function createOrdersRouter(): express.Router {
       }
 
       const refId = `SHAPARAK-${crypto.randomInt(10000000, 99999999)}`;
+
+      if (gatewayError) {
+        void sendSuperAdminBaleAlert({
+          category: 'order_failed',
+          title: `خطا در شروع پرداخت درگاه ${gwConfig?.title || gatewayId}`,
+          lines: [
+            `مبلغ: ${cleanAmount.toLocaleString('fa-IR')} تومان`,
+            `خریدار: ${String(buyerPhone || '-')}`,
+            `سفارش: ${String(orderId || txId)}`,
+            `علت خطا: ${String(gatewayError).slice(0, 220)}`,
+          ],
+          dedupKey: `pay_req_err:${gatewayId}:${String(orderId || txId)}`,
+          cooldownMs: 60_000,
+        });
+      }
 
       await writeSystemLog({
         level: gatewayError ? 'warning' : 'success',
@@ -496,6 +536,18 @@ export function createOrdersRouter(): express.Router {
           sqlOrEndpoint: `POST /api/payment/verify (${gatewayId})`,
           payload: rawResponse,
         });
+        void sendSuperAdminBaleAlert({
+          category: 'order_failed',
+          title: `تایید پرداخت ناموفق بود (${gatewayId})`,
+          lines: [
+            `سفارش: ${String(orderId || '-')}`,
+            `خریدار: ${String(buyerName || '-')} (${String(phone || '-')})`,
+            `مبلغ: ${Number(amountTomans || 0).toLocaleString('fa-IR')} تومان`,
+            `Authority: ${cleanAuthority}`,
+          ],
+          dedupKey: `pay_verify_fail:${cleanAuthority}`,
+          cooldownMs: 60_000,
+        });
         res.status(400).json({
           ok: false,
           error: 'تایید نهایی تراکنش توسط سرور درگاه بانکی تایید نشد.',
@@ -533,6 +585,17 @@ export function createOrdersRouter(): express.Router {
         detail: `Authority=${cleanAuthority} · Order=${orderId || '—'}`,
         sqlOrEndpoint: `POST /api/payment/verify (${gatewayId})`,
         payload: rawResponse,
+      });
+
+      void sendSuperAdminBaleAlert({
+        category: 'order_paid',
+        title: `تایید موفق پرداخت درگاه ${gatewayId}`,
+        lines: [
+          `شماره مرجع: ${refId}`,
+          `سفارش: ${String(orderId || '-')}`,
+          `خریدار: ${String(buyerName || '-')} (${cleanPhone || '-'})`,
+          `مبلغ: ${Number(amountTomans || 0).toLocaleString('fa-IR')} تومان`,
+        ],
       });
 
       res.json({

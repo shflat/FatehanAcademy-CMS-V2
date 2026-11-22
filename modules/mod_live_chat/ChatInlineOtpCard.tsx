@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CheckCircle2, KeyRound, Phone, ShieldCheck, Zap } from 'lucide-react';
 import { apiJson } from '../../src/core/apiClient';
 import type { UserRoleType } from '../../src/core/types';
 
 interface ChatInlineOtpCardProps {
   sessionId: string;
+  forceExpanded?: boolean;
+  inlineMode?: boolean;
+  promptReason?: string;
+  autoContinueRequest?: boolean;
   onVerifiedLogin: (
     role: Exclude<UserRoleType, 'guest'>,
     phone: string,
@@ -17,16 +21,26 @@ interface ChatInlineOtpCardProps {
 
 export const ChatInlineOtpCard: React.FC<ChatInlineOtpCardProps> = ({
   sessionId,
+  forceExpanded = false,
+  inlineMode = false,
+  promptReason,
+  autoContinueRequest = true,
   onVerifiedLogin,
   onSessionLinked,
 }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(forceExpanded || inlineMode);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (forceExpanded || inlineMode) {
+      setExpanded(true);
+    }
+  }, [forceExpanded, inlineMode]);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +109,7 @@ export const ChatInlineOtpCard: React.FC<ChatInlineOtpCardProps> = ({
         data.sessionToken
       );
 
-      // Link current guest chat session to the verified account + upgrade to Urgent
+      // Link current guest chat session, migrate guest memory & auto-continue confirmed request
       const linkRes = await apiJson<{ ok?: boolean; messages?: unknown[] }>(
         '/api/v1/modules/live-chat/link-session',
         {
@@ -103,7 +117,11 @@ export const ChatInlineOtpCard: React.FC<ChatInlineOtpCardProps> = ({
           headers: data.sessionToken
             ? { Authorization: `Bearer ${data.sessionToken}` }
             : undefined,
-          body: JSON.stringify({ sessionId, upgradeToUrgent: true }),
+          body: JSON.stringify({
+            sessionId,
+            upgradeToUrgent: true,
+            autoContinueRequest,
+          }),
         }
       );
       onSessionLinked(linkRes.ok ? linkRes.data.messages : undefined);
@@ -113,7 +131,7 @@ export const ChatInlineOtpCard: React.FC<ChatInlineOtpCardProps> = ({
     }
   };
 
-  if (!expanded) {
+  if (!expanded && !inlineMode) {
     return (
       <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800/70 flex items-center justify-between gap-2">
         <div className="text-[10.5px] font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5 leading-snug">
@@ -132,23 +150,37 @@ export const ChatInlineOtpCard: React.FC<ChatInlineOtpCardProps> = ({
   }
 
   return (
-    <div className="px-3 py-2.5 bg-blue-50/80 dark:bg-slate-900 border-b border-blue-200 dark:border-slate-800 space-y-2 text-[11px]">
-      <div className="flex items-center justify-between">
+    <div
+      className={
+        inlineMode
+          ? 'mt-1.5 w-full max-w-[92%] rounded-2xl px-3 py-2.5 bg-blue-50/95 dark:bg-slate-900 border border-blue-300 dark:border-blue-800/80 shadow-sm space-y-2 text-[11px]'
+          : 'px-3 py-2.5 bg-blue-50/80 dark:bg-slate-900 border-b border-blue-200 dark:border-slate-800 space-y-2 text-[11px]'
+      }
+    >
+      <div className="flex items-center justify-between gap-2">
         <span className="font-extrabold text-[#1D4ED8] dark:text-sky-300 flex items-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>ورود / عضویت درون‌خطی برای اولویت فوری</span>
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+          <span>ورود / ثبت‌نام سریع با موبایل (OTP)</span>
         </span>
-        <button
-          type="button"
-          onClick={() => {
-            setExpanded(false);
-            setErrorMsg('');
-          }}
-          className="text-[10px] text-stone-500 hover:text-stone-800 cursor-pointer"
-        >
-          بستن
-        </button>
+        {!inlineMode && (
+          <button
+            type="button"
+            onClick={() => {
+              setExpanded(false);
+              setErrorMsg('');
+            }}
+            className="text-[10px] text-stone-500 hover:text-stone-800 cursor-pointer"
+          >
+            بستن
+          </button>
+        )}
       </div>
+
+      {promptReason && (
+        <p className="text-[10.5px] text-stone-700 dark:text-slate-300 leading-relaxed">
+          {promptReason}
+        </p>
+      )}
 
       {step === 'phone' ? (
         <form onSubmit={(e) => void handleSendOtp(e)} className="flex items-center gap-1.5">
@@ -166,7 +198,7 @@ export const ChatInlineOtpCard: React.FC<ChatInlineOtpCardProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="px-3 py-1.5 rounded-lg bg-[#1D4ED8] text-white font-extrabold text-[11px] cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg bg-[#1D4ED8] text-white font-extrabold text-[11px] cursor-pointer disabled:opacity-50 shrink-0"
           >
             {loading ? '...' : 'ارسال کد'}
           </button>
@@ -188,16 +220,19 @@ export const ChatInlineOtpCard: React.FC<ChatInlineOtpCardProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-extrabold text-[11px] inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-extrabold text-[11px] inline-flex items-center gap-1 cursor-pointer disabled:opacity-50 shrink-0"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>{loading ? '...' : 'تایید'}</span>
+            <span>{loading ? '...' : 'تایید و ادامه'}</span>
           </button>
         </form>
       )}
 
-      {statusMsg && <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">{statusMsg}</div>}
+      {statusMsg && (
+        <div className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">{statusMsg}</div>
+      )}
       {errorMsg && <div className="text-[10px] font-bold text-rose-600">{errorMsg}</div>}
     </div>
   );
 };
+

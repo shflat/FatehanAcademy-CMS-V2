@@ -18,12 +18,45 @@ import {
   testAiSlotConnection,
 } from './aiProviderGateway.js';
 import { registerSuperAdminAgentRoutes } from './aiAgentSubRouter.js';
+import { registerSystemLogErrorHook } from '../../src/server/database/settingsLogsRepo.js';
+import {
+  sendSuperAdminBaleAlert,
+  startDailyMorningBriefingScheduler,
+} from './baleAlertBridge.js';
 
 const ALLOWED_SLOTS: AiSlotKey[] = ['text_seo', 'image_visual', 'agent_core', 'voice_audio'];
 const ALLOWED_PROVIDERS: AiProviderKind[] = ['gemini', 'openai_compatible', 'ollama'];
 
+let criticalErrorHookRegistered = false;
+
 export function createAiHubAgentRouter(): express.Router {
   const router = express.Router();
+  void ensureAiHubSchema().catch(() => {});
+  startDailyMorningBriefingScheduler();
+
+  if (!criticalErrorHookRegistered) {
+    criticalErrorHookRegistered = true;
+    registerSystemLogErrorHook(async (entry) => {
+      const endpointStr = String(entry.sqlOrEndpoint || '');
+      const titleStr = String(entry.title || '');
+      // Avoid recursive loops from Bale/bot bridge logs
+      if (/bale_alert_bridge|agent_bale_bridge|bot-bridge/i.test(`${endpointStr} ${titleStr}`)) {
+        return;
+      }
+      const normalizedKey = `err:${entry.category}:${titleStr.toLowerCase().replace(/\d+/g, '#').slice(0, 80)}`;
+      await sendSuperAdminBaleAlert({
+        category: 'critical_error',
+        title: titleStr || 'خطای بحرانی سامانه',
+        lines: [
+          `بخش: ${entry.category}`,
+          `جزئیات: ${String(entry.detail || '-').slice(0, 260)}`,
+          endpointStr ? `مسیر: ${endpointStr}` : '',
+        ].filter(Boolean),
+        dedupKey: normalizedKey,
+        cooldownMs: 5 * 60 * 1000,
+      });
+    });
+  }
 
   // Site Admin + Super Admin: Read 3-slot config (keys ALWAYS masked, agent_core hidden from non-super-admin)
   router.get('/api/v1/modules/ai-hub/config', requireAdmin, async (req, res) => {

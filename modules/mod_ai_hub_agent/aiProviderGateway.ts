@@ -713,6 +713,92 @@ export async function transcribeAudioViaVoiceSlot(params: {
   };
 }
 
+export interface VoiceTtsResult {
+  audioBuffer: Buffer;
+  contentType: string;
+  providerUsed: string;
+  modelUsed: string;
+  latencyMs: number;
+}
+
+export async function synthesizeSpeechViaVoiceSlot(params: {
+  text: string;
+  ttsModel?: string;
+  voice?: string;
+}): Promise<VoiceTtsResult> {
+  const startedAt = Date.now();
+  const cfg = await getSlotConfig('voice_audio');
+  if (cfg && !cfg.enabled) {
+    throw new Error('اسلات ۴ (موتور صوت و ویس / voice_audio) در تنظیمات AI Hub غیرفعال است.');
+  }
+
+  const provider = cfg?.provider_kind || 'openai_compatible';
+  const rawBaseUrl = (cfg?.base_url || '').trim() || 'https://api.gapgpt.app/v1';
+  const baseUrl = validateProviderBaseUrl(rawBaseUrl);
+  const savedKey = cfg?.api_key_enc ? decryptSecret(cfg.api_key_enc) : '';
+  const apiKey = savedKey || (process.env.OPENAI_API_KEY || '').trim();
+
+  if (provider !== 'ollama' && !apiKey) {
+    throw new Error(
+      'کلید API برای اسلات ۴ (voice_audio) ثبت نشده است. لطفاً کلید ارائه‌دهنده صوتی را در تب ۴ اسلات ذخیره کنید.'
+    );
+  }
+
+  const model = (params.ttsModel || '').trim() || 'gemini-3.8-flash-tts';
+  const voice = (params.voice || '').trim() || 'alloy';
+  const cleanText = String(params.text || '').trim().slice(0, 1800);
+  if (!cleanText) {
+    throw new Error('متن برای تبدیل به گفتار خالی است.');
+  }
+
+  const endpoint = `${baseUrl}/audio/speech`;
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+    },
+    body: JSON.stringify({
+      model,
+      input: cleanText,
+      voice,
+      response_format: 'mp3',
+    }),
+  });
+
+  const latencyMs = Math.max(1, Date.now() - startedAt);
+  if (!resp.ok) {
+    const rawErr = await resp.text().catch(() => '');
+    let errDetail = `HTTP ${resp.status}`;
+    if (rawErr) {
+      try {
+        const parsed = JSON.parse(rawErr) as { error?: { message?: string } | string };
+        errDetail =
+          typeof parsed.error === 'string'
+            ? parsed.error
+            : parsed.error?.message || rawErr.slice(0, 200);
+      } catch {
+        errDetail = rawErr.slice(0, 200);
+      }
+    }
+    throw new Error(`خطا در سرویس صوتی TTS اسلات ۴ (${model}): ${errDetail}`);
+  }
+
+  const arrBuf = await resp.arrayBuffer();
+  const audioBuffer = Buffer.from(arrBuf);
+  if (audioBuffer.length < 64) {
+    throw new Error('فایل صوتی معتبری از سرویس TTS دریافت نشد.');
+  }
+
+  return {
+    audioBuffer,
+    contentType: resp.headers.get('content-type') || 'audio/mpeg',
+    providerUsed: provider,
+    modelUsed: model,
+    latencyMs,
+  };
+}
+
 function saveGeneratedBase64Image(base64Data: string, ext: string): string {
   const uploadRoot = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
   const dir = path.join(uploadRoot, 'ai-studio');

@@ -124,6 +124,11 @@ const StorefrontPopupsRenderer = lazy(() =>
     default: m.StorefrontPopupsRenderer,
   }))
 );
+const SuperAdminJarvisMascot = lazy(() =>
+  import('../modules/mod_ai_hub_agent/SuperAdminJarvisMascot').then((m) => ({
+    default: m.SuperAdminJarvisMascot,
+  }))
+);
 
 function toLatinDigits(raw: string): string {
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
@@ -1922,6 +1927,55 @@ export default function App() {
   const isLoggedIn = userRole !== 'guest';
   const activeThemeDef = resolveRegisteredTheme(themeConfig.activeThemeId);
 
+  const jarvisPageContext = useMemo(() => {
+    const rawPath =
+      typeof window !== 'undefined'
+        ? `${window.location.pathname}${window.location.hash || ''}`
+        : '/';
+    if (activeTab === 'product_single' && activeProduct) {
+      return {
+        path: `/product/${activeProduct.slug}`,
+        pageTitle: activeProduct.title,
+        entityType: 'product' as const,
+        entityId: activeProduct.id,
+        entitySlug: activeProduct.slug,
+      };
+    }
+    if (activeTab === 'article_single' && activeArticle) {
+      return {
+        path: `/article/${activeArticle.slug}`,
+        pageTitle: activeArticle.title,
+        entityType: 'article' as const,
+        entityId: activeArticle.id,
+        entitySlug: activeArticle.slug,
+      };
+    }
+    if (activeTab === 'admin') {
+      return {
+        path: '/admin',
+        pageTitle: 'پنل مدیریت CMS',
+        entityType: 'admin_panel' as const,
+      };
+    }
+    if (activeTab === 'page_single' && activeDynamicPage) {
+      return {
+        path: `/page/${activeDynamicPage.slug}`,
+        pageTitle: activeDynamicPage.title,
+        entityType: 'storefront' as const,
+        entityId: activeDynamicPage.id,
+        entitySlug: activeDynamicPage.slug,
+      };
+    }
+    return {
+      path: rawPath || '/',
+      pageTitle:
+        typeof document !== 'undefined' && document.title
+          ? document.title
+          : themeConfig.brandNameFa,
+      entityType: 'storefront' as const,
+    };
+  }, [activeTab, activeProduct, activeArticle, activeDynamicPage, themeConfig.brandNameFa]);
+
   if (
     activeThemeDef.id === 'fatehan' &&
     activeThemeDef.renderStandaloneRoot &&
@@ -1942,6 +1996,16 @@ export default function App() {
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>بازگشت به پنل مدیریت CMS / تغییر پوسته</span>
           </button>
+        )}
+
+        {/* Lazy-loaded Jarvis Mascot strictly for Super Admin only */}
+        {userRole === 'super_admin' && (
+          <Suspense fallback={null}>
+            <SuperAdminJarvisMascot
+              pageContext={jarvisPageContext}
+              elevateBottomOffset
+            />
+          </Suspense>
         )}
       </div>
     );
@@ -2335,6 +2399,16 @@ export default function App() {
           />
           <PWAInstallBanner enabled />
           <StorefrontPopupsRenderer enabled />
+        </Suspense>
+      )}
+
+      {/* Super Admin ONLY Context-Aware Floating Jarvis Mascot (zero bundle/DOM for non-super-admins) */}
+      {userRole === 'super_admin' && (
+        <Suspense fallback={null}>
+          <SuperAdminJarvisMascot
+            pageContext={jarvisPageContext}
+            elevateBottomOffset={cart.length > 0 && !isCartOpen && activeTab !== 'admin'}
+          />
         </Suspense>
       )}
 
