@@ -12,7 +12,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useFatehanTheme } from '../context/FatehanThemeContext';
 import { FatehanLogo } from '../ui/FatehanLogo';
 import { formatPersianNumber, formatToman } from '../utils/formatters';
-import { DEFAULT_FALLBACK_COURSES } from '../utils/defaultFallbacks';
+import {
+  DEFAULT_FALLBACK_COURSES,
+  SHOP_DEPARTMENTS,
+  resolveProductDepartmentId,
+} from '../utils/defaultFallbacks';
 import { FatehanCourse, ProductItem } from '../types';
 import {
   Sparkles,
@@ -42,6 +46,7 @@ import {
   Check,
   HelpCircle,
   Play,
+  Pause,
   Share2,
   Bookmark,
   ExternalLink,
@@ -59,7 +64,70 @@ import {
   X,
   Gift,
   Building2,
+  Briefcase,
+  GraduationCap,
+  Calculator,
 } from 'lucide-react';
+
+/** Lightweight viewport-triggered animated counter respecting prefers-reduced-motion */
+const AnimatedStatCounter: React.FC<{
+  target: number;
+  prefix?: string;
+  suffix?: string;
+}> = ({ target, prefix = '', suffix = '' }) => {
+  const [value, setValue] = useState<number>(target);
+  const hasAnimatedRef = useRef<boolean>(false);
+  const elRef = useRef<HTMLSpanElement | null>(null);
+
+  useEffect(() => {
+    const node = elRef.current;
+    if (!node || hasAnimatedRef.current) return;
+
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+      setValue(target);
+      hasAnimatedRef.current = true;
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || hasAnimatedRef.current) return;
+        hasAnimatedRef.current = true;
+        const duration = 1100;
+        const startTime = performance.now();
+        const step = (now: number) => {
+          const progress = Math.min(1, (now - startTime) / duration);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          setValue(Math.max(1, Math.round(eased * target)));
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            setValue(target);
+          }
+        };
+        setValue(0);
+        requestAnimationFrame(step);
+        observer.disconnect();
+      },
+      { threshold: 0.25 }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [target]);
+
+  return (
+    <span ref={elRef} className="tabular-nums font-black">
+      {prefix}
+      {formatPersianNumber(value)}
+      {suffix}
+    </span>
+  );
+};
 
 export const FatehanStorefrontHome: React.FC = () => {
   const {
@@ -81,16 +149,44 @@ export const FatehanStorefrontHome: React.FC = () => {
       ? (state.courses as FatehanCourse[])
       : DEFAULT_FALLBACK_COURSES;
 
-  // Active department selection + ref for smooth auto-scroll
+  // Active department selection + desktop auto-rotate + mobile auto-centering thumbnail rails
   const [activeDepartment, setActiveDepartment] = useState<string>('robotics');
+  const [isDeptAutoPlaying, setIsDeptAutoPlaying] = useState<boolean>(true);
+  const [isDeptHovered, setIsDeptHovered] = useState<boolean>(false);
   const deptDetailRef = useRef<HTMLDivElement | null>(null);
+  const mobileTopThumbRailRef = useRef<HTMLDivElement | null>(null);
+  const mobileDetailThumbRailRef = useRef<HTMLDivElement | null>(null);
+
+  const centerMobileThumbRail = (rail: HTMLDivElement | null, deptId: string) => {
+    if (!rail) return;
+    const activeBtn = rail.querySelector<HTMLElement>(`[data-dept-thumb="${deptId}"]`);
+    if (!activeBtn) return;
+    const railRect = rail.getBoundingClientRect();
+    const btnRect = activeBtn.getBoundingClientRect();
+    const delta = btnRect.left + btnRect.width / 2 - (railRect.left + railRect.width / 2);
+    if (Math.abs(delta) > 2) {
+      rail.scrollBy({ left: delta, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      centerMobileThumbRail(mobileTopThumbRailRef.current, activeDepartment);
+      centerMobileThumbRail(mobileDetailThumbRailRef.current, activeDepartment);
+    }, 40);
+    return () => window.clearTimeout(timer);
+  }, [activeDepartment]);
+
+  const scrollToDeptDetails = () => {
+    setTimeout(() => {
+      deptDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  };
 
   const handleSelectDepartment = (deptId: string, shouldScroll = true) => {
     setActiveDepartment(deptId);
     if (shouldScroll) {
-      setTimeout(() => {
-        deptDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 80);
+      scrollToDeptDetails();
     }
   };
 
@@ -185,6 +281,7 @@ export const FatehanStorefrontHome: React.FC = () => {
   const igUrl = state?.typography?.instagramUrl || settings.social.instagramUrl || `https://instagram.com/${igHandle}`;
   const eitaaHandle = (state?.typography?.eitaaId ?? settings.social.eitaaId ?? 'fatehan_robotics').replace(/^@/, '').trim();
   const eitaaUrl = state?.typography?.eitaaUrl || settings.social.eitaaUrl || (eitaaHandle ? `https://eitaa.com/${eitaaHandle}` : '');
+  const eitaaLogoUrl = (state?.typography?.eitaaLogoUrl || settings.social.eitaaLogoUrl || '').trim();
   const baleHandle = (state?.typography?.baleId ?? settings.social.baleId ?? '').replace(/^@/, '').trim();
   const baleUrl = state?.typography?.baleUrl || settings.social.baleUrl || (baleHandle ? `https://ble.ir/${baleHandle}` : '');
 
@@ -316,6 +413,19 @@ export const FatehanStorefrontHome: React.FC = () => {
     const nextIdx = (activeDeptIndex + dir + departmentKeys.length) % departmentKeys.length;
     setActiveDepartment(departmentKeys[nextIdx] as any);
   };
+
+  // Automatic rotation between departments on desktop (pauses on hover or manual pause)
+  useEffect(() => {
+    if (!isDeptAutoPlaying || isDeptHovered || departmentKeys.length < 2) return;
+    const interval = window.setInterval(() => {
+      if (window.innerWidth < 1024) return;
+      setActiveDepartment((prev) => {
+        const curIdx = Math.max(0, departmentKeys.indexOf(prev));
+        return departmentKeys[(curIdx + 1) % departmentKeys.length];
+      });
+    }, 4800);
+    return () => window.clearInterval(interval);
+  }, [isDeptAutoPlaying, isDeptHovered, departmentKeys.join('|')]);
 
   // Age Roadmaps (connected to BLK-HOME-ROADMAP itemsList)
   const ageRoadmaps = {
@@ -519,13 +629,17 @@ export const FatehanStorefrontHome: React.FC = () => {
     notify(`دوره «${selectedCourseObj.title}» به سبد ثبت‌نام افزوده شد.`);
   };
 
-  // Products from store
+  // Products from store — categorized strictly by department
   const storeProducts = state?.products || [];
+  const kitDeptCounts = SHOP_DEPARTMENTS.reduce<Record<string, number>>((acc, dept) => {
+    acc[dept.id] = storeProducts.filter((p) => resolveProductDepartmentId(p) === dept.id).length;
+    return acc;
+  }, {});
   const displayKits =
     kitCategoryFilter === 'all'
       ? storeProducts.slice(0, 8)
       : storeProducts
-          .filter((p) => p.category?.toLowerCase().includes(kitCategoryFilter.toLowerCase()))
+          .filter((p) => resolveProductDepartmentId(p) === kitCategoryFilter)
           .slice(0, 8);
 
   const handleConsultSubmit = async (e: React.FormEvent) => {
@@ -551,36 +665,36 @@ export const FatehanStorefrontHome: React.FC = () => {
     <div className="space-y-16 sm:space-y-24 py-4 sm:py-8 font-sans text-slate-800">
       
       {/* =====================================================================
-          1. HERO SECTION: BRIGHT, FRIENDLY, INSPIRING FOR FAMILIES & STUDENTS
+          1. HERO SECTION: CLEAN, SPACIOUS, FOCUSED ACADEMY INTRODUCTION
           ===================================================================== */}
       {!heroBlk?.desktopHidden && (
-      <section className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-blue-50/70 via-indigo-50/30 to-white border border-blue-200/80 p-6 sm:p-12 shadow-sm">
+      <section className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-blue-50/70 via-indigo-50/25 to-white border border-blue-200/80 p-6 sm:p-10 lg:p-12 shadow-sm">
         
         {/* Soft Ambient Colorful Lighting */}
-        <div className="absolute top-0 right-10 w-80 h-80 bg-blue-300/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-10 w-80 h-80 bg-amber-300/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-10 w-80 h-80 bg-blue-300/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-10 w-80 h-80 bg-amber-300/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
-          {/* Right Column: Copy & Actions (7 Cols) */}
-          <div className="lg:col-span-7 space-y-6 text-right">
+          {/* Right Column: Expanded Academy Introduction & Focused CTAs (7 Cols) */}
+          <div className="lg:col-span-7 space-y-5 text-right">
             
-            {/* Friendly Location Authority Badge */}
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-blue-100/80 border border-blue-200 text-blue-900 text-xs font-bold shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
-              <span>{heroBlk?.highlightWord || 'مجهزترین آموزشگاه رباتیک، برنامه‌نویسی و هوش مصنوعی در اندیشه'}</span>
+            {/* Friendly Location Authority Badge (No decorative pulsing dot) */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100/80 border border-blue-200 text-blue-900 text-xs font-bold shadow-2xs">
+              <GraduationCap className="w-4 h-4 text-blue-700 shrink-0" />
+              <span>{heroBlk?.highlightWord || 'آموزشگاه رسمی رباتیک، برنامه‌نویسی، الکترونیک و چاپ سه‌بعدی در اندیشه'}</span>
             </div>
 
-            {/* Main Balanced Persian Display Headline (Connected to BLK-HOME-HERO heading) */}
+            {/* Main Balanced Persian Display Headline */}
             {heroBlk?.heading && heroBlk.heading !== 'کودکان و نوجوانان رویاهایشان را با علم و تکنولوژی واقعی می‌کنند...' ? (
-              <h1 className="text-2xl sm:text-3xl lg:text-[38px] font-black text-slate-900 leading-[1.7] tracking-normal">
+              <h1 className="text-2xl sm:text-3xl lg:text-[38px] font-black text-slate-900 leading-[1.65] tracking-normal">
                 {heroBlk.heading}
               </h1>
             ) : (
-              <h1 className="text-2xl sm:text-3xl lg:text-[38px] font-black text-slate-900 leading-[1.7] tracking-normal">
+              <h1 className="text-2xl sm:text-3xl lg:text-[38px] font-black text-slate-900 leading-[1.65] tracking-normal">
                 کودکان و نوجوانان رویاهایشان را با{' '}
                 <span className="relative inline-flex items-center gap-1.5 px-3.5 py-0.5 mx-1 rounded-2xl bg-gradient-to-l from-blue-600 via-blue-700 to-indigo-600 text-white shadow-md shadow-blue-600/20">
-                  <Sparkles className="w-5 h-5 text-amber-300 shrink-0 animate-pulse" />
+                  <Sparkles className="w-5 h-5 text-amber-300 shrink-0" />
                   <span>علم و تکنولوژی</span>
                   <svg
                     className="absolute -bottom-2 right-2 left-2 w-[calc(100%-16px)] h-2.5 text-amber-400"
@@ -602,7 +716,7 @@ export const FatehanStorefrontHome: React.FC = () => {
             )}
 
             {/* Core Brand Slogan Box */}
-            <div className="inline-flex flex-wrap items-center gap-3 bg-white border-r-4 border-amber-400 px-5 py-3 rounded-2xl shadow-xs border border-slate-200">
+            <div className="inline-flex flex-wrap items-center gap-3 bg-white border-r-4 border-amber-400 px-5 py-2.5 rounded-2xl shadow-2xs border border-slate-200">
               <span className="text-sm sm:text-base font-extrabold text-slate-900">
                 آموزشگاه تخصصی فاتحان:
               </span>
@@ -611,107 +725,73 @@ export const FatehanStorefrontHome: React.FC = () => {
               </span>
             </div>
 
+            {/* Expanded, Clear Introduction Copy explaining what Fatehan Academy is & does */}
             {heroBlk?.subheading &&
             heroBlk.subheading !==
               'در آکادمی تخصصی فاتحان، دانش‌آموزان ۷ تا ۱۸ سال صرفاً مصرف‌کننده تکنولوژی نیستند؛ بلکه با یادگیری عملی رباتیک، کدنویسی، هوش مصنوعی، الکترونیک، مکانیک و چاپ سه‌بعدی، ایده‌های خود را می‌سازند و مهارت‌های واقعی زندگی را تجربه می‌کنند.' ? (
-              <p className="text-sm sm:text-base text-slate-600 leading-[1.95] max-w-2xl font-normal">
+              <p className="text-sm sm:text-[15px] text-slate-600 leading-[2] max-w-2xl font-normal">
                 {heroBlk.subheading}
               </p>
             ) : (
-              <p className="text-sm sm:text-base text-slate-600 leading-[1.95] max-w-2xl font-normal">
-                در آکادمی تخصصی <strong className="text-slate-900 font-bold">فاتحان</strong>، دانش‌آموزان ۷ تا ۱۸ سال صرفاً مصرف‌کننده تکنولوژی نیستند؛ بلکه با یادگیری عملی <span className="text-blue-700 font-semibold">رباتیک، کدنویسی، هوش مصنوعی، الکترونیک، مکانیک و چاپ سه‌بعدی</span>، ایده‌های خود را می‌سازند و مهارت‌های واقعی زندگی را تجربه می‌کنند.
-              </p>
+              <div className="space-y-3 text-sm sm:text-[15px] text-slate-600 leading-[2] max-w-2xl">
+                <p>
+                  <strong className="text-slate-900 font-extrabold">آموزشگاه تخصصی رباتیک فاتحان</strong> یک مرکز رسمی مهارت‌آموزی و استعدادیابی فناوری برای رده سنی ۷ تا ۱۸ سال و علاقه‌مندان مهندسی در شهر جدید اندیشه است. در این مجموعه، کارآموزان در کارگاه‌های کاملاً مجهز و عملی، پنج دپارتمان تخصصی{' '}
+                  <span className="text-blue-700 font-bold">رباتیک، برنامه‌نویسی و هوش مصنوعی، الکترونیک، طراحی و چاپ سه‌بعدی و مکانیک</span>{' '}
+                  را به‌صورت پروژه‌محور می‌آموزند.
+                </p>
+                <p className="text-xs sm:text-sm text-slate-600 leading-[1.95]">
+                  هدف ما تنها آموزش تئوری نیست؛ بلکه پرورش خلاقیت، آماده‌سازی برای مسابقات کشوری، اعطای{' '}
+                  <strong className="text-slate-900 font-bold">مدرک معتبر سازمان فنی و حرفه‌ای</strong>{' '}
+                  و هموار کردن مسیر{' '}
+                  <strong className="text-slate-900 font-bold">ورود به بازار کار</strong>{' '}
+                  و آینده شغلی فناوری است.
+                </p>
+              </div>
             )}
 
-            {/* Warm, Clean Call-to-Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => navigateStore('/contact')}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-400/25 transition-all hover:-translate-y-0.5 cursor-pointer min-h-[46px] whitespace-nowrap"
-              >
-                <span>{heroBlk?.ctaPrimary || 'ثبت‌نام و تعیین سطح رایگان'}</span>
-                <ArrowLeft className="w-4 h-4 shrink-0" />
-              </button>
-
+            {/* Clean, Focused Primary & Secondary CTAs */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => navigateStore('/courses')}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-400/25 transition-all hover:-translate-y-0.5 cursor-pointer min-h-[46px] whitespace-nowrap"
+              >
+                <span>{heroBlk?.ctaSecondary || 'مشاهده دوره‌ها و سرفصل‌ها'}</span>
+                <ArrowLeft className="w-4 h-4 shrink-0" />
+              </button>
+
+              <a
+                href="#contact"
                 className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 font-bold text-xs sm:text-sm transition-all hover:border-blue-400 cursor-pointer min-h-[46px] shadow-2xs whitespace-nowrap"
               >
-                <span>{heroBlk?.ctaSecondary || 'مشاهده ۱۵ دوره و سرفصل‌ها'}</span>
+                <span>{heroBlk?.ctaPrimary || 'مشاوره رایگان و ثبت‌نام'}</span>
                 <ArrowLeft className="w-4 h-4 shrink-0 text-blue-600" />
-              </button>
-            </div>
-
-            {/* 3 Enhanced Trust Metric Cards (Connected to BLK-HOME-HERO itemsList) */}
-            <div className="pt-3 grid grid-cols-3 gap-3 max-w-xl">
-              <div className="bg-white/95 rounded-2xl p-3.5 border border-blue-100 shadow-xs hover:border-blue-300 transition-all flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 hidden sm:flex">
-                  <Cpu className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-sm sm:text-lg font-black text-blue-700 whitespace-nowrap">
-                    {heroBlk?.itemsList?.[0]?.title || '۵ دپارتمان'}
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5 whitespace-nowrap">
-                    {heroBlk?.itemsList?.[0]?.subtitle || 'مبتدی تا پیشرفته'}
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white/95 rounded-2xl p-3.5 border border-amber-100 shadow-xs hover:border-amber-300 transition-all flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 hidden sm:flex">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-sm sm:text-lg font-black text-amber-600 whitespace-nowrap">
-                    {heroBlk?.itemsList?.[1]?.title || '۱۰۰٪ عملی'}
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5 whitespace-nowrap">
-                    {heroBlk?.itemsList?.[1]?.subtitle || 'کارگاهی و پروژه‌محور'}
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white/95 rounded-2xl p-3.5 border border-emerald-100 shadow-xs hover:border-emerald-300 transition-all flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 hidden sm:flex">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-sm sm:text-lg font-black text-emerald-700 whitespace-nowrap">
-                    {heroBlk?.itemsList?.[2]?.title || '۷ تا ۱۸ سال'}
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5 whitespace-nowrap">
-                    {heroBlk?.itemsList?.[2]?.subtitle || 'کودکان و نوجوانان'}
-                  </div>
-                </div>
-              </div>
+              </a>
             </div>
 
           </div>
 
-          {/* Left Column: Official 3D Metallic Emblem & Creative Mascot Showcase (5 Cols) */}
-          <div className="lg:col-span-5 relative flex flex-col items-center pb-8 sm:pb-10">
+          {/* Left Column: Clean Official 3D Metallic Emblem Card (5 Cols) */}
+          <div className="lg:col-span-5 relative flex flex-col items-center">
             
             {/* Interactive Sticky Note ("فکر کن، بساز، کشف کن!") -> Opens "ایده‌ها" Modal on Click */}
             <motion.button
               type="button"
               onClick={() => setIsIdeaModalOpen(true)}
-              initial={{ rotate: -8, y: 0 }}
-              animate={{ y: [-4, 4, -4] }}
-              whileHover={{ scale: 1.06, rotate: -4 }}
+              initial={{ rotate: -6, y: 0 }}
+              whileHover={{ scale: 1.05, rotate: -3 }}
               whileTap={{ scale: 0.96 }}
-              transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
               title="کلیک کنید و ایده یا اختراع ذهنی خودتان را ثبت کنید!"
-              className="absolute -top-5 -left-2 sm:left-2 z-20 bg-amber-400 hover:bg-amber-300 text-slate-950 p-3.5 rounded-2xl shadow-lg border-2 border-white max-w-[185px] text-right cursor-pointer group"
+              className="absolute -top-4 -left-1 sm:left-2 z-20 bg-amber-400 hover:bg-amber-300 text-slate-950 p-3 rounded-2xl shadow-lg border-2 border-white max-w-[168px] text-right cursor-pointer group"
             >
-              <div className="flex items-center justify-between text-[11px] font-mono font-black text-blue-900 mb-1 gap-2">
+              <div className="flex items-center justify-between text-[10px] font-mono font-black text-blue-900 mb-0.5 gap-2">
                 <span>DREAM · BUILD</span>
-                <span className="text-sm group-hover:scale-125 transition-transform">💡</span>
+                <Lightbulb className="w-3.5 h-3.5 text-blue-900" />
               </div>
-              <p className="font-black text-xs sm:text-sm leading-snug">
-                فکر کن<br />بساز<br />کشف کن ؟!
+              <p className="font-black text-xs leading-snug">
+                فکر کن، بساز، کشف کن!
               </p>
-              <div className="mt-1.5 pt-1 border-t border-amber-500/40 flex items-center justify-between text-[10px] font-extrabold text-blue-950">
+              <div className="mt-1 pt-1 border-t border-amber-500/40 flex items-center justify-between text-[10px] font-extrabold text-blue-950">
                 <span>ثبت ایده من</span>
                 <span>←</span>
               </div>
@@ -721,8 +801,8 @@ export const FatehanStorefrontHome: React.FC = () => {
             <div className="relative w-full max-w-[385px] bg-white rounded-3xl p-6 sm:p-7 border-2 border-blue-200 shadow-lg text-center overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-transparent to-amber-50/30 pointer-events-none" />
               
-              {/* Rotating Gear In Background */}
-              <Cog className="w-48 h-48 absolute -top-12 -right-12 text-blue-100/70 animate-spin-slow pointer-events-none" />
+              {/* Subtle Static Gear Backdrop */}
+              <Cog className="w-44 h-44 absolute -top-12 -right-12 text-blue-100/65 pointer-events-none" />
 
               {/* Official Fatehan 3D Metallic Emblem */}
               <div className="relative z-10 flex flex-col items-center">
@@ -743,14 +823,14 @@ export const FatehanStorefrontHome: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Bottom Card Footer: Status on Right + Left-Aligned Stacked Social Handles on Left (Image 2 Fix) */}
+                {/* Bottom Card Footer: Status on Right + Social Channels on Left */}
                 <div className="mt-4 pt-3 border-t border-slate-100 w-full flex items-center justify-between gap-2 text-xs text-slate-500">
                   <span className="flex items-center gap-1.5 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span className="font-bold text-slate-700 text-[11px]">پذیرش ترم جدید فعال</span>
                   </span>
 
-                  {/* Left-Aligned Social Channels (Icons Aligned Vertically on the Left, Eitaa without @) */}
+                  {/* Left-Aligned Social Channels (with uploaded Eitaa Logo support) */}
                   <div className="flex flex-col items-start gap-1.5 text-left" dir="ltr">
                     {igHandle && (
                       <a
@@ -775,9 +855,17 @@ export const FatehanStorefrontHome: React.FC = () => {
                         className="inline-flex items-center gap-1.5 font-mono text-[11px] font-bold text-orange-600 hover:text-orange-700 transition-colors"
                         title="کانال رسمی ایتا آموزشگاه فاتحان"
                       >
-                        <span className="w-4 h-4 rounded-md bg-gradient-to-tr from-orange-500 to-amber-500 text-white inline-flex items-center justify-center shrink-0 shadow-2xs">
-                          <Send className="w-2.5 h-2.5" />
-                        </span>
+                        {eitaaLogoUrl ? (
+                          <img
+                            src={eitaaLogoUrl}
+                            alt="ایتا"
+                            className="w-4 h-4 rounded-md object-contain shrink-0"
+                          />
+                        ) : (
+                          <span className="w-4 h-4 rounded-md bg-gradient-to-tr from-orange-500 to-amber-500 text-white inline-flex items-center justify-center shrink-0 shadow-2xs">
+                            <Send className="w-2.5 h-2.5" />
+                          </span>
+                        )}
                         <span>{eitaaHandle}</span>
                       </a>
                     )}
@@ -801,62 +889,86 @@ export const FatehanStorefrontHome: React.FC = () => {
               </div>
             </div>
 
-            {/* "پایه‌های علمی کارگاه" Badge Placed Cleanly Below the Card on the Right — Zero Overlap with Card Text (Image 2 Fix) */}
-            <div className="mt-3.5 w-full max-w-[385px] flex justify-start">
-              <div className="bg-white/95 backdrop-blur-md p-2.5 rounded-2xl border-2 border-blue-100 shadow-md space-y-1 w-48">
-                <div className="text-[10px] text-slate-600 font-extrabold mb-0.5 text-right">
-                  پایه‌های علمی کارگاه:
-                </div>
-                <div className="px-2.5 py-1 rounded-md bg-blue-600 text-white font-mono text-[10px] font-bold tracking-wider flex justify-between items-center">
-                  <span>ROBOTICS</span>
-                  <span>🤖</span>
-                </div>
-                <div className="px-2.5 py-1 rounded-md bg-emerald-600 text-white font-mono text-[10px] font-bold tracking-wider flex justify-between items-center">
-                  <span>CODING</span>
-                  <span>💻</span>
-                </div>
-                <div className="px-2.5 py-1 rounded-md bg-rose-600 text-white font-mono text-[10px] font-bold tracking-wider flex justify-between items-center">
-                  <span>INNOVATION</span>
-                  <span>🚀</span>
-                </div>
-              </div>
-            </div>
-
           </div>
 
-        </div>
-
-        {/* Sleek Hero Bottom Footer Bar (فوتر پایین سکشن هیرو) */}
-        <div className="relative z-10 mt-8 pt-5 border-t border-blue-200/70 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-extrabold text-slate-700 ml-1">
-              دسترسی سریع به دپارتمان‌ها:
-            </span>
-            {[
-              { id: 'robotics', label: '🤖 رباتیک مسابقه‌ای' },
-              { id: 'coding', label: '💻 کدنویسی و هوش مصنوعی' },
-              { id: 'electronics', label: '⚡ الکترونیک و برد هوشمند' },
-              { id: 'printing', label: '🧊 طراحی و چاپ سه‌بعدی' },
-              { id: 'mechanics', label: '⚙️ مکانیک و سازه' },
-            ].map((pill) => (
-              <a
-                key={pill.id}
-                href="#departments"
-                onClick={() => handleSelectDepartment(pill.id as any, true)}
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-blue-600 text-slate-700 hover:text-white border border-slate-200 hover:border-blue-600 text-[11px] font-bold transition-all shadow-2xs whitespace-nowrap"
-              >
-                {pill.label}
-              </a>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-xl whitespace-nowrap">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>جلسه معارفه و تعیین سطح حضوری: کاملاً رایگان</span>
-          </div>
         </div>
       </section>
       )}
+
+      {/* =====================================================================
+          1.5 ACADEMY IMPACT STATS & ANIMATED COUNTERS (آمار و دستاوردهای فاتحان)
+          ===================================================================== */}
+      <section aria-label="آمار و ارقام آموزشگاه فاتحان" className="w-full">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {[
+            {
+              target: 1250,
+              prefix: '+',
+              label: 'کارآموز و دانش‌آموخته',
+              sublabel: 'از رده سنی ۷ تا ۱۸ سال',
+              icon: Users,
+              iconBg: 'bg-blue-50 text-blue-700',
+              borderColor: 'border-blue-100 hover:border-blue-300',
+              valueColor: 'text-blue-700',
+            },
+            {
+              target: 480,
+              prefix: '+',
+              label: 'پروژه و ربات ساخته‌شده',
+              sublabel: 'نمونه‌کار عملی و مسابقه‌ای',
+              icon: Bot,
+              iconBg: 'bg-amber-50 text-amber-700',
+              borderColor: 'border-amber-100 hover:border-amber-300',
+              valueColor: 'text-amber-600',
+            },
+            {
+              target: 5,
+              prefix: '',
+              label: 'دپارتمان تخصصی مهندسی',
+              sublabel: 'رباتیک، کدنویسی، الکترونیک، سه‌بعدی و مکانیک',
+              icon: Cpu,
+              iconBg: 'bg-emerald-50 text-emerald-700',
+              borderColor: 'border-emerald-100 hover:border-emerald-300',
+              valueColor: 'text-emerald-700',
+            },
+            {
+              target: 35,
+              prefix: '+',
+              label: 'افتخار و مدال کشوری',
+              sublabel: 'همراه با مدرک رسمی فنی و حرفه‌ای',
+              icon: Trophy,
+              iconBg: 'bg-indigo-50 text-indigo-700',
+              borderColor: 'border-indigo-100 hover:border-indigo-300',
+              valueColor: 'text-indigo-700',
+            },
+          ].map((stat, idx) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={idx}
+                className={`bg-white rounded-3xl p-4 sm:p-6 border ${stat.borderColor} shadow-2xs transition-all flex flex-col justify-between gap-3 text-right`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${stat.iconBg} flex items-center justify-center shrink-0`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className={`text-2xl sm:text-3xl font-black ${stat.valueColor}`} dir="ltr">
+                    <AnimatedStatCounter target={stat.target} prefix={stat.prefix} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900">
+                    {stat.label}
+                  </div>
+                  <div className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    {stat.sublabel}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* =====================================================================
           2. FIVE CORE DEPARTMENTS — INTERACTIVE FANNED CARD DECK ("ورق‌مانند") + UNIFIED SHOWCASE
@@ -875,8 +987,10 @@ export const FatehanStorefrontHome: React.FC = () => {
           </p>
         </div>
 
-        {/* Single Unified Showcase Box containing Top Quick-Selector, Fanned Card Deck, and Department Details */}
+        {/* Single Unified Showcase Box containing Desktop Tabs / Mobile Auto-Center Thumbnails, Fanned Deck & Details */}
         <div
+          onMouseEnter={() => setIsDeptHovered(true)}
+          onMouseLeave={() => setIsDeptHovered(false)}
           style={{
             borderColor: `${activeDeptData.accentColor}45`,
             boxShadow: `0 24px 60px -20px ${activeDeptData.accentColor}22`,
@@ -893,8 +1007,8 @@ export const FatehanStorefrontHome: React.FC = () => {
             style={{ backgroundColor: activeDeptData.cardBg }}
           />
 
-          {/* Compact Top Quick-Switch Bar (5 Departments in 1 clean segmented row) */}
-          <div className="relative z-20 flex items-center justify-start sm:justify-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-2 mb-6 border-b border-slate-200/80">
+          {/* DESKTOP Top Quick-Switch Bar (Preserved on lg+ with Auto-Rotate Indicator) */}
+          <div className="relative z-20 hidden lg:flex items-center justify-center gap-2 pb-3 mb-6 border-b border-slate-200/80">
             {departmentKeys.map((key, idx) => {
               const dept = departmentsData[key];
               const isSelected = activeDepartment === key;
@@ -909,7 +1023,7 @@ export const FatehanStorefrontHome: React.FC = () => {
                     borderColor: isSelected ? dept.accentColor : undefined,
                     color: isSelected ? dept.cardText : undefined,
                   }}
-                  className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 border ${
+                  className={`px-4 py-2 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 border whitespace-nowrap ${
                     isSelected
                       ? 'shadow-xs scale-[1.02]'
                       : 'bg-white/80 hover:bg-white text-slate-600 border-slate-200/90'
@@ -923,14 +1037,76 @@ export const FatehanStorefrontHome: React.FC = () => {
             })}
           </div>
 
-          {/* Main Unified Stage: Fanned Card Deck (Image 3 style) + Synchronized Page-Flip Details */}
+          {/* MOBILE-ONLY Top Auto-Centering Thumbnail Carousel (3 Centered + Left/Right Peek) */}
+          <div className="relative z-20 lg:hidden pb-3 mb-5 border-b border-slate-200/80">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-2 px-1">
+              <span>انتخاب سریع دپارتمان (برای دیدن جزئیات لمس کنید):</span>
+              <span className="font-mono text-blue-700 tabular-nums">
+                {formatPersianNumber(activeDeptIndex + 1)} / {formatPersianNumber(departmentKeys.length)}
+              </span>
+            </div>
+            <div className="relative">
+              <div
+                ref={mobileTopThumbRailRef}
+                className="flex items-stretch gap-2.5 overflow-x-auto no-scrollbar snap-x snap-mandatory py-1 px-[9%]"
+              >
+                {departmentKeys.map((key, idx) => {
+                  const dept = departmentsData[key];
+                  const isSelected = activeDepartment === key;
+                  const Icon = dept.icon;
+                  return (
+                    <button
+                      key={dept.id}
+                      type="button"
+                      data-dept-thumb={dept.id}
+                      onClick={() => setActiveDepartment(key)}
+                      style={{
+                        borderColor: isSelected ? dept.accentColor : undefined,
+                      }}
+                      className={`w-[28%] min-w-[92px] max-w-[114px] shrink-0 snap-center rounded-2xl p-2 border-2 transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-white shadow-md scale-[1.03]'
+                          : 'bg-white/75 border-slate-200/80 opacity-85 hover:opacity-100'
+                      }`}
+                    >
+                      <div
+                        style={{
+                          backgroundColor: dept.cardBg,
+                          borderColor: dept.cardInnerBorder,
+                          color: dept.cardText,
+                        }}
+                        className="w-full h-12 rounded-xl border flex items-center justify-center relative overflow-hidden"
+                      >
+                        <span className="absolute top-1 right-1.5 text-[9px] font-mono font-black opacity-75">
+                          ۰{formatPersianNumber(idx + 1)}
+                        </span>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span
+                        style={{ color: isSelected ? dept.accentColor : undefined }}
+                        className={`text-[11px] font-black leading-tight text-center truncate w-full ${
+                          isSelected ? '' : 'text-slate-700'
+                        }`}
+                      >
+                        {dept.title.replace('دپارتمان ', '')}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent" />
+            </div>
+          </div>
+
+          {/* Main Unified Stage: Fanned Card Deck + Synchronized Page-Flip Details */}
           <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             
-            {/* RIGHT / TOP COLUMN: Interactive Fanned Card Deck ("ورق‌مانند" — Image 3) */}
+            {/* RIGHT / TOP COLUMN: Interactive Fanned Card Deck ("ورق‌مانند") */}
             <div className="lg:col-span-5 flex flex-col items-center justify-center select-none">
               <div className="relative w-full max-w-[430px] h-[390px] sm:h-[430px] flex items-center justify-center">
                 
-                {/* Concentric Circular Orbit Backdrop (matches Image 3) */}
+                {/* Concentric Circular Orbit Backdrop */}
                 <div className="w-[310px] h-[310px] sm:w-[390px] sm:h-[390px] rounded-full bg-slate-100/90 border border-slate-200/90 shadow-inner absolute pointer-events-none flex items-center justify-center">
                   <div className="w-[266px] h-[266px] sm:w-[338px] sm:h-[338px] rounded-full border border-dashed border-slate-300/90" />
                 </div>
@@ -939,12 +1115,10 @@ export const FatehanStorefrontHome: React.FC = () => {
                 {departmentKeys.map((key, idx) => {
                   const dept = departmentsData[key];
                   const Icon = dept.icon;
-                  // Circular relative offset in [-2, -1, 0, 1, 2]
                   const rawDiff = (idx - activeDeptIndex + departmentKeys.length) % departmentKeys.length;
                   const offset = rawDiff === 0 ? 0 : rawDiff === 1 ? 1 : rawDiff === 2 ? 2 : rawDiff === 3 ? -2 : -1;
                   const isFront = offset === 0;
 
-                  // Responsive fan coordinates matching Image 3's fanned hand of cards
                   const xOffset = offset === 0 ? 0 : offset === -1 ? -48 : offset === 1 ? 48 : offset === -2 ? -88 : 88;
                   const yOffset = offset === 0 ? -4 : Math.abs(offset) === 1 ? 14 : 34;
                   const rotateDeg = offset === 0 ? 0 : offset === -1 ? -9 : offset === 1 ? 9 : offset === -2 ? -18 : 18;
@@ -967,6 +1141,9 @@ export const FatehanStorefrontHome: React.FC = () => {
                       onClick={() => {
                         if (!isFront) {
                           setActiveDepartment(key);
+                        } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                          // On mobile, tapping anywhere on the active card scrolls cleanly to its details
+                          scrollToDeptDetails();
                         }
                       }}
                       animate={{
@@ -995,10 +1172,10 @@ export const FatehanStorefrontHome: React.FC = () => {
                           : '0 12px 28px -8px rgba(15, 23, 42, 0.14)',
                       }}
                       className={`w-[225px] sm:w-[255px] h-[310px] sm:h-[345px] rounded-[28px] p-3 sm:p-3.5 absolute border border-white/80 ${
-                        isFront ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
+                        isFront ? 'cursor-pointer lg:cursor-grab active:cursor-grabbing' : 'cursor-pointer'
                       }`}
                     >
-                      {/* Inner Framed Card Border (Exact Image 3 Aesthetic) */}
+                      {/* Inner Framed Card Border */}
                       <div
                         style={{ borderColor: dept.cardInnerBorder }}
                         className="w-full h-full rounded-[20px] border-[1.5px] p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden"
@@ -1020,7 +1197,6 @@ export const FatehanStorefrontHome: React.FC = () => {
                             }}
                             className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-[3px] flex items-center justify-center shadow-inner relative"
                           >
-                            {/* Subtle geometric crosshairs like Image 3 */}
                             <div
                               style={{ backgroundColor: `${dept.cardText}25` }}
                               className="w-full h-[1.5px] absolute rotate-45 pointer-events-none"
@@ -1056,10 +1232,7 @@ export const FatehanStorefrontHome: React.FC = () => {
                                 if (!isFront) {
                                   setActiveDepartment(key);
                                 } else {
-                                  deptDetailRef.current?.scrollIntoView({
-                                    behavior: 'smooth',
-                                    block: 'nearest',
-                                  });
+                                  scrollToDeptDetails();
                                 }
                               }}
                               className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-[10px] sm:text-[11px] inline-flex items-center gap-1 shadow-sm cursor-pointer shrink-0"
@@ -1075,34 +1248,112 @@ export const FatehanStorefrontHome: React.FC = () => {
                 })}
               </div>
 
-              {/* Helper Pill + Left/Right Flip Controls below Fanned Deck (matches Image 3) */}
+              {/* Helper Pill + Left/Right Flip Controls + Desktop Auto-Play Toggle */}
               <div className="mt-2 flex items-center justify-center gap-2 w-full">
                 <button
                   type="button"
                   onClick={() => stepDepartment(-1)}
                   aria-label="دپارتمان قبلی"
-                  className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-200/90 shadow-2xs flex items-center justify-center text-slate-700 cursor-pointer transition"
+                  className="w-9 h-9 rounded-full bg-white hover:bg-slate-100 border border-slate-200/90 shadow-2xs flex items-center justify-center text-slate-700 cursor-pointer transition shrink-0"
                 >
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
-                <div className="px-4 py-1.5 rounded-full bg-white/95 border border-slate-200/90 shadow-2xs text-[11px] font-bold text-slate-600 text-center">
-                  کارت‌ها را به چپ یا راست بکشید · کلیک روی کارت عقبی برای انتخاب
+                <div className="px-3.5 py-1.5 rounded-full bg-white/95 border border-slate-200/90 shadow-2xs text-[11px] font-bold text-slate-600 text-center">
+                  <span className="hidden lg:inline">
+                    چرخش خودکار فعال · کارت‌ها را بکشید یا کلیک کنید
+                  </span>
+                  <span className="lg:hidden">
+                    برای جزئیات روی کارت بزنید · یا به چپ و راست بکشید
+                  </span>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => stepDepartment(1)}
                   aria-label="دپارتمان بعدی"
-                  className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-200/90 shadow-2xs flex items-center justify-center text-slate-700 cursor-pointer transition"
+                  className="w-9 h-9 rounded-full bg-white hover:bg-slate-100 border border-slate-200/90 shadow-2xs flex items-center justify-center text-slate-700 cursor-pointer transition shrink-0"
                 >
                   <ArrowLeft className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsDeptAutoPlaying((p) => !p)}
+                  aria-label={isDeptAutoPlaying ? 'توقف چرخش خودکار' : 'ادامه چرخش خودکار'}
+                  title={isDeptAutoPlaying ? 'توقف چرخش خودکار دپارتمان‌ها' : 'فعال‌سازی چرخش خودکار'}
+                  className="hidden lg:inline-flex w-9 h-9 rounded-full bg-white hover:bg-slate-100 border border-slate-200/90 shadow-2xs items-center justify-center text-slate-700 cursor-pointer transition shrink-0"
+                >
+                  {isDeptAutoPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
 
-            {/* LEFT / BOTTOM COLUMN: Synchronized Page-Flip Detail Stage inside the same Unified Box */}
-            <div ref={deptDetailRef} className="lg:col-span-7">
+            {/* LEFT / BOTTOM COLUMN: Synchronized Detail Stage + Mobile Gallery-Style Thumbnail Switcher */}
+            <div ref={deptDetailRef} className="lg:col-span-7 scroll-mt-24 space-y-3">
+              
+              {/* MOBILE-ONLY Product-Gallery Style Thumbnail Switcher directly above Department Details */}
+              <div className="lg:hidden bg-white rounded-2xl border border-slate-200/90 p-3 shadow-2xs space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-700 px-0.5">
+                  <span>سوییچ سریع بین دپارتمان‌ها:</span>
+                  <span className="text-[10px] font-bold text-slate-500">
+                    روی هر کارت بزنید تا جزئیاتش جایگزین شود
+                  </span>
+                </div>
+                <div className="relative">
+                  <div
+                    ref={mobileDetailThumbRailRef}
+                    className="flex items-stretch gap-2.5 overflow-x-auto no-scrollbar snap-x snap-mandatory py-1 px-[9%]"
+                  >
+                    {departmentKeys.map((key, idx) => {
+                      const dept = departmentsData[key];
+                      const isSelected = activeDepartment === key;
+                      const Icon = dept.icon;
+                      return (
+                        <button
+                          key={dept.id}
+                          type="button"
+                          data-dept-thumb={dept.id}
+                          onClick={() => setActiveDepartment(key)}
+                          style={{
+                            borderColor: isSelected ? dept.accentColor : undefined,
+                          }}
+                          className={`w-[28%] min-w-[92px] max-w-[114px] shrink-0 snap-center rounded-xl p-1.5 border-2 transition-all cursor-pointer flex flex-col items-center gap-1 ${
+                            isSelected
+                              ? 'bg-slate-50 shadow-sm scale-[1.03]'
+                              : 'bg-white border-slate-200 opacity-80 hover:opacity-100'
+                          }`}
+                        >
+                          <div
+                            style={{
+                              backgroundColor: dept.cardBg,
+                              borderColor: dept.cardInnerBorder,
+                              color: dept.cardText,
+                            }}
+                            className="w-full h-11 rounded-lg border flex items-center justify-center relative"
+                          >
+                            <span className="absolute top-0.5 right-1 text-[9px] font-mono font-black opacity-75">
+                              ۰{formatPersianNumber(idx + 1)}
+                            </span>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <span
+                            style={{ color: isSelected ? dept.accentColor : undefined }}
+                            className={`text-[10px] font-black leading-tight text-center truncate w-full ${
+                              isSelected ? '' : 'text-slate-700'
+                            }`}
+                          >
+                            {dept.title.replace('دپارتمان ', '')}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-white to-transparent" />
+                  <div className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-white to-transparent" />
+                </div>
+              </div>
+
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeDepartment}
@@ -1493,6 +1744,101 @@ export const FatehanStorefrontHome: React.FC = () => {
       )}
 
       {/* =====================================================================
+          3.5 QUICK ACCESS UTILITIES STRIP (MOVED DOWN FROM HERO FOR CLEANER UX)
+          ===================================================================== */}
+      <section aria-label="دسترسی سریع به امکانات آموزشگاه" className="w-full">
+        <div className="bg-slate-50/90 border border-slate-200 rounded-3xl p-5 sm:p-6 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-slate-900">
+                دسترسی سریع به امکانات و ابزارهای آموزشگاه فاتحان
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                تعیین سطح رایگان، محاسبه شهریه و تخفیف‌ها، ثبت‌نام ترم جدید و مشاهده تجهیزات دپارتمان‌ها
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl whitespace-nowrap">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>جلسه معارفه و تعیین سطح حضوری: رایگان</span>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <a
+              href="#contact"
+              className="p-4 rounded-2xl bg-white hover:border-blue-400 border border-slate-200 transition-all flex items-center gap-3 group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                <Compass className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-slate-900 group-hover:text-blue-700">
+                  تعیین سطح رایگان
+                </div>
+                <div className="text-[11px] text-slate-500 truncate">
+                  مشاوره تخصصی انتخاب مسیر
+                </div>
+              </div>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => navigateStore('/calculator')}
+              className="p-4 rounded-2xl bg-white hover:border-amber-400 border border-slate-200 transition-all flex items-center gap-3 text-right cursor-pointer group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+                <Calculator className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-slate-900 group-hover:text-amber-700">
+                  محاسبه‌گر شهریه و تخفیف
+                </div>
+                <div className="text-[11px] text-slate-500 truncate">
+                  تخفیف ثبت‌نام زودهنگام
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigateStore('/shop')}
+              className="p-4 rounded-2xl bg-white hover:border-emerald-400 border border-slate-200 transition-all flex items-center gap-3 text-right cursor-pointer group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-slate-900 group-hover:text-emerald-700">
+                  فروشگاه دپارتمان‌ها
+                </div>
+                <div className="text-[11px] text-slate-500 truncate">
+                  رباتیک، پرینتر سه‌بعدی و الکترونیک
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigateStore('/courses')}
+              className="p-4 rounded-2xl bg-white hover:border-indigo-400 border border-slate-200 transition-all flex items-center gap-3 text-right cursor-pointer group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-slate-900 group-hover:text-indigo-700">
+                  ثبت‌نام آنلاین دوره‌ها
+                </div>
+                <div className="text-[11px] text-slate-500 truncate">
+                  مشاهده تقویم و سرفصل ترم جدید
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================================
           4. ABOUT FATEHAN ACADEMY & INSTITUTIONAL COOPERATION PREVIEW (/about)
           ===================================================================== */}
       {!aboutBlk?.desktopHidden && (
@@ -1697,116 +2043,165 @@ export const FatehanStorefrontHome: React.FC = () => {
       )}
 
       {/* =====================================================================
-          6. OFFICIAL HARDWARE KITS & COMPONENTS STORE
+          6. OFFICIAL HARDWARE KITS & COMPONENTS STORE (CATEGORIZED BY DEPARTMENT)
           ===================================================================== */}
       {!kitsBlk?.desktopHidden && (
-      <section id="store-kits" className="space-y-8">
+      <section id="store-kits" className="space-y-6">
         
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-black">
-              <span>🛒 {kitsBlk?.highlightWord || 'کیت‌ها و قطعات استاندارد آموزشگاه'}</span>
+              <span>🛒 {kitsBlk?.highlightWord || 'فروشگاه تفکیک‌شده بر اساس دپارتمان‌ها'}</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900">
-              {kitsBlk?.heading || 'تجهیزات و بسته‌های کمک‌آموزشی رباتیک فاتحان'}
+              {kitsBlk?.heading || 'محصولات، کیت‌ها و تجهیزات هر دپارتمان تخصصی'}
             </h2>
+            <p className="text-xs text-slate-500">
+              دپارتمان مورد نظر خود را انتخاب کنید تا کیت‌ها، پرینترهای سه‌بعدی و قطعات اختصاصی آن نمایش داده شوند:
+            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { id: 'all', label: 'همه کالاها' },
-              { id: 'کیت', label: 'بسته‌های آموزشی' },
-              { id: 'برد', label: 'بردهای الکترونیکی' },
-            ].map((cat) => (
+          <button
+            type="button"
+            onClick={() =>
+              navigateStore(
+                kitCategoryFilter === 'all' ? '/shop' : `/shop?dept=${kitCategoryFilter}`
+              )
+            }
+            className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 self-start sm:self-auto whitespace-nowrap"
+          >
+            <span>{kitsBlk?.ctaPrimary || 'مشاهده همه در فروشگاه'}</span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* Department Filter Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <button
+            type="button"
+            onClick={() => setKitCategoryFilter('all')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 border ${
+              kitCategoryFilter === 'all'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+            }`}
+          >
+            <span>همه دپارتمان‌ها</span>
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums ${
+              kitCategoryFilter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {formatPersianNumber(storeProducts.length)}
+            </span>
+          </button>
+
+          {SHOP_DEPARTMENTS.map((dept) => {
+            const isSelected = kitCategoryFilter === dept.id;
+            const count = kitDeptCounts[dept.id] || 0;
+            return (
               <button
-                key={cat.id}
+                key={dept.id}
                 type="button"
-                onClick={() => setKitCategoryFilter(cat.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  kitCategoryFilter === cat.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                onClick={() => setKitCategoryFilter(dept.id)}
+                style={
+                  isSelected
+                    ? {
+                        backgroundColor: dept.accentHex,
+                        borderColor: dept.accentHex,
+                        color: '#ffffff',
+                      }
+                    : undefined
+                }
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 border ${
+                  isSelected
+                    ? 'shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
                 }`}
               >
-                {cat.label}
+                <span>{dept.label}</span>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums ${
+                  isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {formatPersianNumber(count)}
+                </span>
               </button>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => navigateStore('/shop')}
-              className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-            >
-              <span>{kitsBlk?.ctaPrimary || 'مشاهده همه در فروشگاه'}</span>
-              <ArrowLeft className="w-3.5 h-3.5" />
-            </button>
-          </div>
+            );
+          })}
         </div>
 
         {/* Product Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {displayKits.map((prd) => (
-            <div
-              key={prd.id}
-              className="bg-white rounded-3xl p-4 border border-slate-200 hover:border-blue-400 transition-all flex flex-col justify-between shadow-2xs hover:shadow-md"
-            >
-              <div>
-                <div
-                  onClick={() => navigateStore(`/product/${prd.id}`)}
-                  className="relative h-44 rounded-2xl bg-slate-100 overflow-hidden cursor-pointer group mb-3"
-                >
-                  <img
-                    src={prd.featuredImageUrl}
-                    alt={prd.name}
-                    onError={(e) => {
-                      e.currentTarget.src = '/assets/kits/kit-01.jpg';
-                    }}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-white/90 text-[10px] font-bold text-slate-800">
-                    {prd.category || 'آموزشی'}
-                  </span>
-                </div>
-
-                <div className="space-y-1">
-                  <h3
+          {displayKits.map((prd) => {
+            const deptId = resolveProductDepartmentId(prd);
+            const deptMeta = SHOP_DEPARTMENTS.find((d) => d.id === deptId);
+            return (
+              <div
+                key={prd.id}
+                className="bg-white rounded-3xl p-4 border border-slate-200 hover:border-blue-400 transition-all flex flex-col justify-between shadow-2xs hover:shadow-md"
+              >
+                <div>
+                  <div
                     onClick={() => navigateStore(`/product/${prd.id}`)}
-                    className="text-xs sm:text-sm font-black text-slate-900 hover:text-blue-600 cursor-pointer line-clamp-1"
+                    className="relative h-44 rounded-2xl bg-slate-100 overflow-hidden cursor-pointer group mb-3"
                   >
-                    {prd.name}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                    {prd.description || prd.specs}
-                  </p>
+                    <img
+                      src={prd.featuredImageUrl}
+                      alt={prd.name}
+                      onError={(e) => {
+                        e.currentTarget.src = '/assets/kits/kit-01.jpg';
+                      }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <span
+                      style={{
+                        backgroundColor: deptMeta?.softBg || '#ffffff',
+                        color: deptMeta?.accentHex || '#1e293b',
+                      }}
+                      className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold shadow-2xs"
+                    >
+                      {deptMeta?.label || prd.category || 'آموزشی'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3
+                      onClick={() => navigateStore(`/product/${prd.id}`)}
+                      className="text-xs sm:text-sm font-black text-slate-900 hover:text-blue-600 cursor-pointer line-clamp-1"
+                    >
+                      {prd.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                      {prd.description || prd.specs}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 mt-3 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">قیمت:</span>
+                    <span className="font-mono font-black text-blue-700 tabular-nums">
+                      {formatToman(prd.salePriceToman || prd.priceToman)}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => addToCart(prd, undefined, 1, true)}
+                    className="w-full py-2.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <span>+ افزودن به سبد خرید</span>
+                  </button>
                 </div>
               </div>
-
-              <div className="pt-3 border-t border-slate-100 mt-3 space-y-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">قیمت:</span>
-                  <span className="font-mono font-black text-blue-700">
-                    {formatToman(prd.salePriceToman || prd.priceToman)}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => addToCart(prd, undefined, 1, true)}
-                  className="w-full py-2.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>+ افزودن به سبد خرید</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
       </section>
       )}
 
       {/* =====================================================================
-          7. WHY FAMILIES CHOOSE FATEHAN & ICONIC QUOTE BANNER
+          7. WHY FAMILIES CHOOSE FATEHAN (INCLUDING TECHNICAL-VOCATIONAL CERT & JOB MARKET)
           ===================================================================== */}
       {!whyBlk?.desktopHidden && (
       <section id="why-fatehan" className="space-y-8">
@@ -1825,66 +2220,95 @@ export const FatehanStorefrontHome: React.FC = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {(whyBlk?.itemsList && whyBlk.itemsList.length > 0
-            ? whyBlk.itemsList.map((it, idx) => ({
-                icon: [Lightbulb, Box, Users, Award][idx % 4],
-                title: it.title,
-                desc: it.subtitle,
-                badge: it.badge,
-              }))
-            : [
-                {
-                  icon: Lightbulb,
-                  title: 'تقویت خلاقیت و مهارت حل مسئله',
-                  desc: 'دانش‌آموزان یاد می‌گیرند در مواجهه با چالش‌های فنی، خودشان راه‌حل‌های خلاقانه طراحی و آزمایش کنند.',
-                  badge: '',
-                },
-                {
-                  icon: Box,
-                  title: 'کارگاه‌های مجهز و مدرن',
-                  desc: 'دسترسی کامل کارآموزان به پرینترهای سه‌بعدی، ایستگاه‌های الکترونیک و لپ‌تاپ‌های کارگاهی پیشرفته.',
-                  badge: '',
-                },
-                {
-                  icon: Users,
-                  title: 'اساتید مجرب و متخصص',
-                  desc: 'تدریس توسط مربیان باسابقه مهندسی و مسابقات کشوری رباتیک با متدولوژی‌های روز دنیا.',
-                  badge: '',
-                },
-                {
-                  icon: Award,
-                  title: 'آموزش کاربردی و پروژه‌محور',
-                  desc: 'در پایان هر ترم، کارآموز یک پروژه واقعی و قابل لمس (ربات، مدار هوشمند یا بازی رایانه‌ای) با دستان خود می‌سازد.',
-                  badge: '',
-                },
-              ]
-          ).map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={idx}
-                className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs hover:shadow-md transition-shadow text-right space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  {item.badge && (
-                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold">
-                      {item.badge}
-                    </span>
-                  )}
-                </div>
-                <h3 className="text-sm sm:text-base font-black text-slate-900">
-                  {item.title}
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {item.desc}
-                </p>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {(() => {
+            const baseItems =
+              whyBlk?.itemsList && whyBlk.itemsList.length > 0
+                ? whyBlk.itemsList.map((it, idx) => ({
+                    icon: [Lightbulb, Box, Users, Award, GraduationCap, Briefcase][idx % 6],
+                    title: it.title,
+                    desc: it.subtitle,
+                    badge: it.badge || '',
+                  }))
+                : [
+                    {
+                      icon: Lightbulb,
+                      title: 'تقویت خلاقیت و مهارت حل مسئله',
+                      desc: 'دانش‌آموزان یاد می‌گیرند در مواجهه با چالش‌های فنی، خودشان راه‌حل‌های خلاقانه طراحی و آزمایش کنند.',
+                      badge: 'تفکر مهندسی',
+                    },
+                    {
+                      icon: Box,
+                      title: 'کارگاه‌های مجهز و مدرن',
+                      desc: 'دسترسی کامل کارآموزان به پرینترهای سه‌بعدی، ایستگاه‌های الکترونیک و لپ‌تاپ‌های کارگاهی پیشرفته.',
+                      badge: '۱۰۰٪ عملی',
+                    },
+                    {
+                      icon: Users,
+                      title: 'اساتید مجرب و متخصص',
+                      desc: 'تدریس توسط مربیان باسابقه مهندسی و مسابقات کشوری رباتیک با متدولوژی‌های روز دنیا.',
+                      badge: 'مربیان مسابقه‌ای',
+                    },
+                    {
+                      icon: Award,
+                      title: 'آموزش کاربردی و پروژه‌محور',
+                      desc: 'در پایان هر ترم، کارآموز یک پروژه واقعی و قابل لمس (ربات، مدار هوشمند یا بازی رایانه‌ای) با دستان خود می‌سازد.',
+                      badge: 'پروژه‌محور',
+                    },
+                  ];
+
+            const hasVocationalCert = baseItems.some(
+              (item) => item.title.includes('فنی') || item.desc.includes('فنی و حرفه‌ای')
             );
-          })}
+            const hasJobMarket = baseItems.some(
+              (item) => item.title.includes('بازار کار') || item.desc.includes('بازار کار')
+            );
+
+            const finalWhyItems = [...baseItems];
+            if (!hasVocationalCert) {
+              finalWhyItems.push({
+                icon: GraduationCap,
+                title: 'دریافت مدرک معتبر سازمان فنی و حرفه‌ای',
+                desc: 'امکان دریافت گواهینامه رسمی و قابل ترجمه سازمان آموزش فنی و حرفه‌ای کشور با کد استعلام کشوری؛ معتبر برای رزومه علمی، دانشگاه و مسیر مهاجرت.',
+                badge: 'مدرک رسمی',
+              });
+            }
+            if (!hasJobMarket) {
+              finalWhyItems.push({
+                icon: Briefcase,
+                title: 'آمادگی برای ورود به بازار کار و آینده شغلی',
+                desc: 'مهارت‌آموزی استاندارد در حوزه‌های پرتقاضای رباتیک، الکترونیک، برنامه‌نویسی و چاپ سه‌بعدی همراه با ساخت نمونه‌کار واقعی برای ورود حرفه‌ای به بازار کار.',
+                badge: 'ورود به بازار کار',
+              });
+            }
+
+            return finalWhyItems.map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={idx}
+                  className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xs hover:shadow-md hover:border-blue-300 transition-all text-right space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    {item.badge && (
+                      <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-extrabold whitespace-nowrap">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-sm sm:text-base font-black text-slate-900">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              );
+            });
+          })()}
         </div>
 
         {/* Iconic Brush Quote Banner from Flyer */}
@@ -2080,14 +2504,14 @@ export const FatehanStorefrontHome: React.FC = () => {
             const extraContactItems = (contactBlk?.itemsList || []).slice(4);
 
             return (
-              <div className="lg:col-span-5 bg-[#0c1427] border border-slate-800 text-white rounded-[2rem] p-6 sm:p-7 space-y-4 shadow-xl flex flex-col justify-between">
+              <div className="lg:col-span-5 bg-[#0c1427] border border-slate-800 text-white rounded-[1.75rem] sm:rounded-[2rem] p-4 sm:p-7 space-y-4 shadow-xl flex flex-col justify-between overflow-hidden">
                 {/* Top Bar with Badge & Academy Slug */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="px-3.5 py-1.5 rounded-full bg-[#facc15] text-slate-950 font-black text-xs inline-flex items-center shadow-xs whitespace-nowrap">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="px-3.5 py-1.5 rounded-full bg-[#facc15] text-slate-950 font-black text-[11px] sm:text-xs inline-flex items-center shadow-xs whitespace-nowrap">
                     اطلاعات تماس و آدرس دقیق
                   </div>
                   <span
-                    className="text-[#22d3ee] font-mono font-bold text-xs tracking-wider"
+                    className="text-[#22d3ee] font-mono font-bold text-[11px] sm:text-xs tracking-wider"
                     dir="ltr"
                   >
                     FATEHAN ACADEMY
@@ -2096,11 +2520,11 @@ export const FatehanStorefrontHome: React.FC = () => {
 
                 {/* Title & Subtitle */}
                 <div className="space-y-1.5 text-right">
-                  <h3 className="text-xl sm:text-2xl font-black text-white leading-tight">
+                  <h3 className="text-lg sm:text-2xl font-black text-white leading-snug">
                     {contactBlk?.ctaSecondary ||
                       'منتظر دیدار شما در کارگاه رباتیک فاتحان هستیم!'}
                   </h3>
-                  <p className="text-[#38bdf8] text-xs font-bold pt-1">
+                  <p className="text-[#38bdf8] text-xs font-bold pt-0.5">
                     شماره‌های تماس مستقیم و واتساپ:
                   </p>
                 </div>
@@ -2108,209 +2532,277 @@ export const FatehanStorefrontHome: React.FC = () => {
                 {/* Interactive Contact Cards */}
                 <div className="space-y-3">
                   {/* Phone 1 */}
-                  <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-blue-500/50 transition-colors">
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(phone1Clean, 'p1', 'شماره تماس خط ۱')}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#222d4c] hover:bg-blue-600 text-slate-200 hover:text-white font-bold text-xs border border-slate-700/60 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-                    >
-                      {copiedKey === 'p1' ? 'کپی شد!' : 'کپی'}
-                    </button>
+                  <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-blue-500/50 transition-colors overflow-hidden">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#fbbf24] text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+                        <PhoneCall className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </div>
 
-                    <div className="flex items-center gap-3">
-                      <div>
+                      <div className="min-w-0 flex-1 text-right">
                         <a
                           href={`tel:${phone1Clean}`}
-                          className="font-mono text-white font-black text-lg sm:text-xl tracking-wider block text-left hover:text-cyan-300 transition-colors"
+                          className="font-mono text-white font-black text-base sm:text-lg tracking-wider inline-block max-w-full whitespace-nowrap truncate hover:text-cyan-300 transition-colors"
                           dir="ltr"
                         >
                           {phone1Num}
                         </a>
                         <div
-                          className="text-slate-400 text-[11px] font-medium mt-0.5 text-right"
+                          className="text-slate-400 text-[11px] sm:text-xs font-medium mt-0.5 leading-snug"
                           dir="rtl"
                         >
                           {phone1Label}
                         </div>
                       </div>
+                    </div>
 
-                      <div className="w-12 h-12 rounded-2xl bg-[#fbbf24] text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                        <PhoneCall className="w-6 h-6" />
-                      </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-white/10 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                      <a
+                        href={`tel:${phone1Clean}`}
+                        className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-amber-200 transition-colors"
+                      >
+                        <PhoneCall className="w-3.5 h-3.5" />
+                        <span>تماس مستقیم</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(phone1Clean, 'p1', 'شماره تماس خط ۱')}
+                        className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#222d4c] hover:bg-blue-600 text-slate-100 hover:text-white font-bold text-xs border border-slate-700/70 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                      >
+                        {copiedKey === 'p1' ? 'کپی شد!' : 'کپی شماره'}
+                      </button>
                     </div>
                   </div>
 
                   {/* Phone 2 */}
-                  <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-cyan-500/50 transition-colors">
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(phone2Clean, 'p2', 'شماره تماس خط ۲')}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#222d4c] hover:bg-cyan-600 text-slate-200 hover:text-white font-bold text-xs border border-slate-700/60 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-                    >
-                      {copiedKey === 'p2' ? 'کپی شد!' : 'کپی'}
-                    </button>
+                  <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-cyan-500/50 transition-colors overflow-hidden">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#06b6d4] text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+                        <Smartphone className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </div>
 
-                    <div className="flex items-center gap-3">
-                      <div>
+                      <div className="min-w-0 flex-1 text-right">
                         <a
                           href={`tel:${phone2Clean}`}
-                          className="font-mono text-white font-black text-lg sm:text-xl tracking-wider block text-left hover:text-cyan-300 transition-colors"
+                          className="font-mono text-white font-black text-base sm:text-lg tracking-wider inline-block max-w-full whitespace-nowrap truncate hover:text-cyan-300 transition-colors"
                           dir="ltr"
                         >
                           {phone2Num}
                         </a>
                         <div
-                          className="text-slate-400 text-[11px] font-medium mt-0.5 text-right"
+                          className="text-slate-400 text-[11px] sm:text-xs font-medium mt-0.5 leading-snug"
                           dir="rtl"
                         >
                           {phone2Label}
                         </div>
                       </div>
+                    </div>
 
-                      <div className="w-12 h-12 rounded-2xl bg-[#06b6d4] text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                        <Smartphone className="w-6 h-6" />
-                      </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-white/10 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                      <a
+                        href={`tel:${phone2Clean}`}
+                        className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-cyan-300 hover:text-cyan-200 transition-colors"
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>تماس مستقیم</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(phone2Clean, 'p2', 'شماره تماس خط ۲')}
+                        className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#222d4c] hover:bg-cyan-600 text-slate-100 hover:text-white font-bold text-xs border border-slate-700/70 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                      >
+                        {copiedKey === 'p2' ? 'کپی شد!' : 'کپی شماره'}
+                      </button>
                     </div>
                   </div>
 
                   {/* Landline Phone */}
-                  <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-emerald-500/50 transition-colors">
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(landlineClean, 'landline', 'تلفن ثابت آموزشگاه')}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#222d4c] hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs border border-slate-700/60 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-                    >
-                      {copiedKey === 'landline' ? 'کپی شد!' : 'کپی'}
-                    </button>
+                  <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-emerald-500/50 transition-colors overflow-hidden">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+                        <Phone className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </div>
 
-                    <div className="flex items-center gap-3">
-                      <div>
+                      <div className="min-w-0 flex-1 text-right">
                         <a
                           href={`tel:${landlineClean}`}
-                          className="font-mono text-white font-black text-lg sm:text-xl tracking-wider block text-left hover:text-emerald-300 transition-colors"
+                          className="font-mono text-white font-black text-base sm:text-lg tracking-wider inline-block max-w-full whitespace-nowrap truncate hover:text-emerald-300 transition-colors"
                           dir="ltr"
                         >
                           {landlineNum}
                         </a>
                         <div
-                          className="text-slate-400 text-[11px] font-medium mt-0.5 text-right"
+                          className="text-slate-400 text-[11px] sm:text-xs font-medium mt-0.5 leading-snug"
                           dir="rtl"
                         >
                           {landlineLabel}
                         </div>
                       </div>
+                    </div>
 
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                        <Phone className="w-6 h-6" />
-                      </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-white/10 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                      <a
+                        href={`tel:${landlineClean}`}
+                        className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 hover:text-emerald-200 transition-colors"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>تماس مستقیم</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(landlineClean, 'landline', 'تلفن ثابت آموزشگاه')}
+                        className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#222d4c] hover:bg-emerald-600 text-slate-100 hover:text-white font-bold text-xs border border-slate-700/70 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                      >
+                        {copiedKey === 'landline' ? 'کپی شد!' : 'کپی شماره'}
+                      </button>
                     </div>
                   </div>
 
                   {/* Instagram Card Row */}
-                  <div className="bg-gradient-to-r from-[#281c44] via-[#1c1d3c] to-[#162039] border border-purple-500/40 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-pink-500/60 transition-colors">
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(`@${igHandle}`, 'ig', 'آی‌دی اینستاگرام')}
-                      className="px-3 py-1.5 rounded-xl bg-[#2b1f49] hover:bg-pink-600 text-pink-200 hover:text-white font-bold text-xs border border-purple-500/40 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-                    >
-                      {copiedKey === 'ig' ? 'کپی شد!' : 'کپی آی‌دی'}
-                    </button>
+                  <div className="bg-gradient-to-r from-[#281c44] via-[#1c1d3c] to-[#162039] border border-purple-500/40 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-pink-500/60 transition-colors overflow-hidden">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                        <Instagram className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </div>
 
-                    <div className="flex items-center gap-3">
-                      <div>
+                      <div className="min-w-0 flex-1 text-right">
                         <a
                           href={igUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="font-mono text-white font-black text-base sm:text-lg tracking-wide block text-left hover:text-pink-300 transition-colors"
+                          className="font-mono text-white font-black text-sm sm:text-base tracking-wide inline-block max-w-full whitespace-nowrap truncate hover:text-pink-300 transition-colors"
                           dir="ltr"
                         >
                           @{igHandle}
                         </a>
                         <div
-                          className="text-slate-400 text-[11px] font-medium mt-0.5 text-right"
+                          className="text-slate-400 text-[11px] sm:text-xs font-medium mt-0.5 leading-snug"
                           dir="rtl"
                         >
                           صفحه رسمی اینستاگرام آموزشگاه فاتحان
                         </div>
                       </div>
+                    </div>
 
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                        <Instagram className="w-6 h-6" />
-                      </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-purple-400/20 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                      <a
+                        href={igUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-pink-300 hover:text-pink-200 transition-colors"
+                      >
+                        <Instagram className="w-3.5 h-3.5" />
+                        <span>مشاهده صفحه</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(`@${igHandle}`, 'ig', 'آی‌دی اینستاگرام')}
+                        className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#2b1f49] hover:bg-pink-600 text-pink-200 hover:text-white font-bold text-xs border border-purple-500/40 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                      >
+                        {copiedKey === 'ig' ? 'کپی شد!' : 'کپی آی‌دی'}
+                      </button>
                     </div>
                   </div>
 
                   {/* Eitaa Channel Card Row */}
                   {eitaaHandle && (
-                    <div className="bg-[#162039] border border-orange-500/35 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-orange-400/70 transition-colors">
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(eitaaHandle, 'eitaa', 'آی‌دی کانال ایتا')}
-                        className="px-3 py-1.5 rounded-xl bg-[#222d4c] hover:bg-orange-500 text-orange-200 hover:text-white font-bold text-xs border border-orange-500/30 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-                      >
-                        {copiedKey === 'eitaa' ? 'کپی شد!' : 'کپی آی‌دی'}
-                      </button>
+                    <div className="bg-[#162039] border border-orange-500/35 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-orange-400/70 transition-colors overflow-hidden">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md overflow-hidden">
+                          {eitaaLogoUrl ? (
+                            <img
+                              src={eitaaLogoUrl}
+                              alt="لوگوی ایتا"
+                              className="w-full h-full object-contain bg-white p-1.5"
+                            />
+                          ) : (
+                            <Send className="w-5 h-5 sm:w-6 sm:h-6" />
+                          )}
+                        </div>
 
-                      <div className="flex items-center gap-3">
-                        <div>
+                        <div className="min-w-0 flex-1 text-right">
                           <a
                             href={eitaaUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-mono text-white font-black text-base sm:text-lg tracking-wide block text-left hover:text-orange-300 transition-colors"
+                            className="font-mono text-white font-black text-sm sm:text-base tracking-wide inline-block max-w-full whitespace-nowrap truncate hover:text-orange-300 transition-colors"
                             dir="ltr"
                           >
                             {eitaaHandle}
                           </a>
                           <div
-                            className="text-slate-400 text-[11px] font-medium mt-0.5 text-right"
+                            className="text-slate-400 text-[11px] sm:text-xs font-medium mt-0.5 leading-snug"
                             dir="rtl"
                           >
                             کانال رسمی ایتا آموزشگاه رباتیک فاتحان
                           </div>
                         </div>
+                      </div>
 
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                          <Send className="w-6 h-6" />
-                        </div>
+                      <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-orange-400/20 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                        <a
+                          href={eitaaUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-orange-300 hover:text-orange-200 transition-colors"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>ورود به کانال</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(eitaaHandle, 'eitaa', 'آی‌دی کانال ایتا')}
+                          className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#222d4c] hover:bg-orange-500 text-orange-200 hover:text-white font-bold text-xs border border-orange-500/30 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                        >
+                          {copiedKey === 'eitaa' ? 'کپی شد!' : 'کپی آی‌دی'}
+                        </button>
                       </div>
                     </div>
                   )}
 
                   {/* Bale Channel Card Row (If Set in Admin) */}
                   {baleHandle && (
-                    <div className="bg-[#162039] border border-emerald-500/35 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-emerald-400/70 transition-colors">
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(baleHandle, 'bale', 'آی‌دی کانال بله')}
-                        className="px-3 py-1.5 rounded-xl bg-[#222d4c] hover:bg-emerald-600 text-emerald-200 hover:text-white font-bold text-xs border border-emerald-500/30 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-                      >
-                        {copiedKey === 'bale' ? 'کپی شد!' : 'کپی آی‌دی'}
-                      </button>
+                    <div className="bg-[#162039] border border-emerald-500/35 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-emerald-400/70 transition-colors overflow-hidden">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+                          <Send className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </div>
 
-                      <div className="flex items-center gap-3">
-                        <div>
+                        <div className="min-w-0 flex-1 text-right">
                           <a
                             href={baleUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="font-mono text-white font-black text-base sm:text-lg tracking-wide block text-left hover:text-emerald-300 transition-colors"
+                            className="font-mono text-white font-black text-sm sm:text-base tracking-wide inline-block max-w-full whitespace-nowrap truncate hover:text-emerald-300 transition-colors"
                             dir="ltr"
                           >
                             {baleHandle}
                           </a>
                           <div
-                            className="text-slate-400 text-[11px] font-medium mt-0.5 text-right"
+                            className="text-slate-400 text-[11px] sm:text-xs font-medium mt-0.5 leading-snug"
                             dir="rtl"
                           >
                             کانال رسمی بله آموزشگاه رباتیک فاتحان
                           </div>
                         </div>
+                      </div>
 
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                          <Send className="w-6 h-6" />
-                        </div>
+                      <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-emerald-400/20 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                        <a
+                          href={baleUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 hover:text-emerald-200 transition-colors"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>ورود به کانال</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(baleHandle, 'bale', 'آی‌دی کانال بله')}
+                          className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#222d4c] hover:bg-emerald-600 text-emerald-200 hover:text-white font-bold text-xs border border-emerald-500/30 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                        >
+                          {copiedKey === 'bale' ? 'کپی شد!' : 'کپی آی‌دی'}
+                        </button>
                       </div>
                     </div>
                   )}
@@ -2319,27 +2811,27 @@ export const FatehanStorefrontHome: React.FC = () => {
                   {extraContactItems.map((ext, i) => (
                     <div
                       key={i}
-                      className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3"
+                      className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 overflow-hidden"
                     >
+                      <div className="text-right min-w-0 flex-1">
+                        <div className="text-white font-black text-xs sm:text-sm leading-snug">{ext.title}</div>
+                        <div className="text-slate-400 text-[11px] mt-0.5 leading-snug">{ext.subtitle}</div>
+                      </div>
                       {ext.badge && (
-                        <span className="px-2.5 py-1 rounded-lg bg-blue-500/20 text-cyan-300 text-[10px] font-bold shrink-0">
+                        <span className="self-start sm:self-center px-2.5 py-1 rounded-lg bg-blue-500/20 text-cyan-300 text-[10px] font-bold shrink-0">
                           {ext.badge}
                         </span>
                       )}
-                      <div className="text-right flex-1">
-                        <div className="text-white font-black text-xs sm:text-sm">{ext.title}</div>
-                        <div className="text-slate-400 text-[11px] mt-0.5">{ext.subtitle}</div>
-                      </div>
                     </div>
                   ))}
 
                   {/* Address Card (Connected Live to BLK-HOME-CONTACT itemsList[3]) */}
-                  <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-start gap-3">
+                  <div className="bg-[#0f172a] border border-slate-800 rounded-2xl p-4 space-y-3 overflow-hidden">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
                         <MapPin className="w-5 h-5" />
                       </div>
-                      <div className="text-right space-y-0.5">
+                      <div className="text-right space-y-1 min-w-0 flex-1">
                         <div className="text-amber-400 font-bold text-xs">
                           {addressTitleLabel}
                         </div>
@@ -2349,14 +2841,14 @@ export const FatehanStorefrontHome: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400">{addressHoursText}</span>
+                    <div className="pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <span className="text-slate-400 leading-snug">{addressHoursText}</span>
                       <button
                         type="button"
                         onClick={() =>
                           handleCopy(addressExactText, 'addr', 'آدرس آموزشگاه')
                         }
-                        className="text-[#22d3ee] font-bold hover:underline cursor-pointer"
+                        className="text-[#22d3ee] font-bold hover:underline cursor-pointer whitespace-nowrap shrink-0"
                       >
                         {copiedKey === 'addr' ? 'کپی شد!' : 'کپی آدرس'}
                       </button>

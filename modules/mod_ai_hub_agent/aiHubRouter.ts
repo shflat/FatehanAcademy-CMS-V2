@@ -21,6 +21,8 @@ import {
 import { registerSuperAdminAgentRoutes } from './aiAgentSubRouter.js';
 import { registerSystemLogErrorHook } from '../../src/server/database/settingsLogsRepo.js';
 import {
+  buildSystemErrorSignatureKey,
+  markHeartbeatErrorSeen,
   sendSuperAdminBaleAlert,
   startDailyMorningBriefingScheduler,
   startZeroTokenHeartbeatScheduler,
@@ -46,7 +48,8 @@ export function createAiHubAgentRouter(): express.Router {
       if (/bale_alert_bridge|agent_bale_bridge|bot-bridge/i.test(`${endpointStr} ${titleStr}`)) {
         return;
       }
-      const normalizedKey = `err:${entry.category}:${titleStr.toLowerCase().replace(/\d+/g, '#').slice(0, 80)}`;
+      const sigKey = buildSystemErrorSignatureKey(entry.category, titleStr, entry.detail);
+      markHeartbeatErrorSeen(entry.id, sigKey);
       await sendSuperAdminBaleAlert({
         category: 'critical_error',
         title: titleStr || 'خطای بحرانی سامانه',
@@ -55,8 +58,8 @@ export function createAiHubAgentRouter(): express.Router {
           `جزئیات: ${String(entry.detail || '-').slice(0, 260)}`,
           endpointStr ? `مسیر: ${endpointStr}` : '',
         ].filter(Boolean),
-        dedupKey: normalizedKey,
-        cooldownMs: 5 * 60 * 1000,
+        dedupKey: sigKey,
+        cooldownMs: 10 * 60 * 1000,
       });
     });
   }

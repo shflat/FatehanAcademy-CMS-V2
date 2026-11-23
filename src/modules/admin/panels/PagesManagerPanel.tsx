@@ -38,7 +38,7 @@ function createEmptyPageDraft(): CmsDynamicPage {
     seoTitle: '',
     seoDescription: '',
     canonicalUrl: '',
-    ogImage: '/logo-skill98.svg',
+    ogImage: '/assets/aistudio/logo_8c26749f.webp',
     schemaType: 'WebPage',
     updatedAt: new Date().toISOString(),
     composerRows: [

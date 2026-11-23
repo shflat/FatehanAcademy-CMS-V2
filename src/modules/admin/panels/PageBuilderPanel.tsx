@@ -68,9 +68,9 @@ export const PageBuilderPanel: React.FC<PageBuilderPanelProps> = ({
           <div className="flex items-center gap-3 shrink-0">
             <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#0F172A] border border-stone-200 dark:border-slate-700 flex items-center gap-2">
               <img
-                src={themeConfig.logoUrl || '/logo-skill98.svg'}
+                src={themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
                 alt="لوگوی فعال"
-                className="w-7 h-7 object-contain rounded-md"
+                className="w-7 h-7 object-contain"
               />
               <span className="text-[11px] font-bold text-stone-700 dark:text-slate-200">
                 لوگوی فعلی
@@ -78,9 +78,9 @@ export const PageBuilderPanel: React.FC<PageBuilderPanelProps> = ({
             </div>
             <div className="px-3 py-1.5 rounded-xl bg-white dark:bg-[#0F172A] border border-stone-200 dark:border-slate-700 flex items-center gap-2">
               <img
-                src={themeConfig.faviconUrl || '/favicon.svg'}
+                src={themeConfig.faviconUrl || '/assets/aistudio/logo_8c26749f.webp'}
                 alt="فاویکون فعال"
-                className="w-5 h-5 object-contain rounded-xs"
+                className="w-5 h-5 object-contain"
               />
               <span className="text-[11px] font-bold text-stone-700 dark:text-slate-200">
                 فاویکون تب مرورگر
@@ -98,7 +98,7 @@ export const PageBuilderPanel: React.FC<PageBuilderPanelProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {BRAND_LOGO_PRESETS.map((preset) => {
                 const isSelected =
-                  (themeConfig.logoUrl || '/logo-skill98.svg') === preset.url;
+                  (themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp') === preset.url;
                 return (
                   <button
                     key={preset.id}
@@ -130,11 +130,11 @@ export const PageBuilderPanel: React.FC<PageBuilderPanelProps> = ({
               <input
                 type="text"
                 dir="ltr"
-                value={themeConfig.logoUrl || '/logo-skill98.svg'}
+                value={themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
                 onChange={(e) =>
                   onUpdateTheme({ ...themeConfig, logoUrl: e.target.value })
                 }
-                placeholder="/logo-skill98.svg یا آدرس تصویر لوگو..."
+                placeholder="/assets/aistudio/logo_8c26749f.webp یا آدرس تصویر لوگو..."
                 className="flex-1 px-3 py-2 text-xs rounded-xl border border-stone-300 dark:border-slate-700 bg-white dark:bg-[#0F172A] text-stone-900 dark:text-white"
               />
               <label className="px-3.5 py-2 text-xs font-extrabold rounded-xl bg-stone-900 dark:bg-slate-800 text-white hover:bg-[#1D4ED8] transition-colors cursor-pointer text-center whitespace-nowrap">
@@ -168,7 +168,7 @@ export const PageBuilderPanel: React.FC<PageBuilderPanelProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {BRAND_FAVICON_PRESETS.map((preset) => {
                 const isSelected =
-                  (themeConfig.faviconUrl || '/favicon.svg') === preset.url;
+                  (themeConfig.faviconUrl || '/assets/aistudio/logo_8c26749f.webp') === preset.url;
                 return (
                   <button
                     key={preset.id}
@@ -200,11 +200,11 @@ export const PageBuilderPanel: React.FC<PageBuilderPanelProps> = ({
               <input
                 type="text"
                 dir="ltr"
-                value={themeConfig.faviconUrl || '/favicon.svg'}
+                value={themeConfig.faviconUrl || '/assets/aistudio/logo_8c26749f.webp'}
                 onChange={(e) =>
                   onUpdateTheme({ ...themeConfig, faviconUrl: e.target.value })
                 }
-                placeholder="/favicon.svg یا آدرس فاویکون..."
+                placeholder="/assets/aistudio/logo_8c26749f.webp یا آدرس فاویکون..."
                 className="flex-1 px-3 py-2 text-xs rounded-xl border border-stone-300 dark:border-slate-700 bg-white dark:bg-[#0F172A] text-stone-900 dark:text-white"
               />
               <label className="px-3.5 py-2 text-xs font-extrabold rounded-xl bg-stone-900 dark:bg-slate-800 text-white hover:bg-[#1D4ED8] transition-colors cursor-pointer text-center whitespace-nowrap">

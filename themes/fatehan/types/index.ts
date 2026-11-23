@@ -93,6 +93,7 @@ export interface CmsSiteSettings {
   domain: string;
   url: string;
   logoUrl: string;
+  headerLogoSizePx?: number;
   taglinePrimary: string;
   taglineSecondary: string;
   mottoEn: string;
@@ -123,6 +124,7 @@ export interface CmsSiteSettings {
     instagramUrl: string;
     eitaaId: string;
     eitaaUrl: string;
+    eitaaLogoUrl?: string;
     baleId?: string;
     baleUrl?: string;
     whatsappUrl?: string;
@@ -146,6 +148,7 @@ export interface TypographyConfig {
   instagramUrl?: string;
   eitaaId?: string;
   eitaaUrl?: string;
+  eitaaLogoUrl?: string;
   baleId?: string;
   baleUrl?: string;
   enamadHtmlCode?: string;
@@ -665,7 +668,14 @@ export interface CmsApiAdapter {
     phone: string;
     code: string;
     fullName?: string;
-  }) => Promise<{ ok: boolean; verified?: boolean; user?: LoggedInCustomer; message?: string; error?: string }>;
+  }) => Promise<{
+    ok: boolean;
+    verified?: boolean;
+    user?: LoggedInCustomer;
+    sessionToken?: string;
+    message?: string;
+    error?: string;
+  }>;
   saveCustomerAddress: (payload: Omit<CustomerSavedAddress, 'id'>) => Promise<{ ok: boolean; error?: string }>;
   deleteCustomerAddress: (addressId: string) => Promise<{ ok: boolean; error?: string }>;
   createPaymentRequest: (payload: Record<string, unknown>) => Promise<{

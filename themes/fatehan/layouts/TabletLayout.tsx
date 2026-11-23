@@ -19,7 +19,7 @@ export const TabletLayout: React.FC = () => {
   return (
     <div className="viewport-tablet min-h-screen bg-slate-100 py-4">
       <SmoothScrollProgressBar />
-      <div className="max-w-[920px] mx-auto bg-[#F4F7FE] text-slate-900 border border-slate-200 rounded-2xl shadow-xl overflow-hidden min-h-[92vh]">
+      <div className="max-w-[920px] mx-auto bg-[#F4F7FE] text-slate-900 border border-slate-200 rounded-2xl shadow-xl overflow-x-clip min-h-[92vh]">
         <StorefrontHeader />
         <main className="px-5 pb-12">
           <StorefrontRouter />

@@ -19,6 +19,7 @@ import {
   ViewportMode,
 } from '../types';
 import { createCmsV2ApiAdapter } from './cmsApiAdapter';
+import { getAuthHeaders } from '../../../src/core/apiClient';
 import {
   DEFAULT_DEPARTMENTS,
   DEFAULT_FALLBACK_ANNOUNCEMENTS,
@@ -68,6 +69,13 @@ export interface FatehanThemeContextValue {
   setIsOtpModalOpen: (open: boolean) => void;
   loggedInCustomer: LoggedInCustomer | null;
   setLoggedInCustomer: React.Dispatch<React.SetStateAction<LoggedInCustomer | null>>;
+  canAccessAdmin: boolean;
+  openAdminPanel?: () => void;
+  syncAuthSession: (user: LoggedInCustomer | null, sessionToken?: string) => void;
+  logoutCustomer: () => Promise<void>;
+  onGoogleLogin?: () => Promise<void>;
+  headerLogoSizePx: number;
+  updateHeaderLogoSize: (nextPx: number, persist?: boolean) => void;
 }
 
 const FatehanThemeContext = createContext<FatehanThemeContextValue | undefined>(undefined);
@@ -112,6 +120,11 @@ function mergeStorefrontData(partial?: Partial<CmsStorefrontData>): CmsStorefron
         partial?.settings?.social?.eitaaUrl ||
         mergedTypo.eitaaUrl ||
         DEFAULT_SITE_SETTINGS.social.eitaaUrl,
+      eitaaLogoUrl:
+        partial?.settings?.social?.eitaaLogoUrl ??
+        mergedTypo.eitaaLogoUrl ??
+        DEFAULT_SITE_SETTINGS.social.eitaaLogoUrl ??
+        '',
       baleId: partial?.settings?.social?.baleId ?? mergedTypo.baleId ?? '',
       baleUrl: partial?.settings?.social?.baleUrl || mergedTypo.baleUrl || '',
     },
@@ -177,6 +190,18 @@ export interface FatehanThemeProviderProps {
   onNavigate?: (path: string) => void;
   /** Optional forced viewport mode for visual previews */
   forcedViewport?: ViewportMode;
+  /** Optional authenticated user synced from host CMS App */
+  hostUser?: LoggedInCustomer | null;
+  /** Optional callback to open host CMS Admin Panel */
+  onOpenAdminPanel?: () => void;
+  /** Optional callback to sync login/logout changes back to host CMS App */
+  onAuthSessionSync?: (user: LoggedInCustomer | null, sessionToken?: string) => void;
+  /** Optional Google Sign-In handler bridged from host CMS App */
+  onGoogleLogin?: () => Promise<void>;
+  /** Optional header logo height/width in pixels synced from host CMS App */
+  headerLogoSizePx?: number;
+  /** Optional callback to update/persist header logo size in host CMS App */
+  onUpdateHeaderLogoSize?: (sizePx: number, persist?: boolean) => void;
 }
 
 export const FatehanThemeProvider: React.FC<FatehanThemeProviderProps> = ({
@@ -186,10 +211,28 @@ export const FatehanThemeProvider: React.FC<FatehanThemeProviderProps> = ({
   controlledPath,
   onNavigate,
   forcedViewport,
+  hostUser,
+  onOpenAdminPanel,
+  onAuthSessionSync,
+  onGoogleLogin,
+  headerLogoSizePx: hostHeaderLogoSizePx,
+  onUpdateHeaderLogoSize,
 }) => {
   const adapter = useMemo(() => customAdapter || createCmsV2ApiAdapter(), [customAdapter]);
 
   const [state, setState] = useState<CmsStorefrontData>(() => mergeStorefrontData(initialData));
+  const [headerLogoSizePx, setHeaderLogoSizePxState] = useState<number>(() => {
+    const initial = hostHeaderLogoSizePx ?? initialData?.settings?.headerLogoSizePx ?? 68;
+    return Math.min(128, Math.max(32, Number(initial) || 68));
+  });
+
+  useEffect(() => {
+    const incoming = hostHeaderLogoSizePx ?? state.settings.headerLogoSizePx;
+    if (typeof incoming === 'number' && Number.isFinite(incoming)) {
+      setHeaderLogoSizePxState(Math.min(128, Math.max(32, Math.round(incoming))));
+    }
+  }, [hostHeaderLogoSizePx, state.settings.headerLogoSizePx]);
+
   const [loading, setLoading] = useState<boolean>(!initialData);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isRouteTransitioning, setIsRouteTransitioning] = useState<boolean>(false);
@@ -225,9 +268,17 @@ export const FatehanThemeProvider: React.FC<FatehanThemeProviderProps> = ({
   // Video Modal state
   const [activeVideoModal, setActiveVideoModal] = useState<VideoModalPayload>({ open: false });
 
-  // Customer OTP Auth state — hydrated strictly from server HttpOnly session (never localStorage)
+  // Customer OTP Auth state — hydrated strictly from server session + synced with host CMS
   const [isOtpModalOpen, setIsOtpModalOpen] = useState<boolean>(false);
-  const [loggedInCustomer, setLoggedInCustomer] = useState<LoggedInCustomer | null>(null);
+  const [loggedInCustomer, setLoggedInCustomer] = useState<LoggedInCustomer | null>(
+    () => hostUser ?? null
+  );
+
+  useEffect(() => {
+    if (hostUser !== undefined) {
+      setLoggedInCustomer(hostUser);
+    }
+  }, [hostUser]);
 
   useEffect(() => {
     try {
@@ -244,24 +295,46 @@ export const FatehanThemeProvider: React.FC<FatehanThemeProviderProps> = ({
       // ignore
     }
     let cancelled = false;
-    fetch('/api/auth/session', { cache: 'no-store', credentials: 'include' })
+    fetch('/api/auth/session', {
+      cache: 'no-store',
+      credentials: 'include',
+      headers: getAuthHeaders(),
+    })
       .then((res) => (res.ok ? res.json() : { authenticated: false }))
-      .then((data: { authenticated?: boolean; user?: { phone?: string; fullName?: string; role?: string } }) => {
-        if (cancelled) return;
-        if (data?.authenticated && data.user?.phone) {
-          setLoggedInCustomer({
-            fullName: data.user.fullName || 'کاربر',
-            phone: data.user.phone,
-            verified: true,
-            walletBalanceToman: 0,
-            role: data.user.role || 'customer',
-          });
-        } else {
-          setLoggedInCustomer(null);
+      .then(
+        (data: {
+          authenticated?: boolean;
+          sessionToken?: string;
+          user?: { phone?: string; fullName?: string; role?: string; roleId?: string };
+        }) => {
+          if (cancelled) return;
+          if (data?.authenticated && data.user?.phone) {
+            const resolvedRole = data.user.role || 'customer';
+            const nextUser: LoggedInCustomer = {
+              fullName:
+                data.user.fullName ||
+                (resolvedRole === 'super_admin'
+                  ? 'مدیر ارشد سیستم'
+                  : resolvedRole === 'admin'
+                  ? 'ادمین سیستم'
+                  : 'کاربر'),
+              phone: data.user.phone,
+              verified: true,
+              walletBalanceToman: 0,
+              role: resolvedRole,
+              roleId: data.user.roleId,
+            };
+            setLoggedInCustomer(nextUser);
+            if (!hostUser) {
+              onAuthSessionSync?.(nextUser, data.sessionToken);
+            }
+          } else if (hostUser === undefined) {
+            setLoggedInCustomer(null);
+          }
         }
-      })
+      )
       .catch(() => {
-        if (!cancelled) setLoggedInCustomer(null);
+        if (!cancelled && hostUser === undefined) setLoggedInCustomer(null);
       });
     return () => {
       cancelled = true;
@@ -430,6 +503,40 @@ export const FatehanThemeProvider: React.FC<FatehanThemeProviderProps> = ({
     setActiveVideoModal((prev) => ({ ...prev, open: false }));
   }, []);
 
+  const syncAuthSession = useCallback(
+    (user: LoggedInCustomer | null, sessionToken?: string) => {
+      setLoggedInCustomer(user);
+      onAuthSessionSync?.(user, sessionToken);
+    },
+    [onAuthSessionSync]
+  );
+
+  const logoutCustomer = useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: getAuthHeaders(),
+      });
+    } catch {
+      // ignore network error
+    }
+    setLoggedInCustomer(null);
+    onAuthSessionSync?.(null);
+  }, [onAuthSessionSync]);
+
+  const updateHeaderLogoSize = useCallback(
+    (nextPx: number, persist = false) => {
+      const clamped = Math.min(128, Math.max(32, Math.round(nextPx)));
+      setHeaderLogoSizePxState(clamped);
+      onUpdateHeaderLogoSize?.(clamped, persist);
+    },
+    [onUpdateHeaderLogoSize]
+  );
+
+  const canAccessAdmin =
+    loggedInCustomer?.role === 'super_admin' || loggedInCustomer?.role === 'admin';
+
   const value: FatehanThemeContextValue = {
     state,
     settings: state.settings,
@@ -459,6 +566,13 @@ export const FatehanThemeProvider: React.FC<FatehanThemeProviderProps> = ({
     setIsOtpModalOpen,
     loggedInCustomer,
     setLoggedInCustomer,
+    canAccessAdmin,
+    openAdminPanel: onOpenAdminPanel,
+    syncAuthSession,
+    logoutCustomer,
+    onGoogleLogin,
+    headerLogoSizePx,
+    updateHeaderLogoSize,
   };
 
   return <FatehanThemeContext.Provider value={value}>{children}</FatehanThemeContext.Provider>;

@@ -76,9 +76,9 @@ export const MobileLayout: React.FC = () => {
   };
 
   return (
-    <div className="viewport-mobile min-h-screen bg-slate-100 py-2">
+    <div className="viewport-mobile min-h-screen bg-slate-100 sm:py-2">
       <SmoothScrollProgressBar />
-      <div className="max-w-[430px] mx-auto bg-[#F4F7FE] text-slate-900 border border-slate-200 rounded-3xl shadow-xl overflow-hidden pb-18 min-h-[92vh] relative">
+      <div className="max-w-[430px] mx-auto bg-[#F4F7FE] text-slate-900 sm:border sm:border-slate-200 sm:rounded-3xl shadow-xl overflow-x-clip pb-20 min-h-screen relative">
         <StorefrontHeader />
 
         <main className="px-3.5 pb-10">

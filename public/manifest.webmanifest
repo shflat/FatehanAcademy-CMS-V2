@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "اسکیل ۹۸ | سامانه جامع مدیریت محتوا و فروشگاه",
-  "short_name": "اسکیل ۹۸",
-  "description": "فروشگاه تخصصی اسکیل‌ها، محصولات دیجیتال و مدیریت محتوای بومی با پشتیبانی آفلاین PWA",
+  "name": "آموزشگاه رباتیک فاتحان | سامانه آموزشی و فروشگاهی",
+  "short_name": "فاتحان",
+  "description": "آموزشگاه تخصصی رباتیک، کدنویسی و هوش مصنوعی فاتحان با پشتیبانی آفلاین PWA",
   "dir": "rtl",
   "lang": "fa",
   "start_url": "/",
@@ -12,6 +12,12 @@
   "theme_color": "#1D4ED8",
   "background_color": "#0F172A",
   "icons": [
+    {
+      "src": "/assets/aistudio/logo_8c26749f.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    },
     {
       "src": "/pwa-192x192.png",
       "sizes": "192x192",

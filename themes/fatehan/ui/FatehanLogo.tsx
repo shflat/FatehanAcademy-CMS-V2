@@ -12,6 +12,7 @@ import { useFatehanTheme } from '../context/FatehanThemeContext';
 
 export interface FatehanLogoProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  customSizePx?: number;
   variant?: 'mark' | 'full' | 'compact' | 'hero';
   theme?: 'light' | 'dark';
   showSubtitle?: boolean;
@@ -57,8 +58,11 @@ const SIZE_STYLES: Record<
   },
 };
 
+const DEFAULT_LOGO_FALLBACK = '/assets/aistudio/logo_8c26749f.webp';
+
 export const FatehanLogo: React.FC<FatehanLogoProps> = ({
   size = 'md',
+  customSizePx,
   variant = 'full',
   theme = 'light',
   showSubtitle = true,
@@ -71,28 +75,32 @@ export const FatehanLogo: React.FC<FatehanLogoProps> = ({
   const [imgError, setImgError] = useState(false);
   const cfg = SIZE_STYLES[size];
 
-  const logoSrc = logoUrlOverride || settings.logoUrl;
+  const logoSrc = logoUrlOverride || settings.logoUrl || DEFAULT_LOGO_FALLBACK;
   const titleFa = titleOverride || settings.academyNameFa;
   const subtitleEn = subtitleOverride || settings.academyNameEn;
   const cityLabel = settings.location.city || 'اندیشه';
+  const hasCustomPx = typeof customSizePx === 'number' && Number.isFinite(customSizePx);
 
   return (
     <div className={`inline-flex items-center ${cfg.gap} select-none whitespace-nowrap ${className}`}>
-      <div className={`relative ${cfg.imgSize} shrink-0 flex items-center justify-center`}>
-        {!imgError ? (
-          <img
-            src={logoSrc}
-            alt={titleFa}
-            className="w-full h-full object-contain filter drop-shadow-[0_2px_6px_rgba(27,77,219,0.25)] hover:scale-105 transition-transform duration-200"
-            onError={() => setImgError(true)}
-            loading="eager"
-          />
-        ) : (
-          <div className="w-full h-full rounded-xl flex items-center justify-center bg-blue-600 text-white font-black text-xs shadow-xs">
-            <span>فاتحان</span>
-          </div>
-        )}
-      </div>
+      {!imgError ? (
+        <img
+          src={logoSrc}
+          alt={titleFa}
+          style={
+            hasCustomPx
+              ? { width: `${customSizePx}px`, height: `${customSizePx}px` }
+              : undefined
+          }
+          className={`${
+            hasCustomPx ? '' : cfg.imgSize
+          } shrink-0 block object-contain bg-transparent border-0 p-0 hover:scale-105 transition-all duration-150`}
+          onError={() => setImgError(true)}
+          loading="eager"
+        />
+      ) : (
+        <span className="font-black text-sm text-blue-700 shrink-0">فاتحان</span>
+      )}
 
       {variant !== 'mark' && (
         <div className="flex flex-col text-right leading-tight whitespace-nowrap">

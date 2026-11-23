@@ -212,11 +212,22 @@ export interface SeoCrawlVisibilityConfig {
   customLlmsIntro?: string;
 }
 
+export interface SocialChannelsConfig {
+  instagramId?: string;
+  instagramUrl?: string;
+  eitaaId?: string;
+  eitaaUrl?: string;
+  eitaaLogoUrl?: string;
+  baleId?: string;
+  baleUrl?: string;
+}
+
 export interface ThemeConfig {
   brandNameFa: string;
   brandNameEn: string;
   logoUrl?: string;
   faviconUrl?: string;
+  headerLogoSizePx?: number;
   heroBadgeText?: string;
   heroTitleLine1: string;
   heroTitleAccent: string;
@@ -234,6 +245,7 @@ export interface ThemeConfig {
   footerDescription?: string;
   siteDescription?: string;
   footerTrustBadges?: FooterTrustBadgesConfig;
+  socialChannels?: SocialChannelsConfig;
   topAnnouncementText?: string;
   showTopAnnouncement?: boolean;
   accentPreset: AccentPresetId;

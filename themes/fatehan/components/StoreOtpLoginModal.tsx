@@ -10,7 +10,7 @@ export const StoreOtpLoginModal: React.FC = () => {
     isOtpModalOpen,
     setIsOtpModalOpen,
     loggedInCustomer,
-    setLoggedInCustomer,
+    syncAuthSession,
     adapter,
     settings,
     notify,
@@ -46,7 +46,7 @@ export const StoreOtpLoginModal: React.FC = () => {
     try {
       const result = await adapter.verifyOtp({ phone, code: enteredCode, fullName });
       if (result.ok && result.verified && result.user) {
-        setLoggedInCustomer(result.user);
+        syncAuthSession(result.user, result.sessionToken);
         await refreshState();
         notify(result.message || 'ورود پیامکی با موفقیت انجام شد.');
         setIsOtpModalOpen(false);

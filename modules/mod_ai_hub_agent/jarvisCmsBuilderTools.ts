@@ -164,7 +164,7 @@ export async function runCreateOrUpdatePageTool(
       seoTitle,
       seoDescription,
       `/page/${slug}`,
-      '/logo-skill98.svg',
+      '/assets/aistudio/logo_8c26749f.webp',
       schemaType,
       JSON.stringify(composerRows),
       nowIso,

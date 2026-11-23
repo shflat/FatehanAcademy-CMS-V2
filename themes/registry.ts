@@ -41,7 +41,7 @@ export const THEME_REGISTRY: Record<RegisteredThemeId, RegisteredThemeDefinition
       'mod_subscriptions',
       'mod_smart_crm',
     ],
-    badgeText: 'پوسته پیش‌فرض هسته',
+    badgeText: 'پوسته استودیویی اسکیل ۹۸',
   },
   fatehan: {
     id: 'fatehan',
@@ -54,7 +54,7 @@ export const THEME_REGISTRY: Record<RegisteredThemeId, RegisteredThemeDefinition
     previewAccentHex: fatehanThemeManifest.designTokens?.primary || '#1d4ed8',
     previewBgHex: fatehanThemeManifest.designTokens?.background || '#F4F7FE',
     recommendedModules: ['mod_academy_suite', 'mod_payment_hub', 'mod_live_chat', 'mod_forms'],
-    badgeText: 'پوسته آکادمی و آموزش',
+    badgeText: 'پوسته پیش‌فرض هسته',
     renderStandaloneRoot: (props: FatehanThemeRootProps) =>
       React.createElement(
         React.Suspense,
@@ -78,13 +78,13 @@ export const THEME_REGISTRY: Record<RegisteredThemeId, RegisteredThemeDefinition
 };
 
 export const REGISTERED_THEMES_LIST: RegisteredThemeDefinition[] = [
-  THEME_REGISTRY.default,
   THEME_REGISTRY.fatehan,
+  THEME_REGISTRY.default,
 ];
 
 export function resolveRegisteredTheme(themeId?: string | null): RegisteredThemeDefinition {
-  if (themeId === 'fatehan') return THEME_REGISTRY.fatehan;
-  return THEME_REGISTRY.default;
+  if (themeId === 'default') return THEME_REGISTRY.default;
+  return THEME_REGISTRY.fatehan;
 }
 
 export { createCmsV2ApiAdapter };

@@ -21,6 +21,7 @@ import {
   PaymentGatewayConfig,
 } from '../types';
 import { getAuthHeaders, writeStoredSession } from '../../../src/core/apiClient';
+import { DEFAULT_FATEHAN_HARDWARE_PRODUCTS } from '../utils/defaultFallbacks';
 
 export interface CmsApiAdapterOptions {
   /** Base URL of CMS Core API ('' for same-origin) */
@@ -102,6 +103,7 @@ interface CoreBootstrapPayload {
     brandNameFa?: string;
     brandNameEn?: string;
     logoUrl?: string;
+    headerLogoSizePx?: number;
     heroSubtitle?: string;
     topAnnouncementText?: string;
     footerDescription?: string;
@@ -112,6 +114,15 @@ interface CoreBootstrapPayload {
       secondBadgeImageUrl?: string;
       secondBadgeLabel?: string;
       secondBadgeLinkUrl?: string;
+    };
+    socialChannels?: {
+      instagramId?: string;
+      instagramUrl?: string;
+      eitaaId?: string;
+      eitaaUrl?: string;
+      eitaaLogoUrl?: string;
+      baleId?: string;
+      baleUrl?: string;
     };
   };
 }
@@ -236,13 +247,37 @@ export function createCmsV2ApiAdapter(options: CmsApiAdapterOptions = {}): CmsAp
         }));
 
       const tc = coreBoot?.themeConfig;
+      const sc = tc?.socialChannels;
       const settingsPatch = tc
         ? {
             academyNameFa: tc.brandNameFa || 'آموزشگاه رباتیک فاتحان',
             academyNameEn: tc.brandNameEn || 'Fatehan Robotics Academy',
-            logoUrl: tc.logoUrl || '/assets/aistudio/fatehan_logo_transparent.png',
+            logoUrl: tc.logoUrl || '/assets/aistudio/logo_8c26749f.webp',
+            headerLogoSizePx:
+              typeof tc.headerLogoSizePx === 'number' && tc.headerLogoSizePx >= 32
+                ? tc.headerLogoSizePx
+                : 68,
             announcementTopBarText: tc.topAnnouncementText,
             description: tc.heroSubtitle || '',
+            ...(sc
+              ? {
+                  social: {
+                    instagramId: sc.instagramId || 'fatehan.robot',
+                    instagramUrl:
+                      sc.instagramUrl ||
+                      `https://instagram.com/${(sc.instagramId || 'fatehan.robot').replace(/^@/, '')}`,
+                    eitaaId: sc.eitaaId ?? 'fatehan_robotics',
+                    eitaaUrl:
+                      sc.eitaaUrl ||
+                      (sc.eitaaId ? `https://eitaa.com/${sc.eitaaId.replace(/^@/, '')}` : ''),
+                    eitaaLogoUrl: sc.eitaaLogoUrl || '',
+                    baleId: sc.baleId || '',
+                    baleUrl:
+                      sc.baleUrl ||
+                      (sc.baleId ? `https://ble.ir/${sc.baleId.replace(/^@/, '')}` : ''),
+                  },
+                }
+              : {}),
             typography: {
               headingFont: 'YekanBakh' as const,
               bodyFont: 'IRANSansX' as const,
@@ -250,6 +285,17 @@ export function createCmsV2ApiAdapter(options: CmsApiAdapterOptions = {}): CmsAp
               printPaperDefault: 'A4' as const,
               baseScalePx: 15,
               footerAboutText: tc.footerDescription,
+              ...(sc
+                ? {
+                    instagramId: sc.instagramId,
+                    instagramUrl: sc.instagramUrl,
+                    eitaaId: sc.eitaaId,
+                    eitaaUrl: sc.eitaaUrl,
+                    eitaaLogoUrl: sc.eitaaLogoUrl,
+                    baleId: sc.baleId,
+                    baleUrl: sc.baleUrl,
+                  }
+                : {}),
               enamadHtmlCode: tc.footerTrustBadges?.enamadHtmlCode,
               enamadUseCustomImage: tc.footerTrustBadges?.enamadMode === 'image',
               enamadCustomImageUrl: tc.footerTrustBadges?.enamadImageUrl,
@@ -260,6 +306,20 @@ export function createCmsV2ApiAdapter(options: CmsApiAdapterOptions = {}): CmsAp
           }
         : undefined;
 
+      // Prefer department-categorized Fatehan hardware products; supplement with defaults if DB only has legacy AI skill items
+      const dbDeptProducts = mappedProducts.filter((p) =>
+        (p.category || '').includes('دپارتمان')
+      );
+      const finalProducts: ProductItem[] =
+        dbDeptProducts.length >= 6
+          ? dbDeptProducts
+          : [
+              ...dbDeptProducts,
+              ...DEFAULT_FATEHAN_HARDWARE_PRODUCTS.filter(
+                (def) => !dbDeptProducts.some((p) => p.id === def.id || p.slug === def.slug)
+              ),
+            ];
+
       return {
         ...(settingsPatch
           ? {
@@ -267,7 +327,7 @@ export function createCmsV2ApiAdapter(options: CmsApiAdapterOptions = {}): CmsAp
               typography: settingsPatch.typography,
             }
           : {}),
-        ...(mappedProducts.length > 0 ? { products: mappedProducts } : {}),
+        products: finalProducts,
         ...(mappedPosts.length > 0 ? { cmsPosts: mappedPosts } : {}),
         ...(mappedGateways.length > 0 ? { paymentGateways: mappedGateways } : {}),
         ...(mappedCoupons.length > 0 ? { coupons: mappedCoupons } : {}),
@@ -344,26 +404,38 @@ export function createCmsV2ApiAdapter(options: CmsApiAdapterOptions = {}): CmsAp
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok && (data.sessionToken || data.token)) {
+      const resolvedRole =
+        data.role === 'super_admin' || data.role === 'admin' ? data.role : 'customer';
+      const resolvedFullName =
+        data.displayName ||
+        data.fullName ||
+        payload.fullName ||
+        (resolvedRole === 'super_admin'
+          ? 'مدیر ارشد سیستم'
+          : resolvedRole === 'admin'
+          ? 'ادمین سیستم'
+          : 'کاربر');
+      const resolvedSessionToken = data.sessionToken || data.token;
+      if (res.ok && resolvedSessionToken) {
         writeStoredSession({
-          sessionToken: data.sessionToken || data.token,
+          sessionToken: resolvedSessionToken,
           phone: data.phone || payload.phone,
-          fullName: data.displayName || data.fullName || payload.fullName || 'کاربر',
-          userRole:
-            data.role === 'super_admin' || data.role === 'admin' ? data.role : 'customer',
+          fullName: resolvedFullName,
+          userRole: resolvedRole,
           roleId: data.roleId || 'role_customer',
         });
       }
       return {
         ok: res.ok,
         verified: Boolean(res.ok && (data.verified || data.ok)),
+        sessionToken: resolvedSessionToken,
         user: res.ok
           ? {
-              fullName: data.fullName || payload.fullName || 'کاربر',
+              fullName: resolvedFullName,
               phone: data.phone || payload.phone,
               verified: true,
               walletBalanceToman: 0,
-              role: data.role || 'customer',
+              role: resolvedRole,
               roleId: data.roleId,
             }
           : undefined,

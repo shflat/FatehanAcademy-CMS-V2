@@ -1084,8 +1084,11 @@ export const CustomerAccountDashboardPage: React.FC = () => {
     settings,
     adapter,
     loggedInCustomer,
-    setLoggedInCustomer,
-    setIsOtpModalOpen,
+    canAccessAdmin,
+    openAdminPanel,
+    syncAuthSession,
+    logoutCustomer,
+    onGoogleLogin,
     navigateStore,
     refreshState,
     notify,
@@ -1198,10 +1201,15 @@ export const CustomerAccountDashboardPage: React.FC = () => {
     try {
       const data = await adapter.verifyOtp({ phone: loginPhone, code: loginCode });
       if (data.ok && data.verified && data.user) {
-        setLoggedInCustomer(data.user);
+        syncAuthSession(data.user, data.sessionToken);
         await refreshState();
         setActiveTab('dashboard');
-        notify(data.message || 'ورود به حساب کاربری با موفقیت انجام شد.');
+        notify(
+          data.message ||
+            (data.user.role === 'super_admin' || data.user.role === 'admin'
+              ? 'ورود مدیریت تایید شد! اکنون می‌توانید وارد پنل مدیریت CMS شوید.'
+              : 'ورود به حساب کاربری با موفقیت انجام شد.')
+        );
       } else {
         notify(data.error || 'شماره موبایل یا کد امنیتی وارد شده معتبر نیست.');
       }
@@ -1338,11 +1346,28 @@ export const CustomerAccountDashboardPage: React.FC = () => {
             >
               {isVerifyingCode ? 'در حال بررسی و احراز هویت...' : 'تایید و ورود به حساب کاربری'}
             </button>
+
+            {onGoogleLogin && (
+              <button
+                type="button"
+                onClick={() => void onGoogleLogin()}
+                className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-300 text-xs font-bold rounded-xl cursor-pointer transition-colors"
+              >
+                ورود سریع با حساب گوگل (Google Sign-In)
+              </button>
+            )}
           </form>
         </div>
       </div>
     );
   }
+
+  const roleDisplayFa =
+    loggedInCustomer.role === 'super_admin'
+      ? 'مدیر ارشد سیستم (سوپر ادمین)'
+      : loggedInCustomer.role === 'admin'
+      ? 'ادمین سیستم'
+      : 'کاربر / کارآموز';
 
   return (
     <div className="py-6 space-y-6">
@@ -1354,7 +1379,9 @@ export const CustomerAccountDashboardPage: React.FC = () => {
           </div>
           <div className="space-y-0.5">
             <div className="text-[11px] font-mono text-amber-400">
-              CUSTOMER PORTAL & DASHBOARD · /MY-ACCOUNT
+              {canAccessAdmin
+                ? 'SUPER ADMIN & ACCOUNT PORTAL · /MY-ACCOUNT'
+                : 'CUSTOMER PORTAL & DASHBOARD · /MY-ACCOUNT'}
             </div>
             <h1 className="text-base sm:text-xl font-extrabold">{loggedInCustomer.fullName}</h1>
             <div className="text-xs text-slate-300 flex flex-wrap items-center gap-3">
@@ -1362,12 +1389,28 @@ export const CustomerAccountDashboardPage: React.FC = () => {
                 {loggedInCustomer.phone}
               </span>
               <span>·</span>
-              <span className="text-emerald-400 font-bold">{loggedInCustomer.role}</span>
+              <span
+                className={
+                  canAccessAdmin ? 'text-amber-400 font-extrabold' : 'text-emerald-400 font-bold'
+                }
+              >
+                {roleDisplayFa}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {canAccessAdmin && openAdminPanel && (
+            <button
+              type="button"
+              onClick={() => openAdminPanel()}
+              className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black rounded-xl cursor-pointer inline-flex items-center gap-1.5 shadow-md"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>ورود به پنل مدیریت CMS / تغییر پوسته</span>
+            </button>
+          )}
           <div className="px-4 py-2 rounded-2xl bg-slate-800 border border-slate-700 text-xs">
             <span className="text-slate-400 block text-[10px]">موجودی کیف پول سازمانی:</span>
             <span className="font-mono font-extrabold text-emerald-400">
@@ -2078,8 +2121,9 @@ export const CustomerAccountDashboardPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setLoggedInCustomer(null);
-                    notify('شما با موفقیت از حساب کاربری خود خارج شدید.');
+                    void logoutCustomer().then(() => {
+                      notify('شما با موفقیت از حساب کاربری خود خارج شدید.');
+                    });
                   }}
                   className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold rounded-xl cursor-pointer"
                 >

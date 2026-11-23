@@ -21,6 +21,10 @@ import {
   FatehanAboutPage,
 } from './FatehanMultiPages';
 import {
+  SHOP_DEPARTMENTS,
+  resolveProductDepartmentId,
+} from '../utils/defaultFallbacks';
+import {
   ShoppingBag,
   Filter,
   Search,
@@ -45,6 +49,12 @@ import {
   Package,
   RefreshCw,
   XCircle,
+  Cpu,
+  Box,
+  Zap,
+  Terminal,
+  Cog,
+  Layers,
 } from 'lucide-react';
 
 // GPU-Accelerated Shimmering Skeleton Loader for Storefront Transitions
@@ -100,6 +110,20 @@ export const StorefrontRouter: React.FC = () => {
   );
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isFilteringShimmer, setIsFilteringShimmer] = useState<boolean>(false);
+
+  // Sync optional ?dept=<id> query string when navigating to /shop
+  useEffect(() => {
+    if (!storePath.startsWith('/shop')) return;
+    const qIndex = storePath.indexOf('?');
+    if (qIndex === -1) return;
+    const params = new URLSearchParams(storePath.slice(qIndex + 1));
+    const deptParam = params.get('dept');
+    if (deptParam && SHOP_DEPARTMENTS.some((d) => d.id === deptParam)) {
+      setSelectedCategory(deptParam);
+    } else if (deptParam === 'ALL' || deptParam === 'all') {
+      setSelectedCategory('ALL');
+    }
+  }, [storePath]);
 
   // Product Detail Page (PDP) State
   const [pdpVariationId, setPdpVariationId] = useState<string>('');
@@ -269,18 +293,33 @@ export const StorefrontRouter: React.FC = () => {
   }
 
   // ============================================================================
-  // ROUTE 1: SHOP CATALOG & ARCHIVE (/shop)
+  // ROUTE 1: SHOP CATALOG & ARCHIVE (/shop) — CATEGORIZED BY DEPARTMENT
   // ============================================================================
   if (storePath.startsWith('/shop')) {
-    const categories = [
-      'ALL',
-      ...Array.from(new Set(state.products.map((p) => p.category || 'سازمانی'))),
-    ];
+    const shopDeptIconMap = {
+      robotics: Cpu,
+      printing: Box,
+      electronics: Zap,
+      coding: Terminal,
+      mechanics: Cog,
+    } as const;
+
+    const deptCounts: Record<string, number> = {};
+    for (const dept of SHOP_DEPARTMENTS) {
+      deptCounts[dept.id] = 0;
+    }
+    for (const p of state.products) {
+      const resolved = resolveProductDepartmentId(p);
+      deptCounts[resolved] = (deptCounts[resolved] || 0) + 1;
+    }
 
     const filteredProducts = state.products
       .filter((p) => {
-        if (selectedCategory !== 'ALL' && (p.category || 'سازمانی') !== selectedCategory) {
-          return false;
+        if (selectedCategory !== 'ALL') {
+          const resolvedDept = resolveProductDepartmentId(p);
+          if (resolvedDept !== selectedCategory && (p.category || '') !== selectedCategory) {
+            return false;
+          }
         }
         const effectivePrice = p.salePriceToman || p.priceToman;
         if (effectivePrice > maxPriceMillion * 1_000_000) return false;
@@ -288,7 +327,8 @@ export const StorefrontRouter: React.FC = () => {
         if (
           searchQuery.trim() &&
           !p.name.toLowerCase().includes(searchQuery.trim().toLowerCase()) &&
-          !p.sku.toLowerCase().includes(searchQuery.trim().toLowerCase())
+          !p.sku.toLowerCase().includes(searchQuery.trim().toLowerCase()) &&
+          !(p.category || '').toLowerCase().includes(searchQuery.trim().toLowerCase())
         ) {
           return false;
         }
@@ -303,6 +343,134 @@ export const StorefrontRouter: React.FC = () => {
         return 0;
       });
 
+    const selectedDeptMeta = SHOP_DEPARTMENTS.find((d) => d.id === selectedCategory);
+    const shouldGroupByDepartment =
+      selectedCategory === 'ALL' && !searchQuery.trim() && sortBy === 'newest';
+
+    const renderProductCard = (prd: (typeof state.products)[number], idx: number) => {
+      const hasVars = prd.variations && prd.variations.length > 0;
+      const firstVar = hasVars ? prd.variations![0] : undefined;
+      const displayPrice = firstVar ? firstVar.priceToman : prd.priceToman;
+      const displaySale = firstVar ? firstVar.salePriceToman : prd.salePriceToman;
+      const displayImg =
+        firstVar?.imageUrl ||
+        prd.featuredImageUrl ||
+        '/assets/kits/kit-01.jpg';
+      const prdDeptId = resolveProductDepartmentId(prd);
+      const prdDept = SHOP_DEPARTMENTS.find((d) => d.id === prdDeptId);
+
+      return (
+        <motion.div
+          key={prd.id}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: Math.min(idx * 0.04, 0.24) }}
+          whileHover={{ y: -3 }}
+          className="bg-white border border-slate-200 hover:border-blue-300 rounded-2xl overflow-hidden flex flex-col justify-between shadow-2xs hover:shadow-md transition-all"
+        >
+          <div>
+            <div
+              onClick={() => navigateStore(`/product/${prd.id}`)}
+              className="relative h-48 bg-slate-100 overflow-hidden cursor-pointer group"
+            >
+              <img
+                src={displayImg}
+                alt={prd.name}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.src = '/assets/kits/kit-01.jpg';
+                }}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute top-3 right-3 flex flex-wrap gap-1.5">
+                <span
+                  style={{
+                    backgroundColor: prdDept?.softBg || '#0f172a',
+                    color: prdDept?.accentHex || '#f8fafc',
+                  }}
+                  className="px-2.5 py-0.5 text-[10px] font-extrabold rounded-md shadow-2xs"
+                >
+                  {prdDept?.label || prd.type}
+                </span>
+                {displaySale && (
+                  <span className="px-2.5 py-0.5 text-[10px] font-bold bg-rose-600 text-white rounded-md">
+                    تخفیف ویژه
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span className="truncate font-bold text-slate-600">
+                  {prd.type || prdDept?.shortLabel}
+                </span>
+                <span className="font-mono text-emerald-700 font-bold tabular-nums">
+                  موجودی: {formatPersianNumber(prd.stock)}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigateStore(`/product/${prd.id}`)}
+                className="text-right block w-full cursor-pointer"
+              >
+                <BiDiText
+                  as="h3"
+                  className="text-sm font-extrabold text-slate-900 hover:text-blue-600 leading-snug"
+                >
+                  {prd.name}
+                </BiDiText>
+              </button>
+
+              <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                {prd.description || prd.specs}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 pt-3 border-t border-slate-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="font-mono tabular-nums">
+                {displaySale ? (
+                  <div className="flex flex-col">
+                    <span className="text-[10px] line-through text-slate-400">
+                      {formatToman(displayPrice)}
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-emerald-700">
+                      {formatToman(displaySale)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs sm:text-sm font-extrabold text-slate-900">
+                    {formatToman(displayPrice)}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigateStore(`/product/${prd.id}`)}
+                className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl cursor-pointer whitespace-nowrap"
+              >
+                جزئیات محصول
+              </button>
+            </div>
+
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              onClick={() => addToCart(prd, firstVar?.id, 1, true)}
+              className="w-full py-2.5 bg-slate-900 hover:bg-blue-600 text-white text-xs font-extrabold rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>افزودن به سبد خرید</span>
+            </motion.button>
+          </div>
+        </motion.div>
+      );
+    };
+
     return (
       <div className="py-6 space-y-6">
         {/* Top Storefront Catalog Banner */}
@@ -311,15 +479,15 @@ export const StorefrontRouter: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="p-6 rounded-3xl bg-slate-900 text-white border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="text-[11px] font-mono text-amber-400">
-              {settings.academyNameEn.toUpperCase()} · STOREFRONT /SHOP
+              {settings.academyNameEn.toUpperCase()} · STOREFRONT BY DEPARTMENT
             </div>
             <h1 className="text-lg sm:text-2xl font-extrabold">
-              فروشگاه تخصصی کیت‌ها، قطعات رباتیک و پکیج‌های {settings.academyNameFa}
+              فروشگاه تفکیک‌شده بر اساس دپارتمان‌های {settings.academyNameFa}
             </h1>
-            <p className="text-xs text-slate-300">
-              کیت‌های استاندارد مکانیک و الکترونیک، بردهای آردوینو، سنسورها و تجهیزات کارگاهی
+            <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+              تمامی کیت‌های آموزشی، قطعات الکترونیکی، فیلامنت‌ها و پرینترهای سه‌بعدی به‌صورت جداگانه بر اساس هر دپارتمان تخصصی دسته‌بندی شده‌اند.
             </p>
           </div>
 
@@ -327,15 +495,15 @@ export const StorefrontRouter: React.FC = () => {
             <button
               type="button"
               onClick={() => openVideoModal()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold cursor-pointer whitespace-nowrap"
             >
               <Play className="w-3.5 h-3.5 fill-amber-400" />
-              <span>مشاهده تیزر محصولات</span>
+              <span>معرفی تجهیزات</span>
             </button>
             <button
               type="button"
               onClick={() => navigateStore('/cart')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer whitespace-nowrap"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>سبد خرید ({formatPersianNumber(cartItems.reduce((s, i) => s + i.qty, 0))})</span>
@@ -343,21 +511,79 @@ export const StorefrontRouter: React.FC = () => {
           </div>
         </motion.div>
 
+        {/* Department Navigation Tabs Strip */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => triggerFilterShimmer(() => setSelectedCategory('ALL'))}
+            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold inline-flex items-center gap-2 shrink-0 transition-all cursor-pointer whitespace-nowrap ${
+              selectedCategory === 'ALL'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200'
+            }`}
+          >
+            <Layers className="w-4 h-4 shrink-0" />
+            <span>همه دپارتمان‌ها (تفکیک‌شده)</span>
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums ${
+              selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {formatPersianNumber(state.products.length)}
+            </span>
+          </button>
+
+          {SHOP_DEPARTMENTS.map((dept) => {
+            const Icon = shopDeptIconMap[dept.id];
+            const isSelected = selectedCategory === dept.id;
+            const count = deptCounts[dept.id] || 0;
+            return (
+              <button
+                key={dept.id}
+                type="button"
+                onClick={() => triggerFilterShimmer(() => setSelectedCategory(dept.id))}
+                style={
+                  isSelected
+                    ? {
+                        backgroundColor: dept.accentHex,
+                        color: '#ffffff',
+                        borderColor: dept.accentHex,
+                      }
+                    : undefined
+                }
+                className={`px-4 py-2.5 rounded-xl text-xs font-extrabold inline-flex items-center gap-2 shrink-0 transition-all cursor-pointer border whitespace-nowrap ${
+                  isSelected
+                    ? 'shadow-xs'
+                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{dept.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {formatPersianNumber(count)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         <div
           className={`grid gap-6 ${
             isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-12 items-start'
           }`}
         >
-          {/* Sidebar Filters (Categories, Price Range, In-Stock, Sort) */}
+          {/* Sidebar Filters (Departments, Price Range, In-Stock, Sort) */}
           <aside
             className={`${
-              isMobile ? 'w-full' : 'lg:col-span-3 sticky top-20'
+              isMobile ? 'w-full' : 'lg:col-span-3 sticky top-24'
             } bg-white border border-slate-200 rounded-2xl p-4 space-y-5`}
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-slate-900">
-                <Filter className="w-4 h-4 text-indigo-600" />
-                <span>فیلترهای هوشمند فروشگاه</span>
+                <Filter className="w-4 h-4 text-blue-600" />
+                <span>فیلترهای فروشگاه</span>
               </span>
               <button
                 type="button"
@@ -370,7 +596,7 @@ export const StorefrontRouter: React.FC = () => {
                     setSortBy('newest');
                   })
                 }
-                className="text-[11px] text-indigo-600 hover:underline cursor-pointer font-semibold"
+                className="text-[11px] text-blue-600 hover:underline cursor-pointer font-semibold"
               >
                 پاکسازی فیلترها
               </button>
@@ -378,39 +604,67 @@ export const StorefrontRouter: React.FC = () => {
 
             {/* Search Input */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">جستجو در نام یا SKU:</label>
+              <label className="block text-xs font-bold text-slate-700">جستجو در محصولات:</label>
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="مثلاً: Edge AI یا X90..."
+                  placeholder="مثلاً: پرینتر سه‌بعدی، آردوینو، ربات..."
                   className="w-full pr-8 pl-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl"
                 />
               </div>
             </div>
 
-            {/* Category Filter */}
+            {/* Department Filter */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700">دسته‌بندی محصولات:</label>
-              <div className="space-y-1">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => triggerFilterShimmer(() => setSelectedCategory(cat))}
-                    className={`w-full text-right px-3 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center justify-between ${
-                      selectedCategory === cat
-                        ? 'bg-indigo-600 text-white font-bold'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    <span className="truncate">
-                      {cat === 'ALL' ? 'همه دسته‌بندی‌ها' : cat}
-                    </span>
-                  </button>
-                ))}
+              <label className="block text-xs font-bold text-slate-700">دپارتمان تخصصی:</label>
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  onClick={() => triggerFilterShimmer(() => setSelectedCategory('ALL'))}
+                  className={`w-full text-right px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
+                    selectedCategory === 'ALL'
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  <span>همه دپارتمان‌ها</span>
+                  <span className="font-mono text-[10px] opacity-80 tabular-nums">
+                    {formatPersianNumber(state.products.length)}
+                  </span>
+                </button>
+
+                {SHOP_DEPARTMENTS.map((dept) => {
+                  const Icon = shopDeptIconMap[dept.id];
+                  const isSelected = selectedCategory === dept.id;
+                  return (
+                    <button
+                      key={dept.id}
+                      type="button"
+                      onClick={() => triggerFilterShimmer(() => setSelectedCategory(dept.id))}
+                      style={
+                        isSelected
+                          ? { backgroundColor: dept.accentHex, color: '#ffffff' }
+                          : undefined
+                      }
+                      className={`w-full text-right px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                        isSelected
+                          ? 'shadow-2xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      <span className="inline-flex items-center gap-2 truncate">
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{dept.label}</span>
+                      </span>
+                      <span className="font-mono text-[10px] opacity-80 tabular-nums shrink-0">
+                        {formatPersianNumber(deptCounts[dept.id] || 0)}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -418,18 +672,18 @@ export const StorefrontRouter: React.FC = () => {
             <div className="space-y-2 pt-2 border-t border-slate-100">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-slate-700">سقف قیمت:</span>
-                <span className="font-mono font-bold text-indigo-600">
+                <span className="font-mono font-bold text-blue-600 tabular-nums">
                   تا {formatPersianNumber(maxPriceMillion)} میلیون تومان
                 </span>
               </div>
               <input
                 type="range"
-                min={15}
+                min={1}
                 max={350}
-                step={5}
+                step={1}
                 value={maxPriceMillion}
                 onChange={(e) => setMaxPriceMillion(Number(e.target.value))}
-                className="w-full accent-indigo-600 cursor-pointer"
+                className="w-full accent-blue-600 cursor-pointer"
               />
             </div>
 
@@ -440,27 +694,28 @@ export const StorefrontRouter: React.FC = () => {
                 type="checkbox"
                 checked={onlyInStock}
                 onChange={(e) => triggerFilterShimmer(() => setOnlyInStock(e.target.checked))}
-                className="w-4 h-4 accent-indigo-600 rounded"
+                className="w-4 h-4 accent-blue-600 rounded"
               />
             </label>
           </aside>
 
-          {/* Main Product Catalog Grid */}
-          <div className={`${isMobile ? 'w-full' : 'lg:col-span-9'} space-y-4`}>
+          {/* Main Product Catalog Grid / Department Sections */}
+          <div className={`${isMobile ? 'w-full' : 'lg:col-span-9'} space-y-6`}>
             {/* Top Sort Bar */}
             <div className="bg-white border border-slate-200 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-slate-600">
                 نمایش{' '}
-                <strong className="font-mono text-slate-900">
+                <strong className="font-mono text-slate-900 tabular-nums">
                   {formatPersianNumber(filteredProducts.length)}
                 </strong>{' '}
-                محصول از مجموع {formatPersianNumber(state.products.length)} کالا
+                محصول{' '}
+                {selectedDeptMeta ? `در ${selectedDeptMeta.label}` : 'در ۵ دپارتمان تخصصی'}
               </div>
 
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-xs font-bold text-slate-500 ml-1">مرتب‌سازی:</span>
                 {[
-                  { id: 'newest', label: 'جدیدترین' },
+                  { id: 'newest', label: 'تفکیک دپارتمان' },
                   { id: 'cheapest', label: 'ارزان‌ترین' },
                   { id: 'expensive', label: 'گران‌ترین' },
                   { id: 'bestselling', label: 'پرفروش‌ترین' },
@@ -469,7 +724,7 @@ export const StorefrontRouter: React.FC = () => {
                     key={s.id}
                     type="button"
                     onClick={() => triggerFilterShimmer(() => setSortBy(s.id as any))}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors whitespace-nowrap ${
                       sortBy === s.id
                         ? 'bg-slate-900 text-white'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -489,125 +744,125 @@ export const StorefrontRouter: React.FC = () => {
                   محصولی با این فیلترها یافت نشد
                 </div>
                 <p className="text-xs text-slate-500">
-                  بازه قیمت یا دسته‌بندی انتخابی را تغییر دهید.
+                  دپارتمان انتخابی یا سقف قیمت را تغییر دهید.
                 </p>
               </div>
-            ) : (
-              <div
-                className={`grid gap-5 ${
-                  isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-                }`}
-              >
-                {filteredProducts.map((prd, idx) => {
-                  const hasVars = prd.variations && prd.variations.length > 0;
-                  const firstVar = hasVars ? prd.variations![0] : undefined;
-                  const displayPrice = firstVar ? firstVar.priceToman : prd.priceToman;
-                  const displaySale = firstVar ? firstVar.salePriceToman : prd.salePriceToman;
-                  const displayImg =
-                    firstVar?.imageUrl ||
-                    prd.featuredImageUrl ||
-                    '/assets/kits/kit-01.jpg';
+            ) : shouldGroupByDepartment ? (
+              /* Grouped Department-by-Department Catalog View */
+              <div className="space-y-8">
+                {SHOP_DEPARTMENTS.map((dept) => {
+                  const deptItems = filteredProducts.filter(
+                    (p) => resolveProductDepartmentId(p) === dept.id
+                  );
+                  if (deptItems.length === 0) return null;
+                  const Icon = shopDeptIconMap[dept.id];
 
                   return (
-                    <motion.div
-                      key={prd.id}
-                      initial={{ opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.22, delay: idx * 0.05 }}
-                      whileHover={{ y: -3 }}
-                      className="bg-white border border-slate-200 hover:border-indigo-300 rounded-2xl overflow-hidden flex flex-col justify-between shadow-2xs hover:shadow-lg transition-all"
+                    <section
+                      key={dept.id}
+                      className="space-y-4 bg-white/80 border border-slate-200 rounded-3xl p-4 sm:p-6"
                     >
-                      <div>
-                        <div
-                          onClick={() => navigateStore(`/product/${prd.id}`)}
-                          className="relative h-48 bg-slate-900 overflow-hidden cursor-pointer group"
-                        >
-                          <img
-                            src={displayImg}
-                            alt={prd.name}
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-                          <div className="absolute top-3 right-3 flex flex-wrap gap-1.5">
-                            <span className="px-2.5 py-0.5 text-[10px] font-bold bg-slate-900/85 text-amber-400 rounded-md">
-                              {prd.type}
-                            </span>
-                            {displaySale && (
-                              <span className="px-2.5 py-0.5 text-[10px] font-bold bg-rose-600 text-white rounded-md">
-                                حراج جشنواره
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="p-4 space-y-2">
-                          <div className="flex items-center justify-between text-[11px] text-slate-500">
-                            <span className="truncate">{prd.category || 'سازمانی'}</span>
-                            <span className="font-mono text-emerald-700 font-bold">
-                              موجودی: {formatPersianNumber(prd.stock)}
-                            </span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => navigateStore(`/product/${prd.id}`)}
-                            className="text-right block w-full cursor-pointer"
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                        <div className="flex items-start gap-3">
+                          <div
+                            style={{
+                              backgroundColor: dept.softBg,
+                              color: dept.accentHex,
+                            }}
+                            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border border-black/5"
                           >
-                            <BiDiText
-                              as="h3"
-                              className="text-sm font-extrabold text-slate-900 hover:text-indigo-600 leading-snug"
-                            >
-                              {prd.name}
-                            </BiDiText>
-                          </button>
-
-                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                            {prd.description || prd.specs}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="p-4 pt-3 border-t border-slate-100 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="font-mono tabular-nums">
-                            {displaySale ? (
-                              <div className="flex flex-col">
-                                <span className="text-[10px] line-through text-slate-400">
-                                  {formatToman(displayPrice)}
-                                </span>
-                                <span className="text-xs sm:text-sm font-extrabold text-emerald-700">
-                                  {formatToman(displaySale)}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs sm:text-sm font-extrabold text-slate-900">
-                                {formatToman(displayPrice)}
-                              </span>
-                            )}
+                            <Icon className="w-5 h-5" />
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() => navigateStore(`/product/${prd.id}`)}
-                            className="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl cursor-pointer"
-                          >
-                            مشاهده محصول
-                          </button>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h2 className="text-base sm:text-lg font-black text-slate-900">
+                                {dept.label}
+                              </h2>
+                              <span
+                                style={{
+                                  backgroundColor: dept.softBg,
+                                  color: dept.accentHex,
+                                }}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-extrabold tabular-nums"
+                              >
+                                {formatPersianNumber(deptItems.length)} محصول
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                              {dept.description}
+                            </p>
+                          </div>
                         </div>
 
-                        <motion.button
+                        <button
                           type="button"
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => addToCart(prd, firstVar?.id, 1, true)}
-                          className="w-full py-2.5 bg-slate-900 hover:bg-indigo-600 text-white text-xs font-extrabold rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+                          onClick={() => triggerFilterShimmer(() => setSelectedCategory(dept.id))}
+                          className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-900 text-slate-800 hover:text-white text-xs font-extrabold transition-colors cursor-pointer whitespace-nowrap self-start sm:self-auto"
                         >
-                          <ShoppingBag className="w-3.5 h-3.5" />
-                          <span>+ افزودن سریع به سبد خرید</span>
-                        </motion.button>
+                          نمایش اختصاصی این دپارتمان ←
+                        </button>
                       </div>
-                    </motion.div>
+
+                      <div
+                        className={`grid gap-5 ${
+                          isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                        }`}
+                      >
+                        {deptItems.map((prd, idx) => renderProductCard(prd, idx))}
+                      </div>
+                    </section>
                   );
                 })}
+              </div>
+            ) : (
+              /* Selected Single Department or Search/Sorted Flat Grid */
+              <div className="space-y-4">
+                {selectedDeptMeta && (
+                  <div
+                    style={{
+                      backgroundColor: selectedDeptMeta.softBg,
+                      borderColor: `${selectedDeptMeta.accentHex}35`,
+                    }}
+                    className="p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        style={{ backgroundColor: selectedDeptMeta.accentHex }}
+                        className="w-10 h-10 rounded-xl text-white flex items-center justify-center shrink-0"
+                      >
+                        {React.createElement(shopDeptIconMap[selectedDeptMeta.id], {
+                          className: 'w-5 h-5',
+                        })}
+                      </div>
+                      <div>
+                        <h2
+                          style={{ color: selectedDeptMeta.accentHex }}
+                          className="text-sm sm:text-base font-black"
+                        >
+                          {selectedDeptMeta.label}
+                        </h2>
+                        <p className="text-xs text-slate-700 mt-0.5">
+                          {selectedDeptMeta.description}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => triggerFilterShimmer(() => setSelectedCategory('ALL'))}
+                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-900 text-slate-900 hover:text-white text-xs font-extrabold border border-slate-200 transition-colors cursor-pointer whitespace-nowrap self-start sm:self-auto"
+                    >
+                      بازگشت به همه دپارتمان‌ها
+                    </button>
+                  </div>
+                )}
+
+                <div
+                  className={`grid gap-5 ${
+                    isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                  }`}
+                >
+                  {filteredProducts.map((prd, idx) => renderProductCard(prd, idx))}
+                </div>
               </div>
             )}
           </div>

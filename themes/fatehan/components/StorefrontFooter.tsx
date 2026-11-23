@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useFatehanTheme } from '../context/FatehanThemeContext';
 import { FatehanLogo } from '../ui/FatehanLogo';
 import { DEFAULT_TYPOGRAPHY_CONFIG } from '../utils/defaultFallbacks';
-import { ShieldCheck, Award, X, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Award, X, ExternalLink, Instagram, Send } from 'lucide-react';
 
 function extractEnamadHref(rawHtml: string): string {
   if (!rawHtml) return '';
@@ -30,6 +30,12 @@ export const StorefrontFooter: React.FC = () => {
   const licenseImageUrl = typo.licenseImageUrl?.trim() || '';
   const licenseTitle = typo.licenseTitle?.trim() || `مجوز رسمی ${settings.academyNameFa}`;
   const licenseTargetUrl = typo.licenseTargetUrl?.trim() || '';
+
+  const igHandle = (typo.instagramId || settings.social.instagramId || 'fatehan.robot').replace(/^@/, '').trim();
+  const igUrl = typo.instagramUrl || settings.social.instagramUrl || `https://instagram.com/${igHandle}`;
+  const eitaaHandle = (typo.eitaaId ?? settings.social.eitaaId ?? 'fatehan_robotics').replace(/^@/, '').trim();
+  const eitaaUrl = typo.eitaaUrl || settings.social.eitaaUrl || (eitaaHandle ? `https://eitaa.com/${eitaaHandle}` : '');
+  const eitaaLogoUrl = (typo.eitaaLogoUrl || settings.social.eitaaLogoUrl || '').trim();
 
   const handleNav = (path: string) => {
     navigateStore(path);
@@ -71,6 +77,49 @@ export const StorefrontFooter: React.FC = () => {
                 </button>
               ))}
             </nav>
+
+            {/* Social Channels Strip (Eitaa with custom uploaded logo + Instagram) */}
+            {(eitaaHandle || igHandle) && (
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                {eitaaHandle && (
+                  <a
+                    href={eitaaUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200/80 text-orange-800 text-xs font-bold transition-colors"
+                  >
+                    <span className="w-5 h-5 rounded-md bg-white border border-orange-200/80 flex items-center justify-center overflow-hidden shrink-0">
+                      {eitaaLogoUrl ? (
+                        <img
+                          src={eitaaLogoUrl}
+                          alt="لوگوی ایتا"
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <Send className="w-3 h-3 text-orange-600" />
+                      )}
+                    </span>
+                    <span>کانال ایتا:</span>
+                    <span dir="ltr" className="font-mono text-[11px] font-black">
+                      {eitaaHandle}
+                    </span>
+                  </a>
+                )}
+                {igHandle && (
+                  <a
+                    href={igUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-pink-50 hover:bg-pink-100 border border-pink-200/80 text-pink-800 text-xs font-bold transition-colors"
+                  >
+                    <Instagram className="w-4 h-4 text-pink-600 shrink-0" />
+                    <span dir="ltr" className="font-mono text-[11px] font-black">
+                      @{igHandle}
+                    </span>
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Left Side: Smart eNamad & Official License Slots */}

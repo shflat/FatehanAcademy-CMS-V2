@@ -476,7 +476,14 @@ export function registerSuperAdminAgentRoutes(router: express.Router): void {
           replyText = `${turn.error}\nآمار زنده فعلی: ${prodStats[0]?.cnt || 0} محصول · ${chatStats[0]?.cnt || 0} چت خوانده‌نشده.`;
         }
       } catch (err) {
-        const errDetail = err instanceof Error ? err.message : String(err);
+        const errCause =
+          err instanceof Error && 'cause' in err
+            ? (err as Error & { cause?: { code?: string; message?: string } }).cause
+            : undefined;
+        const causeExtra = [errCause?.code, errCause?.message].filter(Boolean).join(' / ');
+        const baseMsg = err instanceof Error ? err.message : String(err);
+        const errDetail =
+          causeExtra && !baseMsg.includes(causeExtra) ? `${baseMsg} (${causeExtra})` : baseMsg;
         await writeSystemLog({
           level: 'error',
           category: 'system',

@@ -13,7 +13,11 @@ import {
   FileText,
   Info,
   PhoneCall,
+  SlidersHorizontal,
+  Check,
+  X,
 } from 'lucide-react';
+import { DEFAULT_BRAND_LOGO_URL } from '../../data/defaults';
 import type {
   ActiveTab,
   CatalogFilter,
@@ -43,6 +47,7 @@ interface SiteHeaderProps {
   onOpenCart: () => void;
   onToggleMuuriDrag: () => void;
   onResetDraggedElements: () => void;
+  onUpdateHeaderLogoSize?: (sizePx: number, persist?: boolean) => void;
 }
 
 export const SiteHeader: React.FC<SiteHeaderProps> = ({
@@ -64,9 +69,15 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
   onOpenCart,
   onToggleMuuriDrag,
   onResetDraggedElements,
+  onUpdateHeaderLogoSize,
 }) => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [logoSizerOpen, setLogoSizerOpen] = useState(false);
+  const headerLogoSizePx = Math.min(
+    120,
+    Math.max(36, Number(themeConfig.headerLogoSizePx) || 68)
+  );
 
   useEffect(() => {
     const updateScroll = () => {
@@ -114,35 +125,129 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
           />
         </div>
 
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 sm:gap-3 lg:gap-6 px-3 sm:px-6 h-[56px] sm:h-[68px]">
-          {/* Zone 1 (Right in RTL): Brand Logo + 2-Line Persian/English Lockup */}
-          <a
-            href="#store"
-            onClick={(e) => {
-              e.preventDefault();
-              onNavigate('store');
-            }}
-            className="flex items-center gap-2 sm:gap-2.5 shrink-0 group min-w-0"
-          >
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/70 flex items-center justify-center p-1 sm:p-1.5 shadow-xs shrink-0 transition-transform duration-200 group-hover:scale-105">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-2 sm:gap-3 lg:gap-6 px-3 sm:px-6 min-h-[60px] sm:min-h-[68px] py-1.5">
+          {/* Zone 1 (Right in RTL): Frameless Brand Logo + Live Draggable Size Slider */}
+          <div className="relative flex items-center gap-2 shrink-0 min-w-0">
+            <a
+              href="#store"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigate('store');
+              }}
+              className="flex items-center gap-2 sm:gap-2.5 shrink-0 group min-w-0"
+            >
               <img
-                src={themeConfig.logoUrl || '/logo-skill98.svg'}
+                src={themeConfig.logoUrl || DEFAULT_BRAND_LOGO_URL}
                 alt={themeConfig.brandNameFa}
-                className="w-full h-full object-contain"
+                style={{ width: `${headerLogoSizePx}px`, height: `${headerLogoSizePx}px` }}
+                className="object-contain shrink-0 block bg-transparent border-0 p-0 transition-all duration-150 group-hover:scale-105"
               />
-            </div>
-            <div className="flex flex-col leading-tight min-w-0">
-              <span className="font-heading text-[13px] sm:text-base font-black text-slate-900 dark:text-white whitespace-nowrap truncate">
-                {themeConfig.brandNameFa}
-              </span>
-              <span
-                dir="ltr"
-                className="text-[9.5px] sm:text-[11px] font-extrabold text-[#1D4ED8] dark:text-sky-400 tracking-tight whitespace-nowrap truncate text-right"
+              <div className="flex flex-col leading-tight min-w-0">
+                <span className="font-heading text-[13px] sm:text-base font-black text-slate-900 dark:text-white whitespace-nowrap truncate">
+                  {themeConfig.brandNameFa}
+                </span>
+                <span
+                  dir="ltr"
+                  className="text-[9.5px] sm:text-[11px] font-extrabold text-[#1D4ED8] dark:text-sky-400 tracking-tight whitespace-nowrap truncate text-right"
+                >
+                  {themeConfig.brandNameEn || 'Fatehan Robotics Academy'}
+                </span>
+              </div>
+            </a>
+
+            {canAccessAdmin && onUpdateHeaderLogoSize && (
+              <button
+                type="button"
+                onClick={() => setLogoSizerOpen((prev) => !prev)}
+                title="تغییر سایز لوگو در هدر با نوار ابزار کشیدنی"
+                className={`p-1.5 rounded-lg border text-[10px] font-extrabold transition-all cursor-pointer shrink-0 flex items-center gap-1 ${
+                  logoSizerOpen
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                    : 'bg-slate-100/90 dark:bg-slate-800 hover:bg-blue-50 text-slate-600 dark:text-slate-300 hover:text-blue-700 border-slate-200/80 dark:border-slate-700'
+                }`}
               >
-                {themeConfig.brandNameEn || 'Skill 98 AI Platform'}
-              </span>
-            </div>
-          </a>
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline">سایز لوگو</span>
+              </button>
+            )}
+
+            {canAccessAdmin && onUpdateHeaderLogoSize && logoSizerOpen && (
+              <div
+                className="absolute top-full right-0 mt-2.5 z-50 w-72 sm:w-80 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl space-y-3"
+                dir="rtl"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-900 dark:text-white">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
+                    <span>تنظیم سایز لوگوی هدر</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-sky-300 font-mono text-[11px] font-black" dir="ltr">
+                      {headerLogoSizePx}px
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLogoSizerOpen(false)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateHeaderLogoSize(headerLogoSizePx - 4, true)}
+                    className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-white font-black text-sm flex items-center justify-center cursor-pointer shrink-0"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="range"
+                    min={36}
+                    max={120}
+                    step={2}
+                    value={headerLogoSizePx}
+                    onChange={(e) => onUpdateHeaderLogoSize(Number(e.target.value), false)}
+                    onPointerUp={() => onUpdateHeaderLogoSize(headerLogoSizePx, true)}
+                    onTouchEnd={() => onUpdateHeaderLogoSize(headerLogoSizePx, true)}
+                    aria-label="تغییر اندازه لوگوی هدر"
+                    className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onUpdateHeaderLogoSize(headerLogoSizePx + 4, true)}
+                    className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-800 dark:text-white font-black text-sm flex items-center justify-center cursor-pointer shrink-0"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateHeaderLogoSize(68, true)}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>پیش‌فرض</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdateHeaderLogoSize(headerLogoSizePx, true);
+                      setLogoSizerOpen(false);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>ذخیره سایز</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Zone 2 (Center): Floating Segmented Pill Navigation Bar */}
           <nav

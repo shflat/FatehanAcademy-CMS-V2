@@ -2290,6 +2290,62 @@ interface ChatHistoryMessage {
   content: string;
 }
 
+function describeNetworkError(err: unknown, endpointUrl: string): string {
+  const host = (() => {
+    try {
+      return new URL(endpointUrl).host;
+    } catch {
+      return endpointUrl;
+    }
+  })();
+  const errObj = err as {
+    name?: string;
+    message?: string;
+    cause?: { code?: string; errno?: number; syscall?: string; message?: string };
+  };
+  const code = errObj?.cause?.code || '';
+  const causeMsg = errObj?.cause?.message || '';
+  const baseMsg = errObj?.message || String(err);
+  const isTimeout =
+    errObj?.name === 'TimeoutError' ||
+    errObj?.name === 'AbortError' ||
+    /timeout|aborted/i.test(`${baseMsg} ${causeMsg} ${code}`);
+  if (isTimeout) {
+    return `اتصال به سرور مدل (${host}) با خطای زمان‌بندی (Timeout) مواجه شد.`;
+  }
+  const detailParts = [code, causeMsg].filter(Boolean).join(' - ');
+  return `خطای شبکه در اتصال به ${host}: ${baseMsg}${detailParts ? ` (${detailParts})` : ''}`;
+}
+
+async function fetchLlmWithRetry(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 45000,
+  maxAttempts = 2
+): Promise<Response> {
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const resp = await fetch(url, {
+        ...init,
+        signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+      });
+      if (attempt < maxAttempts && (resp.status === 502 || resp.status === 503 || resp.status === 504)) {
+        await new Promise((r) => setTimeout(r, 700 * attempt));
+        continue;
+      }
+      return resp;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 700 * attempt));
+        continue;
+      }
+    }
+  }
+  throw new Error(describeNetworkError(lastErr, url));
+}
+
 export async function runMultiStepAgentTurn(params: {
   ctx: AgentToolContext;
   userMessage: string;
@@ -2362,7 +2418,7 @@ export async function runMultiStepAgentTurn(params: {
     ];
 
     for (let step = 0; step < maxSteps; step++) {
-      const resp = await fetch(endpoint, {
+      const resp = await fetchLlmWithRetry(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2472,7 +2528,7 @@ export async function runMultiStepAgentTurn(params: {
     }
 
     // Final synthesis after max tool steps
-    const finalResp = await fetch(endpoint, {
+    const finalResp = await fetchLlmWithRetry(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -2512,7 +2568,7 @@ export async function runMultiStepAgentTurn(params: {
     ];
 
     for (let step = 0; step < maxSteps; step++) {
-      const resp = await fetch(`${root}/api/chat`, {
+      const resp = await fetchLlmWithRetry(`${root}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

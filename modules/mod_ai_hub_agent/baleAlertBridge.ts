@@ -755,9 +755,37 @@ export function startDailyMorningBriefingScheduler(): void {
 const HEARTBEAT_SEEN_SETTING_KEY = 'mod_ai_heartbeat_seen';
 const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000;
 const HEARTBEAT_MEM_SEEN = new Set<string>();
+const HEARTBEAT_ERR_SIG_TIMESTAMPS = new Map<string, number>();
 let heartbeatSchedulerStarted = false;
 let heartbeatTickInProgress = false;
 let heartbeatSeenLoaded = false;
+
+export function buildSystemErrorSignatureKey(
+  category: string,
+  title: string,
+  detail = ''
+): string {
+  const normTitle = String(title || '')
+    .toLowerCase()
+    .replace(/\d+/g, '#')
+    .trim()
+    .slice(0, 80);
+  const normDetail = String(detail || '')
+    .toLowerCase()
+    .replace(/\d+/g, '#')
+    .trim()
+    .slice(0, 80);
+  return `errsig:${String(category || 'system').toLowerCase()}:${normTitle}:${normDetail}`;
+}
+
+export function markHeartbeatErrorSeen(logId?: string, signatureKey?: string): void {
+  if (logId) {
+    HEARTBEAT_MEM_SEEN.add(`err:${logId}`);
+  }
+  if (signatureKey) {
+    HEARTBEAT_ERR_SIG_TIMESTAMPS.set(signatureKey, Date.now());
+  }
+}
 
 async function loadHeartbeatSeenSet(): Promise<Set<string>> {
   if (heartbeatSeenLoaded) return HEARTBEAT_MEM_SEEN;
@@ -907,6 +935,19 @@ export async function runZeroTokenHeartbeatCheckOnce(): Promise<{
       }
       const key = `err:${errRow.id}`;
       if (seen.has(key)) continue;
+
+      const sigKey = buildSystemErrorSignatureKey(
+        errRow.category || 'system',
+        errRow.title || '',
+        errRow.detail || ''
+      );
+      const lastSigTs = HEARTBEAT_ERR_SIG_TIMESTAMPS.get(sigKey);
+      if (lastSigTs && nowMs - lastSigTs < 30 * 60 * 1000) {
+        seen.add(key);
+        dirtySeen = true;
+        continue;
+      }
+
       const res = await sendSuperAdminBaleAlert({
         category: 'heartbeat',
         title: `خطای جدید سامانه: ${String(errRow.title || 'خطای بحرانی').slice(0, 120)}`,
@@ -915,11 +956,12 @@ export async function runZeroTokenHeartbeatCheckOnce(): Promise<{
           `جزئیات: ${String(errRow.detail || '-').slice(0, 220)}`,
           errRow.sql_or_endpoint ? `مسیر: ${errRow.sql_or_endpoint}` : '',
         ].filter(Boolean),
-        dedupKey: key,
-        cooldownMs: 60 * 60 * 1000,
+        dedupKey: sigKey,
+        cooldownMs: 30 * 60 * 1000,
       });
       if (res.sent || res.skippedReason === 'cooldown_deduplicated') {
         seen.add(key);
+        HEARTBEAT_ERR_SIG_TIMESTAMPS.set(sigKey, nowMs);
         dirtySeen = true;
         if (res.sent) alertsSent += 1;
       }

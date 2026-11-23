@@ -96,9 +96,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3.5">
           <div className="flex items-center gap-2.5">
             <img
-              src={themeConfig.logoUrl || '/logo-skill98.svg'}
+              src={themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
               alt={themeConfig.brandNameFa}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 object-contain shrink-0 bg-transparent border-0 p-0"
             />
             <div>
               <h2 className="text-base sm:text-lg font-extrabold text-stone-900 dark:text-white">

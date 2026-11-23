@@ -761,13 +761,11 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
 
             {/* Centered Site Logo + User Name Profile Block */}
             <div className="pt-6 pb-4 px-5 flex flex-col items-center text-center gap-2 shrink-0">
-              <div className="w-13 h-13 rounded-2xl bg-slate-50 dark:bg-stone-800/90 border border-stone-200/80 dark:border-stone-700/80 shadow-xs p-2 flex items-center justify-center">
-                <img
-                  src={themeConfig.logoUrl || '/logo-skill98.svg'}
-                  alt={themeConfig.brandNameFa}
-                  className="w-full h-full object-contain"
-                />
-              </div>
+              <img
+                src={themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
+                alt={themeConfig.brandNameFa}
+                className="w-14 h-14 object-contain bg-transparent border-0 p-0"
+              />
               <div className="space-y-0.5 max-w-full">
                 <div className="text-[13px] font-black text-stone-900 dark:text-white truncate">
                   {activeUserName || (isSuperAdmin ? 'مدیر ارشد سیستم' : 'مدیر سیستم')}

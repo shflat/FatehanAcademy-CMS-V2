@@ -1107,7 +1107,7 @@ export const STARTER_KIT_FILES: StarterFileEntry[] = [
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/svg+xml" href="${theme.faviconUrl || '/favicon.svg'}" />
+  <link rel="icon" type="image/webp" href="${theme.faviconUrl || '/assets/aistudio/logo_8c26749f.webp'}" />
   <title>${theme.brandNameFa} | مرجع تخصصی اسکیل‌های هوش مصنوعی</title>
   <link rel="preload" as="font" type="font/woff2" href="/fonts/Vazirmatn-Variable.woff2" crossorigin />
   <link rel="preload" as="font" type="font/woff2" href="/fonts/Sahel-Bold.woff2" crossorigin />

@@ -238,6 +238,7 @@ export function formatPersianDateTime(dateInput?: Date | string): string {
   try {
     const d = dateInput ? new Date(dateInput) : new Date();
     return d.toLocaleString('fa-IR', {
+      timeZone: 'Asia/Tehran',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',

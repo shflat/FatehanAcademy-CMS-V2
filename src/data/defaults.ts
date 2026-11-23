@@ -41,6 +41,19 @@ export function resolveStaticImageUrl(url?: string): string {
 
 export const INITIAL_MEDIA_LIBRARY: MediaAssetItem[] = [
   {
+    id: 'media_fatehan_official_logo',
+    title: 'لوگوی رسمی آموزشگاه رباتیک فاتحان (پیش‌فرض)',
+    url: '/assets/aistudio/logo_8c26749f.webp',
+    altText: 'لوگوی رسمی آموزشگاه تخصصی رباتیک، کدنویسی و هوش مصنوعی فاتحان',
+    caption: 'نشان رسمی آموزشگاه رباتیک فاتحان برای استفاده در هدر، فوتر، فاکتور و شبکه‌های اجتماعی',
+    seoTitle: 'لوگوی رسمی آموزشگاه رباتیک فاتحان',
+    seoDescription: 'تصویر لوگوی رسمی آموزشگاه رباتیک فاتحان با پس‌زمینه شفاف.',
+    seoKeywords: 'فاتحان, لوگو فاتحان, آموزشگاه رباتیک فاتحان',
+    dimensionsLabel: '1024×1024 · WebP شفاف',
+    categoryLabel: 'لوگو و هویت بصری برند',
+    uploadedAtLabel: '۱۴۰۵/۰۸/۲۵',
+  },
+  {
     id: 'media_hero_studio',
     title: 'استودیو مهندسی اسکیل و هوش مصنوعی اسکیل ۹۸',
     url: IMAGES.heroStudio,
@@ -107,14 +120,18 @@ export const INITIAL_MEDIA_LIBRARY: MediaAssetItem[] = [
   },
 ];
 
+export const DEFAULT_BRAND_LOGO_URL = '/assets/aistudio/logo_8c26749f.webp';
+
 export const BRAND_LOGO_PRESETS = [
-  { id: 'logo_cobalt', title: 'لوگوی استودیویی آبی کالت (اصلی)', url: '/logo-skill98.svg' },
+  { id: 'logo_fatehan_official', title: 'لوگوی رسمی آکادمی فاتحان (پیش‌فرض)', url: DEFAULT_BRAND_LOGO_URL },
+  { id: 'logo_cobalt', title: 'لوگوی استودیویی آبی کالت', url: '/logo-skill98.svg' },
   { id: 'logo_gold', title: 'لوگوی سلطنتی طلایی و سرمه‌ای', url: '/logo-skill98-gold.svg' },
   { id: 'logo_emerald', title: 'لوگوی زمردی مدرن', url: '/logo-skill98-emerald.svg' },
 ];
 
 export const BRAND_FAVICON_PRESETS = [
-  { id: 'fav_cobalt', title: 'فاویکون آبی و طلایی (پیش‌فرض)', url: '/favicon.svg' },
+  { id: 'fav_fatehan_official', title: 'فاویکون رسمی فاتحان (پیش‌فرض)', url: DEFAULT_BRAND_LOGO_URL },
+  { id: 'fav_cobalt', title: 'فاویکون آبی و طلایی', url: '/favicon.svg' },
   { id: 'fav_emerald', title: 'فاویکون زمردی', url: '/favicon-emerald.svg' },
   { id: 'fav_amber', title: 'فاویکون طلایی و سرمه‌ای تیره', url: '/favicon-amber.svg' },
 ];
@@ -182,10 +199,11 @@ export const INITIAL_CMS_PLUGINS: CmsPluginItem[] = [
 ];
 
 export const DEFAULT_THEME_CONFIG: ThemeConfig = {
-  brandNameFa: 'اسکیل ۹۸',
-  brandNameEn: 'SKILL 98',
-  logoUrl: '/logo-skill98.svg',
-  faviconUrl: '/favicon.svg',
+  brandNameFa: 'آموزشگاه رباتیک فاتحان',
+  brandNameEn: 'Fatehan Robotics Academy',
+  logoUrl: DEFAULT_BRAND_LOGO_URL,
+  faviconUrl: DEFAULT_BRAND_LOGO_URL,
+  headerLogoSizePx: 68,
   heroBadgeText: 'مرجع اسکیل‌های آماده با گواهی تخصصی برای Claude، ChatGPT و Codex',
   heroTitleLine1: 'برای هر چالش مهندسی،',
   heroTitleAccent: 'یک اسکیل استاندارد و آماده اجرا.',
@@ -218,7 +236,16 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
     secondBadgeHtmlCode: '',
     secondBadgeLabel: 'نشان ملی ثبت و مجوز صنفی',
   },
-  topAnnouncementText: 'نسخه جدید اسکیل‌های Context7 MCP، Motion WAAPI و Drizzle ORM منتشر شد · کد تخفیف: SKILL98',
+  socialChannels: {
+    instagramId: 'fatehan.robot',
+    instagramUrl: 'https://instagram.com/fatehan.robot',
+    eitaaId: 'fatehan_robotics',
+    eitaaUrl: 'https://eitaa.com/fatehan_robotics',
+    eitaaLogoUrl: '',
+    baleId: '',
+    baleUrl: '',
+  },
+  topAnnouncementText: 'ثبت‌نام ترم جدید رباتیک، کدنویسی، هوش مصنوعی و چاپ سه‌بعدی با مدرک معتبر فنی و حرفه‌ای',
   showTopAnnouncement: true,
   accentPreset: 'cobalt',
   darkMode: false,
@@ -241,7 +268,7 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   showMotionShowcaseSection: true,
   showArticlesSection: true,
   showFaqSection: true,
-  activeThemeId: 'default',
+  activeThemeId: 'fatehan',
   sectionOrder: ['hero', 'widgets', 'tools_bento', 'catalog', 'motion_stack', 'articles', 'faq'],
   customWidgets: INITIAL_CUSTOM_WIDGETS,
   activePlugins: INITIAL_CMS_PLUGINS,

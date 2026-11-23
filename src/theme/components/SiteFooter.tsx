@@ -121,13 +121,11 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
           <div className="flex-1 space-y-4 min-w-0">
             {/* Brand + Slogan Tag */}
             <div className="flex flex-wrap items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 p-1.5 flex items-center justify-center shrink-0">
-                <img
-                  src={themeConfig.logoUrl || '/logo-skill98.svg'}
-                  alt={themeConfig.brandNameFa}
-                  className="w-full h-full object-contain"
-                />
-              </div>
+              <img
+                src={themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
+                alt={themeConfig.brandNameFa}
+                className="w-12 h-12 object-contain shrink-0 block bg-transparent border-0 p-0"
+              />
               <h3 className="font-heading text-lg sm:text-xl font-black text-slate-900 dark:text-white">
                 {themeConfig.brandNameFa}
               </h3>

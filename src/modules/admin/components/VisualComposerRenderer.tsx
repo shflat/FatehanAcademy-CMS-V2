@@ -516,7 +516,7 @@ export const VisualComposerRenderer: React.FC<VisualComposerRendererProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-300 dark:border-stone-800 pb-3">
               <div className="flex items-center gap-3">
                 <img
-                  src={invoiceContext?.logoUrl || '/logo-skill98.svg'}
+                  src={invoiceContext?.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
                   alt="لوگوی فروشنده"
                   className="w-11 h-11 object-contain"
                 />
@@ -600,7 +600,7 @@ export const VisualComposerRenderer: React.FC<VisualComposerRendererProps> = ({
             <div className="flex items-center gap-4">
               <div className="p-2 rounded-lg border border-dashed border-blue-500/50 bg-white dark:bg-stone-900 text-center">
                 <img
-                  src={invoiceContext?.stampSignatureUrl || '/logo-skill98-emblem.svg'}
+                  src={invoiceContext?.stampSignatureUrl || '/assets/aistudio/logo_8c26749f.webp'}
                   alt="مهر و امضای فروشنده"
                   className="w-12 h-12 mx-auto object-contain opacity-90"
                 />

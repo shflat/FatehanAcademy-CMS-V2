@@ -143,7 +143,7 @@
 .fatehan-theme-shell {
   font-family: var(--font-body);
   font-feature-settings: "ss01", "tnum";
-  overflow-x: hidden;
+  overflow-x: clip;
   word-break: keep-all;
   overflow-wrap: normal;
   -webkit-font-smoothing: antialiased;

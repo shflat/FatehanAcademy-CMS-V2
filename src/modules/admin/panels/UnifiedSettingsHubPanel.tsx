@@ -7,11 +7,14 @@ import {
   Database,
   Globe,
   Image as ImageIcon,
+  Instagram,
   Loader2,
   MessageCircle,
   MessageSquare,
   Palette,
+  RotateCcw,
   Save,
+  Send,
   Settings,
   Shield,
   ShieldCheck,
@@ -30,6 +33,7 @@ import type {
   PaymentGatewayOption,
   SkillArticle,
   SkillProduct,
+  SocialChannelsConfig,
   ThemeConfig,
 } from '../../../core/types';
 import { apiJson } from '../../../core/apiClient';
@@ -121,9 +125,9 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
   onNotice,
 }) => {
   const [activeTab, setActiveTab] = useState<UnifiedSettingsTabId>(initialTab);
-  const [uploadingAsset, setUploadingAsset] = useState<'logo' | 'favicon' | null>(null);
-  const [savingSection, setSavingSection] = useState<'general' | 'badges' | 'theme' | null>(null);
-  const [badgePickerSlot, setBadgePickerSlot] = useState<'enamad' | 'license2' | 'logo' | 'favicon' | null>(null);
+  const [uploadingAsset, setUploadingAsset] = useState<'logo' | 'favicon' | 'eitaaLogo' | null>(null);
+  const [savingSection, setSavingSection] = useState<'general' | 'social' | 'badges' | 'theme' | null>(null);
+  const [badgePickerSlot, setBadgePickerSlot] = useState<'enamad' | 'license2' | 'logo' | 'favicon' | 'eitaaLogo' | null>(null);
   const [localUploadedMedia, setLocalUploadedMedia] = useState<MediaAssetItem[]>([]);
   const combinedMediaItems = [
     ...localUploadedMedia,
@@ -131,7 +135,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
   ];
 
   const handleSaveThemeSection = async (
-    sectionKey: 'general' | 'badges' | 'theme',
+    sectionKey: 'general' | 'social' | 'badges' | 'theme',
     nextTheme: ThemeConfig,
     successText: string
   ) => {
@@ -146,6 +150,21 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
     } finally {
       setSavingSection(null);
     }
+  };
+
+  const socialChannels: SocialChannelsConfig = {
+    ...(DEFAULT_THEME_CONFIG.socialChannels as SocialChannelsConfig),
+    ...(themeConfig.socialChannels || {}),
+  };
+
+  const updateSocialChannels = (patch: Partial<SocialChannelsConfig>) => {
+    onUpdateThemeConfig({
+      ...themeConfig,
+      socialChannels: {
+        ...socialChannels,
+        ...patch,
+      },
+    });
   };
 
   const trustBadges: FooterTrustBadgesConfig = {
@@ -168,7 +187,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
   }, [initialTab]);
 
   const handleUploadBrandAsset = async (
-    kind: 'logo' | 'favicon',
+    kind: 'logo' | 'favicon' | 'eitaaLogo',
     files: FileList | null
   ) => {
     const file = files?.[0];
@@ -181,6 +200,12 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
         reader.onerror = () => reject(new Error('خطا در خواندن فایل'));
         reader.readAsDataURL(file);
       });
+      const uploadTitle =
+        kind === 'logo'
+          ? 'لوگوی سایت'
+          : kind === 'favicon'
+          ? 'فاوآیکون سایت'
+          : 'لوگوی کانال ایتا';
       const { ok, data } = await apiJson<{
         ok?: boolean;
         items?: Array<{ url: string }>;
@@ -191,7 +216,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
           files: [
             {
               name: file.name,
-              title: kind === 'logo' ? 'لوگوی سایت' : 'فاوآیکون سایت',
+              title: uploadTitle,
               dataUrl,
               category: 'branding',
             },
@@ -202,16 +227,32 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
         throw new Error(data.error || 'خطا در آپلود فایل');
       }
       const nextUrl = data.items[0].url;
-      onUpdateThemeConfig({
-        ...themeConfig,
-        ...(kind === 'logo' ? { logoUrl: nextUrl } : { faviconUrl: nextUrl }),
-      });
-      onNotice(
-        'success',
-        kind === 'logo'
-          ? 'لوگوی جدید سایت با موفقیت آپلود و اعمال شد.'
-          : 'فاوآیکون جدید سایت آپلود و اعمال شد.'
-      );
+      if (kind === 'eitaaLogo') {
+        const nextTheme: ThemeConfig = {
+          ...themeConfig,
+          socialChannels: {
+            ...socialChannels,
+            eitaaLogoUrl: nextUrl,
+          },
+        };
+        onUpdateThemeConfig(nextTheme);
+        if (onSaveThemeNow) {
+          await onSaveThemeNow(nextTheme, 'لوگوی کانال ایتا با موفقیت آپلود و ذخیره شد.');
+        } else {
+          onNotice('success', 'لوگوی کانال ایتا با موفقیت آپلود و اعمال شد.');
+        }
+      } else {
+        onUpdateThemeConfig({
+          ...themeConfig,
+          ...(kind === 'logo' ? { logoUrl: nextUrl } : { faviconUrl: nextUrl }),
+        });
+        onNotice(
+          'success',
+          kind === 'logo'
+            ? 'لوگوی جدید سایت با موفقیت آپلود و اعمال شد.'
+            : 'فاوآیکون جدید سایت آپلود و اعمال شد.'
+        );
+      }
     } catch (err) {
       onNotice('error', err instanceof Error ? err.message : 'خطا در آپلود');
     } finally {
@@ -365,19 +406,17 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
               {/* Direct Logo Uploader + Gallery Picker */}
               <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-12 h-12 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 flex items-center justify-center overflow-hidden p-1.5 shrink-0">
-                    <img
-                      src={themeConfig.logoUrl || '/logo-skill98.svg'}
-                      alt="لوگوی سایت"
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  </div>
+                  <img
+                    src={themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
+                    alt="لوگوی سایت"
+                    className="w-12 h-12 object-contain shrink-0 block bg-transparent border-0 p-0"
+                  />
                   <div className="min-w-0">
                     <div className="text-xs font-extrabold text-stone-900 dark:text-white">
                       لوگوی اصلی هدر و فوتر
                     </div>
                     <div className="text-[10px] font-mono text-stone-500 truncate max-w-[200px]" dir="ltr">
-                      {themeConfig.logoUrl || '/logo-skill98.svg'}
+                      {themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
                     </div>
                   </div>
                 </div>
@@ -406,19 +445,17 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
               {/* Direct Favicon Uploader + Gallery Picker */}
               <div className="p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-12 h-12 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 flex items-center justify-center overflow-hidden p-2 shrink-0">
-                    <img
-                      src={themeConfig.faviconUrl || '/logo-skill98-emblem.svg'}
-                      alt="فاوآیکون سایت"
-                      className="w-7 h-7 object-contain"
-                    />
-                  </div>
+                  <img
+                    src={themeConfig.faviconUrl || '/assets/aistudio/logo_8c26749f.webp'}
+                    alt="فاوآیکون سایت"
+                    className="w-10 h-10 object-contain shrink-0 block bg-transparent border-0 p-0"
+                  />
                   <div className="min-w-0">
                     <div className="text-xs font-extrabold text-stone-900 dark:text-white">
                       آیکون تب مرورگر (Favicon)
                     </div>
                     <div className="text-[10px] font-mono text-stone-500 truncate max-w-[200px]" dir="ltr">
-                      {themeConfig.faviconUrl || '/logo-skill98-emblem.svg'}
+                      {themeConfig.faviconUrl || '/assets/aistudio/logo_8c26749f.webp'}
                     </div>
                   </div>
                 </div>
@@ -443,6 +480,293 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                   </label>
                 </div>
               </div>
+
+              {/* Draggable Header Logo Size Slider */}
+              <div className="md:col-span-2 p-4 rounded-xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <img
+                    src={themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
+                    alt="پیش‌نمایش سایز لوگو"
+                    style={{
+                      width: `${Math.min(120, Math.max(36, Number(themeConfig.headerLogoSizePx) || 68))}px`,
+                      height: `${Math.min(120, Math.max(36, Number(themeConfig.headerLogoSizePx) || 68))}px`,
+                    }}
+                    className="object-contain shrink-0 block bg-transparent border-0 p-0 transition-all duration-150"
+                  />
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="text-xs font-extrabold text-stone-900 dark:text-white">
+                      اندازه لوگوی هدر (بدون کادر · قابل تغییر با نوار کشیدنی)
+                    </div>
+                    <div className="text-[11px] text-stone-500">
+                      سایز فعلی:{' '}
+                      <strong className="font-mono text-[#1D4ED8] dark:text-sky-400" dir="ltr">
+                        {Math.min(120, Math.max(36, Number(themeConfig.headerLogoSizePx) || 68))}px
+                      </strong>{' '}
+                      (بازه مجاز: ۳۶ تا ۱۲۰ پیکسل — همچنین مستقیماً از داخل هدر سایت قابل تنظیم است)
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5 sm:w-72 shrink-0">
+                  <span className="text-[10px] font-mono text-stone-400" dir="ltr">36px</span>
+                  <input
+                    type="range"
+                    min={36}
+                    max={120}
+                    step={2}
+                    value={Math.min(120, Math.max(36, Number(themeConfig.headerLogoSizePx) || 68))}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        headerLogoSizePx: Number(e.target.value),
+                      })
+                    }
+                    className="flex-1 h-2 bg-stone-200 dark:bg-stone-800 rounded-lg appearance-none cursor-pointer accent-[#1D4ED8]"
+                  />
+                  <span className="text-[10px] font-mono text-stone-400" dir="ltr">120px</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Social Channels & Eitaa Channel Logo Uploader */}
+          <div className="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 space-y-5 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/15 text-orange-600 flex items-center justify-center shrink-0">
+                  <Send className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-stone-900 dark:text-white">
+                    کانال ایتا (آدرس + بارگذاری لوگو) و شبکه‌های اجتماعی
+                  </h3>
+                  <p className="text-[11px] text-stone-500 mt-0.5">
+                    آدرس کانال ایتا، اینستاگرام و بله را تنظیم کنید و لوگوی رسمی ایتا را مستقیماً آپلود یا از گالری انتخاب نمایید.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={savingSection === 'social'}
+                onClick={() =>
+                  void handleSaveThemeSection(
+                    'social',
+                    themeConfig,
+                    'تنظیمات کانال ایتا، لوگوی ایتا و شبکه‌های اجتماعی با موفقیت ذخیره شد.'
+                  )
+                }
+                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shrink-0 shadow-xs"
+              >
+                {savingSection === 'social' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {savingSection === 'social' ? 'در حال ذخیره...' : 'ذخیره شبکه‌های اجتماعی'}
+                </span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 text-xs">
+              {/* Eitaa Channel + Custom Logo Uploader */}
+              <div className="lg:col-span-7 p-4 rounded-2xl border border-orange-200 dark:border-orange-900/50 bg-orange-50/40 dark:bg-orange-950/20 space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-extrabold text-stone-900 dark:text-white flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                    <span>تنظیمات کانال رسمی ایتا (Eitaa)</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-orange-700 dark:text-orange-300">
+                    نمایش در هیرو، تماس با ما و فوتر
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
+                      آی‌دی کانال ایتا (بدون @)
+                    </label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={socialChannels.eitaaId}
+                      onChange={(e) => {
+                        const cleanId = e.target.value.replace(/^@/, '').trim();
+                        updateSocialChannels({
+                          eitaaId: cleanId,
+                          eitaaUrl: cleanId ? `https://eitaa.com/${cleanId}` : socialChannels.eitaaUrl,
+                        });
+                      }}
+                      placeholder="fatehan_robotics"
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
+                      لینک کامل کانال ایتا
+                    </label>
+                    <input
+                      type="url"
+                      dir="ltr"
+                      value={socialChannels.eitaaUrl}
+                      onChange={(e) => updateSocialChannels({ eitaaUrl: e.target.value })}
+                      placeholder="https://eitaa.com/fatehan_robotics"
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Eitaa Logo Uploader Box */}
+                <div className="p-3.5 rounded-xl bg-white dark:bg-stone-900 border border-orange-200/80 dark:border-stone-800 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-stone-950 border border-orange-200 dark:border-stone-800 flex items-center justify-center shrink-0 overflow-hidden p-1.5">
+                        {socialChannels.eitaaLogoUrl ? (
+                          <img
+                            src={socialChannels.eitaaLogoUrl}
+                            alt="لوگوی ایتا"
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <Send className="w-5 h-5 text-orange-500" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-extrabold text-stone-900 dark:text-white">
+                          لوگوی اختصاصی ایتا (PNG / SVG / WebP)
+                        </div>
+                        <div className="text-[10px] font-mono text-stone-500 truncate max-w-[220px]" dir="ltr">
+                          {socialChannels.eitaaLogoUrl || 'آیکون پیش‌فرض (لوگوی سفارشی بارگذاری نشده)'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setBadgePickerSlot('eitaaLogo')}
+                        className="px-2.5 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 text-[11px] font-extrabold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>گالری</span>
+                      </button>
+
+                      <label className="px-3 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-[11px] font-extrabold inline-flex items-center gap-1.5 cursor-pointer shrink-0">
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>{uploadingAsset === 'eitaaLogo' ? 'در حال آپلود...' : 'بارگذاری لوگوی ایتا'}</span>
+                        <input
+                          type="file"
+                          accept="image/*,.svg,.webp,.png"
+                          className="hidden"
+                          onChange={(e) => void handleUploadBrandAsset('eitaaLogo', e.target.files)}
+                        />
+                      </label>
+
+                      {socialChannels.eitaaLogoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => updateSocialChannels({ eitaaLogoUrl: '' })}
+                          title="حذف لوگوی سفارشی و بازگشت به آیکون پیش‌فرض"
+                          className="p-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 text-rose-600 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-500 mb-1">
+                      یا آدرس مستقیم تصویر لوگوی ایتا:
+                    </label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={socialChannels.eitaaLogoUrl || ''}
+                      onChange={(e) => updateSocialChannels({ eitaaLogoUrl: e.target.value })}
+                      placeholder="/uploads/... یا https://..."
+                      className="w-full px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 font-mono text-[11px]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Instagram & Bale Settings */}
+              <div className="lg:col-span-5 p-4 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 space-y-3.5">
+                <div className="font-extrabold text-stone-900 dark:text-white flex items-center gap-1.5">
+                  <Instagram className="w-4 h-4 text-pink-600" />
+                  <span>اینستاگرام و کانال بله</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                      آی‌دی اینستاگرام
+                    </label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={socialChannels.instagramId}
+                      onChange={(e) => {
+                        const cleanId = e.target.value.replace(/^@/, '').trim();
+                        updateSocialChannels({
+                          instagramId: cleanId,
+                          instagramUrl: cleanId ? `https://instagram.com/${cleanId}` : socialChannels.instagramUrl,
+                        });
+                      }}
+                      placeholder="fatehan.robot"
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                      لینک اینستاگرام
+                    </label>
+                    <input
+                      type="url"
+                      dir="ltr"
+                      value={socialChannels.instagramUrl}
+                      onChange={(e) => updateSocialChannels({ instagramUrl: e.target.value })}
+                      placeholder="https://instagram.com/fatehan.robot"
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-stone-200 dark:border-stone-800">
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                      آی‌دی کانال بله (اختیاری)
+                    </label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={socialChannels.baleId}
+                      onChange={(e) => {
+                        const cleanId = e.target.value.replace(/^@/, '').trim();
+                        updateSocialChannels({
+                          baleId: cleanId,
+                          baleUrl: cleanId ? `https://ble.ir/${cleanId}` : '',
+                        });
+                      }}
+                      placeholder="fatehan_robotics"
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                      لینک کانال بله
+                    </label>
+                    <input
+                      type="url"
+                      dir="ltr"
+                      value={socialChannels.baleUrl}
+                      onChange={(e) => updateSocialChannels({ baleUrl: e.target.value })}
+                      placeholder="https://ble.ir/..."
+                      className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -462,7 +786,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
               </div>
               <span className="px-2.5 py-1 rounded-xl bg-blue-500/10 text-[#1D4ED8] dark:text-sky-400 text-[11px] font-extrabold">
                 پوسته فعال:{' '}
-                {(themeConfig.activeThemeId || 'default') === 'fatehan'
+                {(themeConfig.activeThemeId || 'fatehan') === 'fatehan'
                   ? 'آکادمی فاتحان'
                   : 'پیش‌فرض اسکیل ۹۸'}
               </span>
@@ -471,7 +795,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {REGISTERED_THEMES_LIST.map((themeItem) => {
                 const isActive =
-                  (themeConfig.activeThemeId || 'default') === themeItem.id;
+                  (themeConfig.activeThemeId || 'fatehan') === themeItem.id;
                 return (
                   <div
                     key={themeItem.id}
@@ -925,6 +1249,9 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
           } else if (badgePickerSlot === 'favicon') {
             onUpdateThemeConfig({ ...themeConfig, faviconUrl: sel.url });
             onNotice('success', 'فاوآیکون سایت از گالری انتخاب شد.');
+          } else if (badgePickerSlot === 'eitaaLogo') {
+            updateSocialChannels({ eitaaLogoUrl: sel.url });
+            onNotice('success', 'لوگوی ایتا از گالری انتخاب شد؛ برای ثبت نهایی دکمه ذخیره را بزنید.');
           }
           setBadgePickerSlot(null);
         }}

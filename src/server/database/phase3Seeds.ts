@@ -18,7 +18,7 @@ export const INITIAL_DYNAMIC_PAGES: CmsDynamicPage[] = [
     seoDescription:
       'آشنایی با استودیو مهندسی اسکیل ۹۸، استانداردهای تولید اسکیل‌های Claude، ChatGPT و Codex و زیرساخت بومی.',
     canonicalUrl: '/page/about-us',
-    ogImage: '/logo-skill98.svg',
+    ogImage: '/assets/aistudio/logo_8c26749f.webp',
     schemaType: 'AboutPage',
     updatedAt: '2026-11-18T12:00:00.000Z',
     composerRows: [
@@ -110,7 +110,7 @@ export const INITIAL_DYNAMIC_PAGES: CmsDynamicPage[] = [
     seoTitle: 'تماس با اسکیل ۹۸ | پشتیبانی فنی و فروش سازمانی',
     seoDescription: 'راه‌های ارتباطی با تیم فنی اسکیل ۹۸، ثبت درخواست مشاوره و پشتیبانی خریداران.',
     canonicalUrl: '/page/contact-us',
-    ogImage: '/logo-skill98.svg',
+    ogImage: '/assets/aistudio/logo_8c26749f.webp',
     schemaType: 'ContactPage',
     updatedAt: '2026-11-18T12:00:00.000Z',
     composerRows: [
@@ -151,7 +151,7 @@ export const INITIAL_DYNAMIC_PAGES: CmsDynamicPage[] = [
     seoTitle: 'قوانین و حریم خصوصی | اسکیل ۹۸',
     seoDescription: 'شرایط و قوانین خرید، دانلود و استفاده از محصولات دیجیتال و اسکیل‌های هوش مصنوعی در اسکیل ۹۸.',
     canonicalUrl: '/page/terms-and-privacy',
-    ogImage: '/logo-skill98.svg',
+    ogImage: '/assets/aistudio/logo_8c26749f.webp',
     schemaType: 'WebPage',
     updatedAt: '2026-11-18T12:00:00.000Z',
     composerRows: [
@@ -191,7 +191,7 @@ export const INITIAL_DYNAMIC_PAGES: CmsDynamicPage[] = [
     seoTitle: 'خرید اقساطی اسکیل‌ها و پکیج‌های سازمانی | اسکیل ۹۸',
     seoDescription: 'شرایط تسویه ۴ قسطه بدون کارمزد پنهان و خرید سازمانی با فاکتور رسمی در اسکیل ۹۸.',
     canonicalUrl: '/page/installment-guide',
-    ogImage: '/logo-skill98.svg',
+    ogImage: '/assets/aistudio/logo_8c26749f.webp',
     schemaType: 'FAQPage',
     updatedAt: '2026-11-18T12:00:00.000Z',
     composerRows: [
@@ -395,8 +395,8 @@ export const INITIAL_INVOICE_TEMPLATES: CmsInvoiceTemplate[] = [
     sellerPostalCode: '1416895321',
     sellerPhone: '021-91009898',
     sellerAddress: 'تهران، خیابان ولیعصر، تقاطع طالقانی، مجتمع فناوری، طبقه ۴، واحد ۴۰۲',
-    logoUrl: '/logo-skill98.svg',
-    stampSignatureUrl: '/logo-skill98-emblem.svg',
+    logoUrl: '/assets/aistudio/logo_8c26749f.webp',
+    stampSignatureUrl: '/assets/aistudio/logo_8c26749f.webp',
     footerNote:
       'این صورتحساب الکترونیکی مطابق استاندارد سامانه مودیان و قانون مالیات بر ارزش افزوده صادر گردیده و با مهر و امضای دیجیتال فروشنده معتبر است.',
     isDefault: true,
@@ -462,8 +462,8 @@ export const INITIAL_INVOICE_TEMPLATES: CmsInvoiceTemplate[] = [
     sellerPostalCode: '1416895321',
     sellerPhone: '021-91009898',
     sellerAddress: 'تهران، مرکز نوآوری ولیعصر • www.skill98.ir',
-    logoUrl: '/logo-skill98.svg',
-    stampSignatureUrl: '/logo-skill98-emblem.svg',
+    logoUrl: '/assets/aistudio/logo_8c26749f.webp',
+    stampSignatureUrl: '/assets/aistudio/logo_8c26749f.webp',
     footerNote: 'از خرید شما سپاسگزاریم. فایل‌ها و لایسنس‌ها در پنل کاربری شما به صورت دائمی فعال هستند.',
     isDefault: false,
     updatedAt: '2026-11-18T12:00:00.000Z',
@@ -535,7 +535,7 @@ export async function seedPhase3Tables(nowIso: string): Promise<void> {
           pg.seoTitle,
           pg.seoDescription,
           pg.canonicalUrl || `/page/${pg.slug}`,
-          pg.ogImage || '/logo-skill98.svg',
+          pg.ogImage || '/assets/aistudio/logo_8c26749f.webp',
           pg.schemaType,
           JSON.stringify(pg.composerRows),
           nowIso,

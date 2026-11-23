@@ -383,7 +383,7 @@ export default function App() {
 
   // 2B. Sync Dynamic Favicon
   useEffect(() => {
-    const favHref = themeConfig.faviconUrl || '/favicon.svg';
+    const favHref = themeConfig.faviconUrl || '/assets/aistudio/logo_8c26749f.webp';
     let link =
       document.querySelector<HTMLLinkElement>('link#dynamic-favicon') ||
       document.querySelector<HTMLLinkElement>("link[rel*='icon']");
@@ -1976,6 +1976,41 @@ export default function App() {
     };
   }, [activeTab, activeProduct, activeArticle, activeDynamicPage, themeConfig.brandNameFa]);
 
+  const fatehanAdapter = useMemo(() => createCmsV2ApiAdapter(), []);
+
+  const fatehanHostUser = useMemo(() => {
+    if (userRole === 'guest' || !loggedInPhone) return null;
+    return {
+      fullName:
+        displayUserName ||
+        (userRole === 'super_admin'
+          ? 'مدیر ارشد سیستم'
+          : userRole === 'admin'
+          ? 'ادمین سیستم'
+          : 'کاربر'),
+      phone: loggedInPhone,
+      verified: true,
+      walletBalanceToman: 0,
+      role: userRole,
+      roleId: loggedInRoleId,
+    };
+  }, [userRole, loggedInPhone, displayUserName, loggedInRoleId]);
+
+  const handleUpdateHeaderLogoSize = (nextPx: number, persist = false) => {
+    const clamped = Math.min(120, Math.max(36, Math.round(nextPx)));
+    const nextTheme: ThemeConfig = {
+      ...themeConfig,
+      headerLogoSizePx: clamped,
+    };
+    setThemeConfig(nextTheme);
+    if (persist && canAccessAdmin) {
+      void handleSaveThemeNow(
+        nextTheme,
+        `سایز لوگوی هدر روی ${clamped} پیکسل تنظیم و ذخیره شد.`
+      );
+    }
+  };
+
   if (
     activeThemeDef.id === 'fatehan' &&
     activeThemeDef.renderStandaloneRoot &&
@@ -1984,14 +2019,38 @@ export default function App() {
     return (
       <div dir="rtl" className="min-h-screen relative">
         {activeThemeDef.renderStandaloneRoot({
-          adapter: createCmsV2ApiAdapter(),
+          adapter: fatehanAdapter,
+          hostUser: fatehanHostUser,
+          headerLogoSizePx: themeConfig.headerLogoSizePx ?? 68,
+          onUpdateHeaderLogoSize: handleUpdateHeaderLogoSize,
+          onOpenAdminPanel: () => navigateWithTransition('admin'),
+          onGoogleLogin: handleGoogleLogin,
+          onAuthSessionSync: (syncedUser, syncedToken) => {
+            if (!syncedUser) {
+              void handleLogout();
+              return;
+            }
+            const nextRole: Exclude<UserRoleType, 'guest'> =
+              syncedUser.role === 'super_admin'
+                ? 'super_admin'
+                : syncedUser.role === 'admin'
+                ? 'admin'
+                : 'customer';
+            completeVerifiedLogin(
+              nextRole,
+              syncedUser.phone,
+              syncedUser.fullName,
+              syncedUser.roleId,
+              syncedToken
+            );
+          },
         })}
 
         {canAccessAdmin && (
           <button
             type="button"
             onClick={() => navigateWithTransition('admin')}
-            className="fixed bottom-5 left-5 z-50 px-4 py-2.5 rounded-full bg-slate-950/90 hover:bg-blue-700 text-white text-xs font-extrabold shadow-xl border border-white/15 backdrop-blur-md flex items-center gap-2 cursor-pointer transition-colors"
+            className="fixed bottom-20 sm:bottom-5 left-4 sm:left-5 z-50 px-4 py-2.5 rounded-full bg-slate-950/90 hover:bg-blue-700 text-white text-xs font-extrabold shadow-xl border border-white/15 backdrop-blur-md flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>بازگشت به پنل مدیریت CMS / تغییر پوسته</span>
@@ -2016,7 +2075,7 @@ export default function App() {
       dir="rtl"
       data-barba="wrapper"
       data-accent={themeConfig.accentPreset}
-      className="min-h-screen flex flex-col bg-[#F6F5F1] dark:bg-[#0F172A] text-stone-900 dark:text-slate-100 transition-colors duration-300 relative overflow-x-hidden max-w-[100vw]"
+      className="min-h-screen flex flex-col bg-[#F6F5F1] dark:bg-[#0F172A] text-stone-900 dark:text-slate-100 transition-colors duration-300 relative overflow-x-clip max-w-[100vw]"
     >
       {/* Barba.js + GSAP Soft Frosted-Glass & Blur Page Transition Overlay */}
       <div
@@ -2064,6 +2123,7 @@ export default function App() {
           );
         }}
         onResetDraggedElements={handleResetDraggedElements}
+        onUpdateHeaderLogoSize={handleUpdateHeaderLogoSize}
       />
 
       {/* Global Activity Spinner & Transient Floating Toast Overlay */}

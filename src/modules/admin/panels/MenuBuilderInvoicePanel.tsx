@@ -667,7 +667,7 @@ export const MenuBuilderInvoicePanel: React.FC<MenuBuilderInvoicePanelProps> = (
                           logoUrl: e.target.value,
                         })
                       }
-                      placeholder="/logo-skill98.svg"
+                      placeholder="/assets/aistudio/logo_8c26749f.webp"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-xs font-mono"
                     />
                   </div>
@@ -686,7 +686,7 @@ export const MenuBuilderInvoicePanel: React.FC<MenuBuilderInvoicePanelProps> = (
                           stampSignatureUrl: e.target.value,
                         })
                       }
-                      placeholder="/logo-skill98-emblem.svg"
+                      placeholder="/assets/aistudio/logo_8c26749f.webp"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-xs font-mono"
                     />
                   </div>

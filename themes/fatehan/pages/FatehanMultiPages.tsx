@@ -1134,6 +1134,7 @@ export const FatehanContactPage: React.FC = () => {
   const igUrl = state?.typography?.instagramUrl || settings.social.instagramUrl || `https://instagram.com/${igHandle}`;
   const eitaaHandle = (state?.typography?.eitaaId ?? settings.social.eitaaId ?? 'fatehan_robotics').replace(/^@/, '').trim();
   const eitaaUrl = state?.typography?.eitaaUrl || settings.social.eitaaUrl || (eitaaHandle ? `https://eitaa.com/${eitaaHandle}` : '');
+  const eitaaLogoUrl = (state?.typography?.eitaaLogoUrl || settings.social.eitaaLogoUrl || '').trim();
 
   // Prefer BLK-CONTACT-MAIN if it has the 4th item or modified items, otherwise fall back to BLK-HOME-CONTACT
   const activeContactItems =
@@ -1537,8 +1538,16 @@ export const FatehanContactPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                    <Send className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md overflow-hidden p-1.5">
+                    {eitaaLogoUrl ? (
+                      <img
+                        src={eitaaLogoUrl}
+                        alt="لوگوی کانال ایتا"
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <Send className="w-6 h-6" />
+                    )}
                   </div>
                 </div>
               </div>

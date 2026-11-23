@@ -85,7 +85,7 @@ function mapPageRow(row: PageSqlRow): CmsDynamicPage {
     seoTitle: row.seo_title || row.title,
     seoDescription: row.seo_description || row.summary || '',
     canonicalUrl: row.canonical_url || `/page/${row.slug}`,
-    ogImage: row.og_image || '/logo-skill98.svg',
+    ogImage: row.og_image || '/assets/aistudio/logo_8c26749f.webp',
     schemaType:
       (row.schema_type as CmsDynamicPage['schemaType']) || 'WebPage',
     composerRows: parseComposerRows(row.composer_rows_json),
@@ -126,8 +126,8 @@ function mapInvoiceRow(row: InvoiceTplSqlRow): CmsInvoiceTemplate {
     sellerPostalCode: row.seller_postal_code || '',
     sellerPhone: row.seller_phone || '',
     sellerAddress: row.seller_address || '',
-    logoUrl: row.logo_url || '/logo-skill98.svg',
-    stampSignatureUrl: row.stamp_signature_url || '/logo-skill98-emblem.svg',
+    logoUrl: row.logo_url || '/assets/aistudio/logo_8c26749f.webp',
+    stampSignatureUrl: row.stamp_signature_url || '/assets/aistudio/logo_8c26749f.webp',
     footerNote: row.footer_note || '',
     isDefault: Boolean(row.is_default),
     composerRows: parseComposerRows(row.composer_rows_json),
@@ -223,7 +223,7 @@ export function createPagesMenusComposerRouter(): express.Router {
         const seoTitle = String(body.seoTitle || title).trim();
         const seoDescription = String(body.seoDescription || summary || title).trim();
         const canonicalUrl = String(body.canonicalUrl || `/page/${slug}`).trim();
-        const ogImage = String(body.ogImage || '/logo-skill98.svg').trim();
+        const ogImage = String(body.ogImage || '/assets/aistudio/logo_8c26749f.webp').trim();
         const schemaType = String(body.schemaType || 'WebPage');
         const composerRows: ComposerRow[] = Array.isArray(body.composerRows)
           ? body.composerRows
@@ -531,8 +531,8 @@ export function createPagesMenusComposerRouter(): express.Router {
             String(b.sellerPostalCode || '').trim(),
             String(b.sellerPhone || '').trim(),
             String(b.sellerAddress || '').trim(),
-            String(b.logoUrl || '/logo-skill98.svg').trim(),
-            String(b.stampSignatureUrl || '/logo-skill98-emblem.svg').trim(),
+            String(b.logoUrl || '/assets/aistudio/logo_8c26749f.webp').trim(),
+            String(b.stampSignatureUrl || '/assets/aistudio/logo_8c26749f.webp').trim(),
             String(b.footerNote || '').trim(),
             isDefault ? 1 : 0,
             JSON.stringify(composerRows),

@@ -883,13 +883,11 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
                   فرمت‌های پیشنهادی: PNG شفاف، WebP یا SVG
                 </div>
               </div>
-              <div className="w-14 h-14 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-2 flex items-center justify-center shrink-0">
-                <img
-                  src={themeConfig.logoUrl || '/logo-skill98.svg'}
-                  alt={themeConfig.brandNameFa}
-                  className="max-w-full max-h-full object-contain"
-                />
-              </div>
+              <img
+                src={themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
+                alt={themeConfig.brandNameFa}
+                className="w-14 h-14 object-contain shrink-0 bg-transparent border-0 p-0"
+              />
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -911,11 +909,11 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
               <input
                 type="text"
                 dir="ltr"
-                value={themeConfig.logoUrl || '/logo-skill98.svg'}
+                value={themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
                 onChange={(e) =>
                   onUpdateTheme({ ...themeConfig, logoUrl: e.target.value })
                 }
-                placeholder="/logo-skill98.svg"
+                placeholder="/assets/aistudio/logo_8c26749f.webp"
                 className="flex-1 min-w-[160px] px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
               />
             </div>
@@ -932,13 +930,11 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
                   ابعاد پیشنهادی: 64×64 یا 128×128 (PNG / ICO / SVG)
                 </div>
               </div>
-              <div className="w-14 h-14 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-3 flex items-center justify-center shrink-0">
-                <img
-                  src={themeConfig.faviconUrl || themeConfig.logoUrl || '/logo-skill98.svg'}
-                  alt="Favicon"
-                  className="w-8 h-8 object-contain"
-                />
-              </div>
+              <img
+                src={themeConfig.faviconUrl || themeConfig.logoUrl || '/assets/aistudio/logo_8c26749f.webp'}
+                alt="Favicon"
+                className="w-10 h-10 object-contain shrink-0 bg-transparent border-0 p-0"
+              />
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -960,11 +956,11 @@ export const AiSessionsThemePanel: React.FC<AiSessionsThemePanelProps> = ({
               <input
                 type="text"
                 dir="ltr"
-                value={themeConfig.faviconUrl || '/logo-skill98.svg'}
+                value={themeConfig.faviconUrl || '/assets/aistudio/logo_8c26749f.webp'}
                 onChange={(e) =>
                   onUpdateTheme({ ...themeConfig, faviconUrl: e.target.value })
                 }
-                placeholder="/logo-skill98.svg"
+                placeholder="/assets/aistudio/logo_8c26749f.webp"
                 className="flex-1 min-w-[160px] px-3 py-2 text-xs font-mono rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
               />
             </div>
