@@ -48,7 +48,7 @@ export const OrdersCouponsPanel: React.FC<OrdersCouponsPanelProps> = ({
       code: cleanCode,
       discountPercent: Math.max(1, Math.min(100, Number(newCouponPercent))),
       description:
-        newCouponDesc.trim() || `${newCouponPercent}٪ تخفیف ویژه اسکیل ۹۸`,
+        newCouponDesc.trim() || `${newCouponPercent}٪ تخفیف ویژه آموزشگاه رباتیک فاتحان`,
       active: true,
     });
     setNewCouponCode('');

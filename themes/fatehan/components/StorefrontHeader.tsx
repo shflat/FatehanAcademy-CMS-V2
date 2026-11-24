@@ -422,8 +422,10 @@ export const StorefrontHeader: React.FC = () => {
             {isMobile && (
               <button
                 type="button"
+                aria-label={mobileMenuOpen ? 'بستن منوی ناوبری' : 'باز کردن منوی ناوبری'}
+                aria-expanded={mobileMenuOpen}
                 onClick={() => setMobileMenuOpen((prev) => !prev)}
-                className="p-2.5 rounded-xl bg-slate-100 text-slate-800 cursor-pointer"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-slate-100 text-slate-800 cursor-pointer"
               >
                 {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
               </button>

@@ -663,7 +663,13 @@ export interface CmsApiAdapter {
     ageGroup: string;
     note?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
-  sendOtp: (payload: { phone: string; patternKey?: string }) => Promise<{ ok: boolean; error?: string }>;
+  sendOtp: (payload: { phone: string; patternKey?: string }) => Promise<{
+    ok: boolean;
+    message?: string;
+    gatewayStatus?: string;
+    requiresMasterCode?: boolean;
+    error?: string;
+  }>;
   verifyOtp: (payload: {
     phone: string;
     code: string;

@@ -19,11 +19,11 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
   once = false,
 }) => {
   const initialMap = {
-    up: { opacity: 0, y: 42, scale: 0.96 },
-    down: { opacity: 0, y: -36, scale: 0.96 },
-    right: { opacity: 0, x: 54, scale: 0.96 },
-    left: { opacity: 0, x: -54, scale: 0.96 },
-    scale: { opacity: 0, scale: 0.91, y: 24 },
+    up: { opacity: 0, y: 40, scale: 0.96 },
+    down: { opacity: 0, y: -34, scale: 0.96 },
+    right: { opacity: 0, x: 50, scale: 0.96 },
+    left: { opacity: 0, x: -50, scale: 0.96 },
+    scale: { opacity: 0, scale: 0.92, y: 24 },
   };
 
   return (
@@ -60,30 +60,34 @@ export const SmoothScrollProgressBar: React.FC = () => {
 };
 
 /**
- * Automatically attaches continuous, bidirectional scroll-triggered entrance animations
- * (slide from right, left, and bottom + fade & scale) to all sections, cards, and blocks.
- * Re-triggers smoothly every time the user scrolls up or down.
+ * Bidirectional Multi-Direction Scroll Reveal Engine (Zero Forced Reflow + Instant Hero LCP):
+ * - Keeps the above-the-fold Hero / first section completely visible at 0ms for instant LCP.
+ * - Smoothly animates below-the-fold sections, cards, and blocks from bottom, right, and left
+ *   with staggered card delays, re-triggering smoothly on both downward and upward scroll.
+ * - Uses pure IntersectionObserver with ZERO getBoundingClientRect() calls inside loops
+ *   so there is 0ms Forced Reflow on PageSpeed.
  */
 export function useAutoScrollReveal(dependencyKey: string) {
   useEffect(() => {
-    if (typeof IntersectionObserver === 'undefined') return;
+    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
 
     const observedElements = new WeakSet<Element>();
     let globalCounter = 0;
 
     const intersectionObserver = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
+        for (const entry of entries) {
           if (entry.isIntersecting) {
             entry.target.classList.add('dpa-scroll-visible');
           } else {
             entry.target.classList.remove('dpa-scroll-visible');
           }
-        });
+        }
       },
       {
         threshold: 0.06,
-        rootMargin: '20px 0px -25px 0px',
+        rootMargin: '25px 0px -20px 0px',
       }
     );
 
@@ -91,13 +95,25 @@ export function useAutoScrollReveal(dependencyKey: string) {
       const mainEl = document.querySelector('main');
       if (!mainEl) return;
 
+      const firstSection = mainEl.querySelector('section');
       const targets = mainEl.querySelectorAll(
         'section, article, footer, .grid > div, .rounded-3xl, .rounded-\\[2\\.5rem\\]'
       );
 
       targets.forEach((el) => {
         if (observedElements.has(el)) return;
-        if (el.closest('header') || el.closest('nav')) return;
+        // Never hide above-the-fold Hero / header / nav so LCP paints instantaneously
+        if (
+          el === firstSection ||
+          (firstSection && firstSection.contains(el)) ||
+          el.classList.contains('fatehan-hero-section') ||
+          el.closest('.fatehan-hero-section') ||
+          el.closest('header') ||
+          el.closest('nav')
+        ) {
+          observedElements.add(el);
+          return;
+        }
 
         observedElements.add(el);
         el.classList.add('dpa-scroll-init');
@@ -108,38 +124,42 @@ export function useAutoScrollReveal(dependencyKey: string) {
         else el.classList.add('dpa-scroll-from-left');
 
         const htmlEl = el as HTMLElement;
-        if (el.parentElement?.classList.contains('grid')) {
-          const siblings = Array.from(el.parentElement.children);
-          const idx = siblings.indexOf(el);
-          if (idx >= 0 && idx < 8) {
-            htmlEl.style.transitionDelay = `${(idx % 4) * 70}ms`;
+        const parent = el.parentElement;
+        if (parent?.classList.contains('grid')) {
+          let idx = 0;
+          let sib = el.previousElementSibling;
+          while (sib) {
+            idx++;
+            sib = sib.previousElementSibling;
+          }
+          if (idx < 8) {
+            htmlEl.style.transitionDelay = `${(idx % 4) * 65}ms`;
           }
         }
 
-        const rect = el.getBoundingClientRect();
-        if (rect.top < window.innerHeight * 0.92 && rect.bottom > 0) {
-          requestAnimationFrame(() => {
-            el.classList.add('dpa-scroll-visible');
-          });
-        }
-
+        // Pure IntersectionObserver fires immediately for any in-viewport element with ZERO forced reflow
         intersectionObserver.observe(el);
       });
     };
 
-    scanAndObserve();
-    const t1 = setTimeout(scanAndObserve, 120);
-    const t2 = setTimeout(scanAndObserve, 450);
+    const rafId = window.requestAnimationFrame(scanAndObserve);
+    const t1 = window.setTimeout(scanAndObserve, 160);
+    let debounceTimer: number | null = null;
 
     const mainNode = document.querySelector('main') || document.body;
     const mutationObserver = new MutationObserver(() => {
-      scanAndObserve();
+      if (debounceTimer !== null) window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => {
+        debounceTimer = null;
+        scanAndObserve();
+      }, 220);
     });
     mutationObserver.observe(mainNode, { childList: true, subtree: true });
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      window.cancelAnimationFrame(rafId);
+      window.clearTimeout(t1);
+      if (debounceTimer !== null) window.clearTimeout(debounceTimer);
       mutationObserver.disconnect();
       intersectionObserver.disconnect();
     };

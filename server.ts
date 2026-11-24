@@ -1,3 +1,4 @@
+import compression from 'compression';
 import dotenv from 'dotenv';
 import express from 'express';
 import fs from 'fs';
@@ -21,7 +22,7 @@ import { createTaxonomiesPaginationRouter } from './src/server/modules/catalog/t
 import { createPagesMenusComposerRouter } from './src/server/modules/cms/pagesMenusComposerRouter.js';
 import {
   createMediaEngineRouter,
-  migrateDatabaseBase64ToPhysicalWebp,
+  initContinuousMediaOptimizerAgent,
 } from './src/server/modules/media/mediaEngineRouter.js';
 import { createOrdersRouter } from './src/server/modules/orders/ordersRouter.js';
 import { createStorefrontRouter } from './src/server/modules/storefront/storefrontRouter.js';
@@ -61,15 +62,20 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const dbInit = await initDatabase();
-  void migrateDatabaseBase64ToPhysicalWebp().catch(() => {
-    // non-blocking startup migration of any legacy Base64 strings
-  });
+  // Always-on background agent: converts any Base64/JPG/PNG or unsized asset to 4-size WebP
+  initContinuousMediaOptimizerAgent();
 
   const app = express();
   const PORT = resolveServerPort();
 
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
+  app.use(
+    compression({
+      threshold: 1024,
+      level: 6,
+    })
+  );
   const applyNoStoreHeaders = (res: express.Response) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -177,23 +183,53 @@ async function startServer() {
   app.use(
     '/uploads',
     express.static(primaryUploadsPath, {
-      maxAge: '7d',
+      maxAge: '30d',
+      immutable: true,
     })
   );
   if (path.resolve(legacyPublicUploadsPath) !== path.resolve(primaryUploadsPath)) {
     app.use(
       '/uploads',
       express.static(legacyPublicUploadsPath, {
-        maxAge: '7d',
+        maxAge: '30d',
+        immutable: true,
       })
     );
   }
 
-  // Internal self-hosted fonts cache control
+  // Internal self-hosted fonts & trust badges long-term immutable cache control
   app.use(
     '/fonts',
     express.static(path.join(__dirname, 'public', 'fonts'), {
-      maxAge: '30d',
+      maxAge: '365d',
+      immutable: true,
+    })
+  );
+  app.use(
+    '/badges',
+    express.static(path.join(__dirname, 'public', 'badges'), {
+      maxAge: '365d',
+      immutable: true,
+    })
+  );
+  app.use(
+    '/assets/kits',
+    express.static(path.join(__dirname, 'public', 'assets', 'kits'), {
+      maxAge: '365d',
+      immutable: true,
+    })
+  );
+  app.use(
+    '/assets/blog',
+    express.static(path.join(__dirname, 'public', 'assets', 'blog'), {
+      maxAge: '365d',
+      immutable: true,
+    })
+  );
+  app.use(
+    '/assets/aistudio',
+    express.static(path.join(__dirname, 'public', 'assets', 'aistudio'), {
+      maxAge: '365d',
       immutable: true,
     })
   );
@@ -228,15 +264,17 @@ async function startServer() {
 
     app.use(
       '/assets',
-      express.static(path.join(distPath, 'assets'), { maxAge: '30d', immutable: true })
+      express.static(path.join(distPath, 'assets'), { maxAge: '365d', immutable: true })
     );
     app.use(
       express.static(distPath, {
         index: false,
-        maxAge: '1d',
+        maxAge: '7d',
         setHeaders(res, filePath) {
           if (filePath.endsWith('index.html') || filePath.endsWith('sw.js')) {
             applyNoStoreHeaders(res);
+          } else if (/\.(svg|png|jpe?g|webp|woff2?|css|js)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
           }
         },
       })
@@ -244,17 +282,22 @@ async function startServer() {
     app.use(
       express.static(publicPath, {
         index: false,
-        maxAge: '7d',
+        maxAge: '30d',
         setHeaders(res, filePath) {
           if (filePath.endsWith('sw.js')) {
             applyNoStoreHeaders(res);
+          } else if (/\.(svg|png|jpe?g|webp|woff2?)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
           }
         },
       })
     );
 
     app.get('*', (req, res) => {
-      if (/\.(png|jpe?g|webp|gif|svg|ico|css|js|woff2?)$/i.test(req.path)) {
+      if (
+        req.path.startsWith('/.well-known/') ||
+        /\.(png|jpe?g|webp|gif|svg|ico|css|js|woff2?|json|webmanifest|xml|txt)$/i.test(req.path)
+      ) {
         res.status(404).end();
         return;
       }

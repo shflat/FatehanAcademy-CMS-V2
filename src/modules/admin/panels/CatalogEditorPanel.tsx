@@ -51,6 +51,10 @@ export interface ProductEditorDraft {
   editingId?: string;
   title: string;
   slug: string;
+  sku: string;
+  stock: number;
+  warranty: string;
+  specs: string;
   category: string;
   subCategory: string;
   itemType: 'product' | 'package';
@@ -81,20 +85,24 @@ export function createEmptyProductDraft(): ProductEditorDraft {
     editingId: undefined,
     title: '',
     slug: '',
-    category: 'Codex',
-    subCategory: 'کدنویسی و معماری',
+    sku: 'FAT-KIT-NEW',
+    stock: 20,
+    warranty: 'گارانتی سلامت قطعات + راهنمای مونتاژ فارسی فاتحان',
+    specs: '',
+    category: 'دپارتمان رباتیک',
+    subCategory: 'کیت کامل رباتیک',
     itemType: 'product',
-    productType: 'downloadable',
+    productType: 'physical',
     downloadFiles: [],
     downloadAccessNote: '',
     downloadLimitPerUser: 0,
-    price: 0,
-    originalPrice: 0,
+    price: 980000,
+    originalPrice: 1250000,
     shortDescription: '',
     expectedOutput: '',
-    modulesCount: 3,
-    durationHours: 1,
-    level: 'نسخه ۱.۰ · آماده اجرا',
+    modulesCount: 12,
+    durationHours: 8,
+    level: 'مقدماتی تا پیشرفته (۸ تا ۱۶ سال)',
     posterColor: 'cobalt',
     imageUrl: IMAGES.fullstackPkg,
     galleryUrls: [],
@@ -115,8 +123,12 @@ export function productToDraft(item: SkillProduct): ProductEditorDraft {
     editingId: item.id,
     title: item.title,
     slug: item.slug,
+    sku: item.sku || item.id.toUpperCase(),
+    stock: typeof item.stock === 'number' ? item.stock : 20,
+    warranty: item.warranty || 'گارانتی سلامت قطعات + راهنمای مونتاژ فارسی فاتحان',
+    specs: item.specs || item.shortDescription || '',
     category: item.category,
-    subCategory: item.subCategory || 'کاربردی',
+    subCategory: item.subCategory || 'کیت آموزشی رباتیک',
     itemType: item.itemType,
     productType: inferredType,
     downloadFiles: Array.isArray(item.downloadFiles) ? item.downloadFiles : [],
@@ -136,7 +148,7 @@ export function productToDraft(item: SkillProduct): ProductEditorDraft {
     status: item.status,
     seoTitle: item.seoTitle || item.title,
     seoDescription: item.seoDescription || item.shortDescription,
-    seoKeywords: item.seoKeywords || `${item.category}, اسکیل ۹۸, دانلود اسکیل`,
+    seoKeywords: item.seoKeywords || `${item.category}, آموزشگاه رباتیک فاتحان, خرید کیت رباتیک`,
     composerRows: item.composerRows || [],
   };
 }
@@ -392,10 +404,10 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
     } catch {
       onChangeDraft({
         ...draft,
-        seoTitle: `${draft.title} | دانلود و راهنمای کاربردی در اسکیل ۹۸`,
-        seoDescription: `دریافت و آموزش کامل «${draft.title}» ویژه ${draft.category} با خروجی استاندارد و آماده استفاده در پروژه‌های واقعی.`,
-        seoKeywords: `${draft.title}, اسکیل ${draft.category}, اسکیل ۹۸, دانلود اسکیل`,
-        slug: draft.slug || `skill-${Date.now().toString(36)}`,
+        seoTitle: `${draft.title} | فروشگاه کیت‌های آموزشگاه رباتیک فاتحان`,
+        seoDescription: `خرید و مشخصات کامل «${draft.title}» در ${draft.category} همراه با گارانتی سلامت قطعات و راهنمای مونتاژ فارسی آموزشگاه رباتیک فاتحان.`,
+        seoKeywords: `${draft.title}, ${draft.category}, آموزشگاه رباتیک فاتحان, خرید کیت رباتیک`,
+        slug: draft.slug || `fatehan-kit-${Date.now().toString(36)}`,
       });
       onNotice('success', 'فیلدهای سئو به صورت هوشمند تکمیل شدند.');
     } finally {
@@ -406,22 +418,28 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
   const handleSubmitProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!draft.title.trim() || !draft.shortDescription.trim()) {
-      onNotice('error', 'لطفاً عنوان و توضیحات کوتاه اسکیل را وارد نمایید.');
+      onNotice('error', 'لطفاً عنوان و توضیحات کیت یا محصول رباتیک را وارد نمایید.');
       return;
     }
     setIsSaving(true);
     try {
       const generatedSlug =
         draft.slug.trim() ||
-        `skill-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+        `fatehan-kit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
       await onSaveProduct(
         {
           id: draft.editingId || generatedSlug,
           title: draft.title.trim(),
           slug: generatedSlug,
+          sku: draft.sku.trim() || generatedSlug.toUpperCase(),
+          stock: Number(draft.stock) >= 0 ? Number(draft.stock) : 20,
+          warranty:
+            draft.warranty.trim() ||
+            'گارانتی سلامت قطعات + راهنمای مونتاژ فارسی فاتحان',
+          specs: draft.specs.trim() || draft.shortDescription.trim(),
           category: draft.category.trim(),
-          subCategory: draft.subCategory.trim(),
+          subCategory: draft.subCategory.trim() || 'کیت آموزشی رباتیک',
           itemType: draft.itemType,
           productType: draft.productType,
           deliveryType: draft.productType === 'physical' ? 'physical' : 'digital',
@@ -433,26 +451,22 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
           shortDescription: draft.shortDescription.trim(),
           expectedOutput:
             draft.expectedOutput.trim() ||
-            'خروجی استاندارد و ساختاریافته متناسب با ابزار انتخاب‌شده.',
+            'اقلام کامل کیت رباتیک به همراه دفترچه راهنمای مونتاژ گام‌به‌گام فارسی.',
           modulesCount: Number(draft.modulesCount),
           durationHours: Number(draft.durationHours),
           level: draft.level.trim(),
           posterColor: draft.posterColor,
           posterIconType:
-            draft.category === 'Claude'
-              ? 'starburst'
-              : draft.category === 'ChatGPT'
-              ? 'radial'
-              : draft.itemType === 'package'
+            draft.itemType === 'package'
               ? 'shield'
               : 'braces',
           imageUrl: draft.imageUrl,
           galleryUrls: draft.galleryUrls || [],
           featured: draft.featured,
           status: draft.status,
-          seoTitle: draft.seoTitle.trim() || `${draft.title.trim()} | اسکیل ۹۸`,
+          seoTitle: draft.seoTitle.trim() || `${draft.title.trim()} | آموزشگاه رباتیک فاتحان`,
           seoDescription: draft.seoDescription.trim() || draft.shortDescription.trim(),
-          seoKeywords: draft.seoKeywords.trim() || `${draft.category}, اسکیل ۹۸`,
+          seoKeywords: draft.seoKeywords.trim() || `${draft.category}, آموزشگاه رباتیک فاتحان, خرید کیت رباتیک`,
           composerRows: draft.composerRows,
         },
         draft.editingId
@@ -461,8 +475,8 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
       onNotice(
         'success',
         draft.editingId
-          ? 'اسکیل و تنظیمات سئوی آن با موفقیت بروزرسانی شد.'
-          : 'اسکیل جدید با تنظیمات کامل سئو به کاتالوگ اسکیل ۹۸ اضافه گردید.'
+          ? 'کیت/محصول رباتیک و تنظیمات سئوی آن با موفقیت در دیتابیس بروزرسانی شد.'
+          : 'کیت/محصول رباتیک جدید با موفقیت به فروشگاه آموزشگاه رباتیک فاتحان اضافه گردید.'
       );
       onChangeDraft(createEmptyProductDraft());
       scrollToTopSmooth();
@@ -477,17 +491,26 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
     }
   };
 
+  const defaultFatehanCategories = [
+    { value: 'دپارتمان رباتیک', label: 'دپارتمان رباتیک (مسیریاب، جنگجو، فوتبالیست)' },
+    { value: 'دپارتمان پرینترهای سه‌بعدی', label: 'دپارتمان پرینترهای سه‌بعدی (قلم 3D، فیلامنت و قطعات)' },
+    { value: 'دپارتمان الکترونیک', label: 'دپارتمان الکترونیک (برد آردوینو، سنسورها و ماژول‌ها)' },
+    { value: 'دپارتمان برنامه‌نویسی و هوش مصنوعی', label: 'دپارتمان برنامه‌نویسی و هوش مصنوعی (اسکرچ، پایتون و بینایی ماشین)' },
+    { value: 'دپارتمان مکانیک و سازه', label: 'دپارتمان مکانیک و سازه (شاسی، چرخ‌دنده و گیربکس)' },
+  ];
+
   const dynamicCategoryOptions =
     taxonomies.length > 0
-      ? taxonomies.map((t) => ({
-          value: t.slug,
-          label: t.parentId ? `↳ ${t.titleFa} (${t.slug})` : `${t.titleFa} (${t.slug})`,
-        }))
-      : [
-          { value: 'Claude', label: 'Claude (نوشتن، تحلیل و معماری)' },
-          { value: 'ChatGPT', label: 'ChatGPT (ایده، محتوا و اجرا)' },
-          { value: 'Codex', label: 'Codex (کدنویسی، انیمیشن و پروژه)' },
-        ];
+      ? [
+          ...defaultFatehanCategories,
+          ...taxonomies
+            .filter((t) => !defaultFatehanCategories.some((d) => d.value === t.titleFa || d.value === t.slug))
+            .map((t) => ({
+              value: t.titleFa || t.slug,
+              label: t.parentId ? `↳ ${t.titleFa}` : t.titleFa,
+            })),
+        ]
+      : defaultFatehanCategories;
 
   if (mode === 'catalog') {
     const filteredProducts = products.filter((item) => {
@@ -518,10 +541,10 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
         <div className="p-6 border-b border-stone-200 dark:border-stone-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-extrabold text-stone-900 dark:text-white">
-              کاتالوگ محصولات، اسکیل‌های گیت‌هاب و پکیج‌ها ({products.length.toLocaleString('fa-IR')})
+              کاتالوگ کیت‌ها، قطعات و پکیج‌های رباتیک فاتحان ({products.length.toLocaleString('fa-IR')})
             </h2>
             <p className="text-xs text-stone-500 mt-0.5">
-              مجهز به صفحه‌بندی سروری، دسته‌بندی‌های درختی پویا و عملیات گروهی (Bulk Actions)
+              مدیریت یکپارچه کیت‌های آموزشی ۵ دپارتمان، موجودی انبار، کد کالا (SKU)، گارانتی و قیمت‌ها (متصل به ویترین سایت)
             </p>
           </div>
 
@@ -532,7 +555,7 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
               className="px-3.5 py-2 min-h-[40px] text-xs font-bold border border-stone-300 dark:border-slate-700 rounded-xl text-stone-700 dark:text-stone-300 hover:bg-stone-100 flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
               <Database className="w-3.5 h-3.5" />
-              <span>بازنشانی ۶۰ اسکیل</span>
+              <span>بازنشانی کیت‌های پیش‌فرض فاتحان</span>
             </button>
             <button
               type="button"
@@ -544,7 +567,7 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
               className={`px-4 py-2 min-h-[40px] text-xs font-extrabold rounded-xl flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${accentButtonClass}`}
             >
               <PlusCircle className="w-3.5 h-3.5" />
-              <span>افزودن محصول جدید</span>
+              <span>افزودن کیت / محصول جدید</span>
             </button>
           </div>
         </div>
@@ -627,17 +650,24 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
                       <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300">
                         {item.category}
                       </span>
+                      {item.sku && (
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-[#1D4ED8] dark:text-sky-400">
+                          SKU: {item.sku}
+                        </span>
+                      )}
                       <span className="text-xs text-stone-500">
-                        {item.itemType === 'package' ? 'پکیج جامع VIP' : 'اسکیل تکی'}
+                        {item.itemType === 'package' ? 'پکیج جامع کارگاهی' : 'کیت / محصول رباتیک'}
                       </span>
                       <span
                         className={`text-xs font-bold px-2 py-0.5 rounded ${
-                          item.seoTitle
+                          (item.stock ?? 20) > 0
                             ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                            : 'bg-amber-500/10 text-amber-700'
+                            : 'bg-rose-500/10 text-rose-700'
                         }`}
                       >
-                        {item.seoTitle ? 'سئو بهینه‌شده ✓' : 'نیازمند سئو'}
+                        {(item.stock ?? 20) > 0
+                          ? `موجودی: ${(item.stock ?? 20).toLocaleString('fa-IR')} عدد`
+                          : 'ناموجود'}
                       </span>
                     </div>
 
@@ -650,7 +680,12 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
                       {item.price === 0
                         ? 'رایگان'
                         : `${item.price.toLocaleString('fa-IR')} تومان`}{' '}
-                      · {item.modulesCount.toLocaleString('fa-IR')} ماژول · {item.level}
+                      {item.originalPrice > item.price && (
+                        <span className="line-through text-stone-400 mr-1">
+                          ({item.originalPrice.toLocaleString('fa-IR')})
+                        </span>
+                      )}
+                      · {item.level}
                     </div>
                   </div>
                 </div>
@@ -692,11 +727,11 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
         <div>
           <h2 className="text-lg font-extrabold text-stone-900 dark:text-white">
             {draft.editingId
-              ? 'ویرایش محصول و صفحه‌ساز اختصاصی (WP 12-Col Grid)'
-              : 'افزودن اسکیل یا پکیج جدید به فروشگاه'}
+              ? 'ویرایش کیت / محصول رباتیک و صفحه‌ساز اختصاصی'
+              : 'افزودن کیت یا محصول رباتیک جدید به فروشگاه فاتحان'}
           </h2>
           <p className="text-xs text-stone-500 mt-0.5">
-            ستون اصلی (راست: محتوا و صفحه‌ساز بصری) · ستون کناری (چپ: انتشار، تصویر شاخص WebP، قیمت و سئو)
+            ستون اصلی (راست: عنوان، مشخصات فنی، اقلام کیت و صفحه‌ساز) · ستون کناری (چپ: انتشار، دپارتمان، کد کالا SKU، موجودی، قیمت و گارانتی)
           </p>
         </div>
 
@@ -726,7 +761,7 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
             }}
             className="px-4 py-2.5 min-h-[42px] text-xs font-bold border border-stone-300 dark:border-stone-700 rounded-xl text-stone-600 dark:text-stone-400 cursor-pointer"
           >
-            بازگشت به لیست
+            بازگشت به لیست کیت‌ها
           </button>
         </div>
       </div>
@@ -739,14 +774,14 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
           <div className="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 space-y-4 shadow-xs">
             <div>
               <label className="block text-xs font-extrabold text-stone-700 dark:text-stone-300 mb-1.5">
-                عنوان اسکیل یا پکیج آموزشی *
+                عنوان کیت، قطعه یا پکیج آموزشی رباتیک *
               </label>
               <input
                 type="text"
                 required
                 value={draft.title}
                 onChange={(e) => onChangeDraft({ ...draft, title: e.target.value })}
-                placeholder="مثال: اسکیل معماری رابط کاربری به سبک Apple و انیمیشن‌های GSAP"
+                placeholder="مثال: کیت کامل ربات مسیریاب و فوتبالیست دو موتوره فاتحان (سطح ۱ و ۲)"
                 className="w-full px-4 py-3 text-base font-extrabold rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-white focus:border-[#1D4ED8] outline-none"
               />
             </div>
@@ -764,18 +799,18 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
                   type="text"
                   value={draft.slug}
                   onChange={(e) => onChangeDraft({ ...draft, slug: e.target.value })}
-                  placeholder="skill-apple-ui-architecture"
+                  placeholder="fatehan-line-follower-kit"
                   className="flex-1 bg-transparent outline-none text-stone-900 dark:text-white font-mono text-xs"
                 />
               </div>
             </div>
           </div>
 
-          {/* Card B: Full Rich Text Editor + Short Summary & Expected Output */}
+          {/* Card B: Full Rich Text Editor + Technical Specs & Package Deliverables */}
           <div className="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 space-y-4 shadow-xs">
             <div>
               <label className="block text-xs font-extrabold text-stone-700 dark:text-stone-300 mb-2">
-                توضیحات تخصصی و معرفی کامل اسکیل (مجهز به نوار ابزار ویرایشگر متن غنی) *
+                توضیحات کامل و معرفی تخصصی کیت / محصول رباتیک *
               </label>
               <RichTextEditorToolbar
                 value={draft.shortDescription}
@@ -791,14 +826,29 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
                 onChange={(e) =>
                   onChangeDraft({ ...draft, shortDescription: e.target.value })
                 }
-                placeholder="کاربرد دقیق، معماری پرامپت و مزایای اجرایی این اسکیل را شرح دهید..."
+                placeholder="کاربرد آموزشی، رده سنی مناسب و مهارت‌هایی که کارآموز با ساخت این کیت یاد می‌گیرد را شرح دهید..."
                 className="w-full px-4 py-3 text-sm leading-relaxed rounded-b-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-white outline-none"
               />
             </div>
 
             <div>
               <label className="block text-xs font-extrabold text-stone-700 dark:text-stone-300 mb-1.5">
-                خروجی مورد انتظار (Expected Deliverable در صفحه تک‌محصول)
+                خلاصه مشخصات فنی کیت (نمایش در کارت محصول و جدول مشخصات ویترین)
+              </label>
+              <input
+                type="text"
+                value={draft.specs}
+                onChange={(e) =>
+                  onChangeDraft({ ...draft, specs: e.target.value })
+                }
+                placeholder="مثال: برد Arduino Uno R3 + درایور موتور L298N + ۲ عدد موتور گیربکس‌دار + ۳ سنسور مادون قرمز"
+                className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-extrabold text-stone-700 dark:text-stone-300 mb-1.5">
+                اقلام داخل جعبه و خروجی عملی کارآموز (Package Contents & Deliverables)
               </label>
               <textarea
                 rows={3}
@@ -806,7 +856,7 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
                 onChange={(e) =>
                   onChangeDraft({ ...draft, expectedOutput: e.target.value })
                 }
-                placeholder="کاربر پس از اجرای این اسکیل در Claude یا Cursor دقیقاً چه کد یا خروجی استانداردی تحویل می‌گیرد؟"
+                placeholder="لیست قطعات داخل بسته و پروژه‌های عملی که هنرجو پس از مونتاژ می‌تواند بسازد..."
                 className="w-full px-3.5 py-2.5 text-xs leading-relaxed rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-white"
               />
             </div>
@@ -1449,12 +1499,12 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
           <div className="p-5 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 space-y-3.5 shadow-xs">
             <div className="text-xs font-extrabold text-stone-900 dark:text-white flex items-center gap-1.5 border-b border-stone-200 dark:border-stone-800 pb-2.5">
               <Tag className="w-4 h-4 text-[#1D4ED8]" />
-              <span>دسته‌بندی درختی و نوع عرضه</span>
+              <span>دپارتمان تخصصی، زیردسته و نوع عرضه</span>
             </div>
 
             <div>
               <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
-                دسته‌بندی محصول (Taxonomies)
+                دپارتمان محصول (Department)
               </label>
               <select
                 value={draft.category}
@@ -1471,6 +1521,19 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
 
             <div>
               <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
+                زیردسته تخصصی (Sub-Category)
+              </label>
+              <input
+                type="text"
+                value={draft.subCategory}
+                onChange={(e) => onChangeDraft({ ...draft, subCategory: e.target.value })}
+                placeholder="مثال: کیت کامل رباتیک، قلم سه‌بعدی، برد آردوینو..."
+                className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
                 نوع عرضه در فروشگاه
               </label>
               <select
@@ -1483,17 +1546,17 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
                 }
                 className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
               >
-                <option value="product">اسکیل تکی (رایگان یا پولی)</option>
-                <option value="package">پکیج جامع چند ماژولی (VIP)</option>
+                <option value="product">کیت یا قطعه تکی</option>
+                <option value="package">پکیج جامع کارگاهی / مسابقاتی</option>
               </select>
             </div>
           </div>
 
-          {/* Sidebar Card 4: Pricing, Modules & License Card */}
+          {/* Sidebar Card 4: Pricing, SKU, Inventory Stock & Warranty Card */}
           <div className="p-5 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 space-y-3.5 shadow-xs">
             <div className="text-xs font-extrabold text-stone-900 dark:text-white flex items-center gap-1.5 border-b border-stone-200 dark:border-stone-800 pb-2.5">
               <Layers className="w-4 h-4 text-[#1D4ED8]" />
-              <span>قیمت‌گذاری، ماژول‌ها و لایسنس</span>
+              <span>قیمت، کد کالا (SKU)، موجودی و گارانتی</span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -1534,12 +1597,50 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
-                  تعداد ماژول‌ها
+                  کد کالا (SKU)
+                </label>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={draft.sku}
+                  onChange={(e) =>
+                    onChangeDraft({
+                      ...draft,
+                      sku: e.target.value,
+                    })
+                  }
+                  placeholder="FAT-RBT-101"
+                  className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
+                  موجودی انبار (عدد)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={1000}
+                  value={draft.stock}
+                  onChange={(e) =>
+                    onChangeDraft({
+                      ...draft,
+                      stock: Number(e.target.value),
+                    })
+                  }
+                  className="w-full px-3 py-2 text-xs font-bold smooth-nums rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
+                  تعداد قطعات / ماژول
                 </label>
                 <input
                   type="number"
                   min={1}
-                  max={100}
+                  max={500}
                   value={draft.modulesCount}
                   onChange={(e) =>
                     onChangeDraft({
@@ -1553,7 +1654,7 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
 
               <div>
                 <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
-                  سطح و نسخه لایسنس
+                  رده سنی و سطح کیت
                 </label>
                 <input
                   type="text"
@@ -1562,6 +1663,21 @@ export const CatalogEditorPanel: React.FC<CatalogEditorPanelProps> = ({
                   className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-stone-600 dark:text-stone-400 mb-1">
+                گارانتی و خدمات پس از فروش کیت
+              </label>
+              <input
+                type="text"
+                value={draft.warranty}
+                onChange={(e) =>
+                  onChangeDraft({ ...draft, warranty: e.target.value })
+                }
+                placeholder="گارانتی سلامت قطعات + راهنمای مونتاژ فارسی فاتحان"
+                className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+              />
             </div>
           </div>
         </aside>

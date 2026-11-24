@@ -462,7 +462,7 @@ export const UnifiedBaleHubPanel: React.FC<UnifiedBaleHubPanelProps> = ({
           testCode: '54321',
           customMessage:
             channel === 'bot_api'
-              ? 'پیام تست اتصال مستقیم از مرکز یکپارچه تنظیمات بله (Skill 98)'
+              ? 'پیام تست اتصال مستقیم از مرکز یکپارچه تنظیمات بله (آموزشگاه رباتیک فاتحان)'
               : undefined,
         }),
       });

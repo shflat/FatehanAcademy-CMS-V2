@@ -43,10 +43,10 @@ export const COMPOSER_WIDGET_CATALOG: WidgetCatalogEntry[] = [
     type: 'hero_slider',
     labelFa: '۱. اسلایدر هیرو و بنر شاخص',
     category: 'general',
-    defaultTitle: 'مهندسی دقیق اسکیل‌های هوش مصنوعی و معماری نرم‌افزار',
-    defaultSubtitle: 'دسترسی فوری به مخزن اسکیل‌های تست‌شده برای تیم‌های فنی پیشرو',
-    defaultBadge: 'ویژه اسکیل ۹۸',
-    defaultCtaText: 'مشاهده محصولات',
+    defaultTitle: 'آموزش ۱۰۰٪ عملی رباتیک، کدنویسی و هوش مصنوعی ویژه کودکان و نوجوانان',
+    defaultSubtitle: 'ساخت ربات‌های هوشمند، طراحی سه‌بعدی و الکترونیک در کارگاه‌های مجهز فاتحان',
+    defaultBadge: 'ویژه آموزشگاه رباتیک فاتحان',
+    defaultCtaText: 'مشاهده دوره‌ها و کیت‌ها',
   },
   {
     type: 'rich_text',
@@ -136,9 +136,9 @@ export const COMPOSER_WIDGET_CATALOG: WidgetCatalogEntry[] = [
     type: 'testimonials_grid',
     labelFa: '۱۳. شبکه نظرات و تجربه مشتریان',
     category: 'ecommerce',
-    defaultTitle: 'تجربه مدیران فنی از اسکیل ۹۸',
+    defaultTitle: 'تجربه والدین و هنرجویان آموزشگاه رباتیک فاتحان',
     defaultContent:
-      '«با استفاده از پکیج معماری فول‌استک اسکیل ۹۸، سرعت کدنویسی و ممیزی امنیت تیم ما ۳ برابر شد.» — مدیر فنی استارتاپ فین‌تک',
+      '«پسرم بعد از گذراندن ترم دوم رباتیک در آموزشگاه فاتحان، خودش در خانه مدار سنسور تشخیص مانع را می‌بندد و اعتمادبه‌نفس فوق‌العاده‌ای پیدا کرده است.» — ولی هنرجوی ۱۰ ساله',
   },
   {
     type: 'lead_form',
@@ -525,7 +525,7 @@ export const VisualComposerRenderer: React.FC<VisualComposerRendererProps> = ({
                     {w.title}
                   </div>
                   <div className="text-[11px] font-bold text-stone-600 dark:text-stone-400">
-                    {invoiceContext?.sellerName || 'شرکت مهندسی اسکیل ۹۸'}
+                    {invoiceContext?.sellerName || 'آموزشگاه تخصصی رباتیک، کدنویسی و هوش مصنوعی فاتحان'}
                   </div>
                 </div>
               </div>

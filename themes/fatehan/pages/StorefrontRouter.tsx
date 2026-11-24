@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { motion } from 'motion/react';
 import { useFatehanTheme } from '../context/FatehanThemeContext';
 import { formatToman, formatPersianNumber } from '../utils/formatters';
@@ -9,21 +9,39 @@ import { PrintPaperSize } from '../types';
 import { PageRenderer } from './PageRenderer';
 import { FatehanStorefrontHome } from '../components/FatehanStorefrontHome';
 import {
-  BlogRoutesPage,
-  CustomerAccountDashboardPage,
-} from './BlogAndAccountRoutes';
-import {
-  FatehanCoursesPage,
-  FatehanTuitionCalculatorPage,
-  FatehanSimulatorPage,
-  FatehanContactPage,
-  FatehanFreeCoursesPage,
-  FatehanAboutPage,
-} from './FatehanMultiPages';
+  getResponsiveImageVariant,
+  getResponsiveSrcSet,
+} from '../../../src/core/responsiveImage';
 import {
   SHOP_DEPARTMENTS,
   resolveProductDepartmentId,
 } from '../utils/defaultFallbacks';
+
+// Route-Level Code Splitting for Secondary Fatehan Storefront Pages
+const BlogRoutesPage = lazy(() =>
+  import('./BlogAndAccountRoutes').then((m) => ({ default: m.BlogRoutesPage }))
+);
+const CustomerAccountDashboardPage = lazy(() =>
+  import('./BlogAndAccountRoutes').then((m) => ({ default: m.CustomerAccountDashboardPage }))
+);
+const FatehanCoursesPage = lazy(() =>
+  import('./FatehanMultiPages').then((m) => ({ default: m.FatehanCoursesPage }))
+);
+const FatehanTuitionCalculatorPage = lazy(() =>
+  import('./FatehanMultiPages').then((m) => ({ default: m.FatehanTuitionCalculatorPage }))
+);
+const FatehanSimulatorPage = lazy(() =>
+  import('./FatehanMultiPages').then((m) => ({ default: m.FatehanSimulatorPage }))
+);
+const FatehanContactPage = lazy(() =>
+  import('./FatehanMultiPages').then((m) => ({ default: m.FatehanContactPage }))
+);
+const FatehanFreeCoursesPage = lazy(() =>
+  import('./FatehanMultiPages').then((m) => ({ default: m.FatehanFreeCoursesPage }))
+);
+const FatehanAboutPage = lazy(() =>
+  import('./FatehanMultiPages').then((m) => ({ default: m.FatehanAboutPage }))
+);
 import {
   ShoppingBag,
   Filter,
@@ -240,56 +258,88 @@ export const StorefrontRouter: React.FC = () => {
   // CUSTOMER ACCOUNT DASHBOARD (/my-account)
   // ============================================================================
   if (storePath.startsWith('/my-account')) {
-    return <CustomerAccountDashboardPage />;
+    return (
+      <Suspense fallback={<StoreShimmerSkeleton count={4} />}>
+        <CustomerAccountDashboardPage />
+      </Suspense>
+    );
   }
 
   // ============================================================================
   // BLOG ARCHIVE & SINGLE ARTICLE PAGE (/blog & /blog/:id)
   // ============================================================================
   if (storePath.startsWith('/blog')) {
-    return <BlogRoutesPage />;
+    return (
+      <Suspense fallback={<StoreShimmerSkeleton count={4} />}>
+        <BlogRoutesPage />
+      </Suspense>
+    );
   }
 
   // ============================================================================
   // DEDICATED COURSES CATALOG & SINGLE COURSE PAGE (/courses & /courses/:id)
   // ============================================================================
   if (storePath.startsWith('/courses') || storePath.startsWith('/course/')) {
-    return <FatehanCoursesPage />;
+    return (
+      <Suspense fallback={<StoreShimmerSkeleton count={4} />}>
+        <FatehanCoursesPage />
+      </Suspense>
+    );
   }
 
   // ============================================================================
   // DEDICATED TUITION CALCULATOR PAGE (/calculator)
   // ============================================================================
   if (storePath.startsWith('/calculator')) {
-    return <FatehanTuitionCalculatorPage />;
+    return (
+      <Suspense fallback={<StoreShimmerSkeleton count={3} />}>
+        <FatehanTuitionCalculatorPage />
+      </Suspense>
+    );
   }
 
   // ============================================================================
   // DEDICATED ROBOT LAB & SIMULATOR PAGE (/lab & /simulator)
   // ============================================================================
   if (storePath.startsWith('/lab') || storePath.startsWith('/simulator')) {
-    return <FatehanSimulatorPage />;
+    return (
+      <Suspense fallback={<StoreShimmerSkeleton count={3} />}>
+        <FatehanSimulatorPage />
+      </Suspense>
+    );
   }
 
   // ============================================================================
   // DEDICATED FREE COURSES LANDING PAGE (/free-courses)
   // ============================================================================
   if (storePath.startsWith('/free-courses')) {
-    return <FatehanFreeCoursesPage />;
+    return (
+      <Suspense fallback={<StoreShimmerSkeleton count={4} />}>
+        <FatehanFreeCoursesPage />
+      </Suspense>
+    );
   }
 
   // ============================================================================
   // DEDICATED ABOUT US & INSTITUTIONAL COOPERATION PAGE (/about)
   // ============================================================================
   if (storePath.startsWith('/about')) {
-    return <FatehanAboutPage />;
+    return (
+      <Suspense fallback={<StoreShimmerSkeleton count={3} />}>
+        <FatehanAboutPage />
+      </Suspense>
+    );
   }
 
   // ============================================================================
   // DEDICATED CONTACT & CAMPUS VISIT PAGE (/contact)
   // ============================================================================
   if (storePath.startsWith('/contact')) {
-    return <FatehanContactPage />;
+    return (
+      <Suspense fallback={<StoreShimmerSkeleton count={3} />}>
+        <FatehanContactPage />
+      </Suspense>
+    );
   }
 
   // ============================================================================
@@ -374,11 +424,21 @@ export const StorefrontRouter: React.FC = () => {
               className="relative h-48 bg-slate-100 overflow-hidden cursor-pointer group"
             >
               <img
-                src={displayImg}
+                src={getResponsiveImageVariant(displayImg, 'thumb-300')}
+                srcSet={getResponsiveSrcSet(displayImg)}
+                sizes="(max-width: 640px) 92vw, (max-width: 1024px) 44vw, 280px"
+                width={360}
+                height={240}
+                loading="lazy"
+                decoding="async"
                 alt={prd.name}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  e.currentTarget.src = '/assets/kits/kit-01.jpg';
+                  const target = e.currentTarget;
+                  if (target.dataset.fallbackApplied === '1') return;
+                  target.dataset.fallbackApplied = '1';
+                  target.srcset = '';
+                  target.src = displayImg || '/assets/kits/kit-01.jpg';
                 }}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
@@ -986,11 +1046,21 @@ export const StorefrontRouter: React.FC = () => {
                 initial={{ opacity: 0.4, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.25 }}
-                src={
+                src={getResponsiveImageVariant(
                   pdpActiveImg ||
-                  activeProduct.featuredImageUrl ||
-                  '/assets/kits/kit-01.jpg'
-                }
+                    activeProduct.featuredImageUrl ||
+                    '/assets/kits/kit-01.jpg',
+                  'medium-800'
+                )}
+                srcSet={getResponsiveSrcSet(
+                  pdpActiveImg ||
+                    activeProduct.featuredImageUrl ||
+                    '/assets/kits/kit-01.jpg'
+                )}
+                sizes="(max-width: 1024px) 92vw, 520px"
+                width={800}
+                height={533}
+                decoding="async"
                 alt={activeProduct.name}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"

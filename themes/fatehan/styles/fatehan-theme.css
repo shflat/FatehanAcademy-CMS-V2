@@ -62,38 +62,7 @@
   font-display: swap;
 }
 
-/* 3. Vazirmatn (فونت وزیرمتن) */
-@font-face {
-  font-family: 'Vazirmatn';
-  src: url('/fonts/vazirmatn-regular.woff2') format('woff2');
-  font-weight: 400 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Vazirmatn';
-  src: url('/fonts/vazirmatn-bold.woff2') format('woff2');
-  font-weight: 600 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Vazirmatn';
-  src: url('/fonts/vazirmatn-extrabold.woff2') format('woff2');
-  font-weight: 800;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Vazirmatn';
-  src: url('/fonts/vazirmatn-black.woff2') format('woff2');
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
-}
+/* 3. Vazirmatn is declared globally via Vazirmatn-Variable.woff2 in src/index.css to avoid duplicate font downloads */
 
 /* 4. Sahel (فونت ساحل - ویژه چاپ فاکتور رسمی) */
 @font-face {
@@ -287,40 +256,32 @@ pre,
 }
 
 /* ============================================================================
-   SMOOTH SCROLL & INTERSECTION REVEAL ENGINE (Continuous Bidirectional)
+   SMOOTH SCROLL & INTERSECTION REVEAL ENGINE (Bidirectional, GPU-Only, Zero Forced Reflow)
    ============================================================================ */
 .dpa-scroll-init {
-  will-change: opacity, transform, filter;
   transition:
-    opacity 0.68s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.68s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.55s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.25s ease,
-    border-color 0.25s ease !important;
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dpa-scroll-init.dpa-scroll-from-up:not(.dpa-scroll-visible) {
-  opacity: 0 !important;
-  filter: blur(3px);
-  transform: translate3d(0, 44px, 0) scale(0.96) !important;
+  opacity: 0;
+  transform: translate3d(0, 40px, 0) scale(0.96);
 }
 
 .dpa-scroll-init.dpa-scroll-from-right:not(.dpa-scroll-visible) {
-  opacity: 0 !important;
-  filter: blur(3px);
-  transform: translate3d(52px, 14px, 0) scale(0.96) !important;
+  opacity: 0;
+  transform: translate3d(48px, 14px, 0) scale(0.96);
 }
 
 .dpa-scroll-init.dpa-scroll-from-left:not(.dpa-scroll-visible) {
-  opacity: 0 !important;
-  filter: blur(3px);
-  transform: translate3d(-52px, 14px, 0) scale(0.96) !important;
+  opacity: 0;
+  transform: translate3d(-48px, 14px, 0) scale(0.96);
 }
 
 .dpa-scroll-init.dpa-scroll-visible {
-  opacity: 1 !important;
-  filter: blur(0px) !important;
-  transform: translate3d(0, 0, 0) scale(1) !important;
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
 }
 
 /* ============================================================================

@@ -232,11 +232,11 @@ export const MediaLibraryPanel: React.FC<MediaLibraryPanelProps> = ({
       if (data.seoKeywords) setMediaSeoKeywords(data.seoKeywords);
       onNotice('success', 'متن جایگزین (Alt Text) و متاتگ‌های سئوی تصویر تولید شد.');
     } catch {
-      setMediaAltText(`${mediaTitle} در پلتفرم اسکیل ۹۸`);
-      setMediaCaption(`تصویر تخصصی مربوط به ${mediaTitle} — استودیو اسکیل ۹۸`);
-      setMediaSeoTitle(`${mediaTitle} | گالری رسانه اسکیل ۹۸`);
-      setMediaSeoDescription(`مشاهده تصویر و دیاگرام ${mediaTitle} با کیفیت بالا.`);
-      setMediaSeoKeywords(`${mediaTitle}, تصویر شاخص, اسکیل ۹۸`);
+      setMediaAltText(`${mediaTitle} در آموزشگاه رباتیک فاتحان`);
+      setMediaCaption(`تصویر تخصصی مربوط به ${mediaTitle} — آموزشگاه رباتیک فاتحان`);
+      setMediaSeoTitle(`${mediaTitle} | گالری رسانه آموزشگاه رباتیک فاتحان`);
+      setMediaSeoDescription(`مشاهده تصویر ${mediaTitle} در کارگاه و فروشگاه آموزشگاه رباتیک فاتحان.`);
+      setMediaSeoKeywords(`${mediaTitle}, تصویر شاخص, آموزشگاه رباتیک فاتحان`);
       onNotice('success', 'فیلدهای سئوی تصویر تکمیل شدند.');
     } finally {
       setIsAiGenerating(false);
@@ -257,10 +257,10 @@ export const MediaLibraryPanel: React.FC<MediaLibraryPanelProps> = ({
       category: mediaCategory,
       altText: mediaAltText.trim() || mediaTitle.trim(),
       caption: mediaCaption.trim() || mediaTitle.trim(),
-      seoTitle: mediaSeoTitle.trim() || `${mediaTitle.trim()} | اسکیل ۹۸`,
+      seoTitle: mediaSeoTitle.trim() || `${mediaTitle.trim()} | آموزشگاه رباتیک فاتحان`,
       seoDescription:
         mediaSeoDescription.trim() || mediaCaption.trim() || mediaTitle.trim(),
-      seoKeywords: mediaSeoKeywords.trim() || `${mediaTitle.trim()}, اسکیل ۹۸`,
+      seoKeywords: mediaSeoKeywords.trim() || `${mediaTitle.trim()}, آموزشگاه رباتیک فاتحان`,
       dimensionsLabel:
         inspectedMedia?.dimensionsLabel || 'WebP Multi-Size (25 / 300 / 800 / Orig)',
       createdAtLabel:

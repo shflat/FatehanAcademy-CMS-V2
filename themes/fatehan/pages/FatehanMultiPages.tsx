@@ -1144,30 +1144,32 @@ export const FatehanContactPage: React.FC = () => {
       ? homeContactBlk.itemsList
       : contactMainBlk?.itemsList || [];
 
-  const phone1Num = activeContactItems[0]?.title || settings.phones.primaryFormatted;
-  const phone1Clean = phone1Num.replace(/\s+/g, '');
-  const phone1Label = activeContactItems[0]?.subtitle || settings.phones.primaryLabel || 'خط ۱ مشاوره و ثبت‌نام';
+  const phone1Num = settings.phones.primaryFormatted || activeContactItems[0]?.title || '۰۹۱۰ ۳۱۱ ۶۷۵۳';
+  const phone1Clean = (settings.phones.primary || phone1Num).replace(/\s+/g, '');
+  const phone1Label = settings.phones.primaryLabel || activeContactItems[0]?.subtitle || 'خط ۱ مشاوره و ثبت‌نام';
 
-  const phone2Num = activeContactItems[1]?.title || settings.phones.secondaryFormatted;
-  const phone2Clean = phone2Num.replace(/\s+/g, '');
-  const phone2Label = activeContactItems[1]?.subtitle || settings.phones.secondaryLabel || 'خط ۲ پشتیبانی کارگاه';
+  const phone2Num = settings.phones.secondaryFormatted || activeContactItems[1]?.title || '۰۹۳۷ ۲۳۳ ۵۰۲۶';
+  const phone2Clean = (settings.phones.secondary || phone2Num).replace(/\s+/g, '');
+  const phone2Label = settings.phones.secondaryLabel || activeContactItems[1]?.subtitle || 'خط ۲ پشتیبانی کارگاه';
 
-  const landlineNum = activeContactItems[2]?.title || settings.phones.landlineFormatted;
-  const landlineClean = landlineNum.replace(/\s+/g, '');
-  const landlineLabel = activeContactItems[2]?.subtitle || settings.phones.landlineLabel || 'تلفن ثابت دفتر مرکزی';
+  const landlineNum = settings.phones.landlineFormatted || activeContactItems[2]?.title || '۰۲۱ ۶۵۵۰ ۶۰۱۵';
+  const landlineClean = (settings.phones.landline || landlineNum).replace(/\s+/g, '');
+  const landlineLabel = settings.phones.landlineLabel || activeContactItems[2]?.subtitle || 'تلفن ثابت دفتر مرکزی';
 
   const addressTitleLabel =
     activeContactItems[3]?.badge && activeContactItems[3].badge !== 'آدرس کارگاه'
       ? activeContactItems[3].badge
       : `آدرس ${settings.academyNameFa}:`;
   const addressExactText =
+    settings.location.addressFull ||
     activeContactItems[3]?.title ||
     homeContactBlk?.itemsList?.[3]?.title ||
-    settings.location.addressFull;
+    '';
   const addressHoursText =
+    settings.location.workingHours ||
     activeContactItems[3]?.subtitle ||
     homeContactBlk?.itemsList?.[3]?.subtitle ||
-    settings.location.workingHours;
+    '';
   const extraContactItems = activeContactItems.slice(4);
 
   const [name, setName] = useState('');
@@ -1949,7 +1951,7 @@ export const FatehanFreeCoursesPage: React.FC = () => {
 // 6. DEDICATED SHAREABLE & SEO-OPTIMIZED ABOUT US PAGE (/about)
 // ============================================================================
 export const FatehanAboutPage: React.FC = () => {
-  const { state, navigateStore, notify } = useFatehanTheme();
+  const { state, settings, navigateStore, notify } = useFatehanTheme();
   const [copiedLink, setCopiedLink] = useState(false);
 
   const about = state?.aboutPage || {
@@ -2016,7 +2018,7 @@ export const FatehanAboutPage: React.FC = () => {
             صفحه اصلی
           </button>
           <span>/</span>
-          <span className="font-extrabold text-slate-900">درباره آموزشگاه رباتیک فاتحان (/about)</span>
+          <span className="font-extrabold text-slate-900">درباره {settings.academyNameFa} (/about)</span>
         </div>
 
         <button
@@ -2095,11 +2097,11 @@ export const FatehanAboutPage: React.FC = () => {
             </h2>
           </div>
           <a
-            href="tel:02165506015"
+            href={`tel:${(settings.phones.landline || '02165506015').replace(/\s+/g, '')}`}
             className="px-4 py-2.5 rounded-xl bg-slate-900 text-amber-400 font-mono text-xs font-black"
             dir="ltr"
           >
-            021 6550 60 15
+            {settings.phones.landlineFormatted || '021 6550 60 15'}
           </a>
         </div>
 
@@ -2110,19 +2112,17 @@ export const FatehanAboutPage: React.FC = () => {
         <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
           <span>
             📍 نشانی دفتر مرکزی و کارگاه:{' '}
-            {(state?.builderBlocks || []).find((b) => b.id === 'BLK-HOME-CONTACT')?.itemsList?.[3]?.title ||
-              (state?.builderBlocks || []).find((b) => b.id === 'BLK-CONTACT-MAIN')?.itemsList?.[3]?.title ||
+            {settings.location.addressFull ||
+              (state?.builderBlocks || []).find((b) => b.id === 'BLK-HOME-CONTACT')?.itemsList?.[3]?.title ||
               'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲'}
           </span>
           <div className="flex items-center gap-3 font-mono font-bold text-blue-700" dir="ltr">
             <span>
-              {(state?.builderBlocks || []).find((b) => b.id === 'BLK-HOME-CONTACT')?.itemsList?.[0]?.title ||
-                '0910 311 67 53'}
+              {settings.phones.primaryFormatted || '0910 311 67 53'}
             </span>
             <span>|</span>
             <span>
-              {(state?.builderBlocks || []).find((b) => b.id === 'BLK-HOME-CONTACT')?.itemsList?.[2]?.title ||
-                '021 6550 60 15'}
+              {settings.phones.landlineFormatted || '021 6550 60 15'}
             </span>
           </div>
         </div>

@@ -3,7 +3,11 @@ import fs from 'fs';
 import path from 'path';
 import type { MediaAssetItem, SkillArticle, SkillProduct, ThemeConfig } from '../../../core/types.js';
 import { formatIsoToJalali } from '../../../core/jalali.js';
-import { optimizeAndStoreImageBuffer } from '../../../../core/agents/media-optimizer.js';
+import {
+  optimizeAndStoreImageBuffer,
+  startBackgroundMediaOptimizerAgent,
+  sweepAndOptimizeAllSiteImages,
+} from '../../../../core/agents/media-optimizer.js';
 import { cmsCache } from '../../core/cacheEngine.js';
 import {
   requireAuth,
@@ -211,6 +215,99 @@ export async function migrateDatabaseBase64ToPhysicalWebp(): Promise<{
   return { migratedCount, freedBytes };
 }
 
+export async function collectAllReferencedSiteImageUrls(): Promise<string[]> {
+  const urls = new Set<string>([
+    '/assets/aistudio/logo_8c26749f.webp',
+    '/assets/aistudio/fatehan_logo_transparent.png',
+  ]);
+  const addIfLocal = (val?: unknown) => {
+    if (typeof val === 'string' && (val.startsWith('/assets/') || val.startsWith('/uploads/'))) {
+      urls.add(val);
+    }
+  };
+
+  try {
+    const mediaRows = await dbQuery<{ url: string }>('SELECT url FROM media_items');
+    for (const r of mediaRows) addIfLocal(r.url);
+  } catch {
+    // ignore
+  }
+
+  try {
+    const prodRows = await dbQuery<{ payload_json: string }>('SELECT payload_json FROM products');
+    for (const r of prodRows) {
+      try {
+        const p = JSON.parse(r.payload_json) as SkillProduct & {
+          featuredImageUrl?: string;
+          galleryUrls?: string[];
+        };
+        addIfLocal(p.imageUrl);
+        addIfLocal(p.featuredImageUrl);
+        if (Array.isArray(p.galleryUrls)) {
+          for (const g of p.galleryUrls) addIfLocal(g);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const artRows = await dbQuery<{ payload_json: string }>('SELECT payload_json FROM articles');
+    for (const r of artRows) {
+      try {
+        const a = JSON.parse(r.payload_json) as SkillArticle;
+        addIfLocal(a.featuredImageUrl);
+      } catch {
+        // ignore
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const theme = await getSetting<ThemeConfig>('theme_config', DEFAULT_THEME_CONFIG);
+    addIfLocal(theme.logoUrl);
+    addIfLocal(theme.faviconUrl);
+    addIfLocal((theme as unknown as { socialChannels?: { eitaaLogoUrl?: string } })?.socialChannels?.eitaaLogoUrl);
+    addIfLocal(
+      (theme as unknown as { footerTrustBadges?: { enamadImageUrl?: string; secondBadgeImageUrl?: string } })
+        ?.footerTrustBadges?.enamadImageUrl
+    );
+    addIfLocal(
+      (theme as unknown as { footerTrustBadges?: { secondBadgeImageUrl?: string } })
+        ?.footerTrustBadges?.secondBadgeImageUrl
+    );
+  } catch {
+    // ignore
+  }
+
+  return Array.from(urls);
+}
+
+export async function runBackgroundMediaOptimizerSweep() {
+  const base64Res = await migrateDatabaseBase64ToPhysicalWebp();
+  const extraPublicUrls = await collectAllReferencedSiteImageUrls();
+  const diskRes = await sweepAndOptimizeAllSiteImages({ extraPublicUrls });
+  return {
+    ...base64Res,
+    ...diskRes,
+  };
+}
+
+export function initContinuousMediaOptimizerAgent() {
+  return startBackgroundMediaOptimizerAgent({
+    getReferencedUrls: async () => {
+      await migrateDatabaseBase64ToPhysicalWebp().catch(() => {});
+      return collectAllReferencedSiteImageUrls();
+    },
+    intervalMs: 10 * 60 * 1000,
+  });
+}
+
 export function createMediaEngineRouter(): express.Router {
   const router = express.Router();
 
@@ -369,6 +466,26 @@ export function createMediaEngineRouter(): express.Router {
       } catch (error) {
         res.status(500).json({
           error: error instanceof Error ? error.message : 'خطا در مهاجرت رشته‌های Base64 به دیسک',
+        });
+      }
+    }
+  );
+
+  // Full-site 4-Size WebP Sweeper Endpoint (POST /api/v1/media/sweep-optimize)
+  router.post(
+    '/api/v1/media/sweep-optimize',
+    requireAuth,
+    requirePermission('admin_panel'),
+    async (_req: AuthenticatedRequest, res) => {
+      try {
+        const result = await runBackgroundMediaOptimizerSweep();
+        res.json({
+          ok: true,
+          ...result,
+        });
+      } catch (error) {
+        res.status(500).json({
+          error: error instanceof Error ? error.message : 'خطا در بهینه‌سازی خودکار تصاویر سایت به ۴ سایز WebP',
         });
       }
     }

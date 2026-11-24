@@ -113,7 +113,7 @@ export const PagesManagerPanel: React.FC<PagesManagerPanelProps> = ({
         body: JSON.stringify({
           ...draft,
           slug: cleanSlug,
-          seoTitle: draft.seoTitle || `${draft.title} | اسکیل ۹۸`,
+          seoTitle: draft.seoTitle || `${draft.title} | آموزشگاه رباتیک فاتحان`,
           seoDescription: draft.seoDescription || draft.summary || draft.title,
           canonicalUrl: draft.canonicalUrl || `/page/${cleanSlug}`,
         }),
@@ -296,7 +296,7 @@ export const PagesManagerPanel: React.FC<PagesManagerPanelProps> = ({
                 type="text"
                 value={draft.seoTitle}
                 onChange={(e) => setDraft({ ...draft, seoTitle: e.target.value })}
-                placeholder={`${draft.title || 'عنوان برگه'} | اسکیل ۹۸`}
+                placeholder={`${draft.title || 'عنوان برگه'} | آموزشگاه رباتیک فاتحان`}
                 className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-xs"
               />
             </div>

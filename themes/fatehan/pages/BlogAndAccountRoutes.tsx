@@ -29,6 +29,10 @@ import {
   Smartphone,
   Lightbulb,
   Bell,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Info,
 } from 'lucide-react';
 
 // Built-in rich Fatehan Robotics Academy articles ensuring a full Yahoo-style magazine portal
@@ -1122,9 +1126,33 @@ export const CustomerAccountDashboardPage: React.FC = () => {
   // Mobile Login State when logged out (Username = Mobile Number)
   const [loginPhone, setLoginPhone] = useState<string>('');
   const [loginCode, setLoginCode] = useState<string>('');
+  const [showLoginCode, setShowLoginCode] = useState<boolean>(false);
   const [loginOtpSent, setLoginOtpSent] = useState<boolean>(false);
+  const [loginFeedback, setLoginFeedback] = useState<{
+    type: 'error' | 'info' | 'success';
+    text: string;
+  } | null>(null);
   const [isSendingCode, setIsSendingCode] = useState<boolean>(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState<boolean>(false);
+
+  const normalizePhoneForAuth = (raw: string): string => {
+    const digits = raw
+      .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+      .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+      .replace(/[^0-9]/g, '');
+    if (digits.startsWith('009809') && digits.length === 15) return digits.slice(4);
+    if (digits.startsWith('00989') && digits.length === 14) return '0' + digits.slice(4);
+    if (digits.startsWith('9809') && digits.length === 13) return digits.slice(2);
+    if (digits.startsWith('989') && digits.length === 12) return '0' + digits.slice(2);
+    if (digits.startsWith('9') && digits.length === 10) return '0' + digits;
+    return digits;
+  };
+
+  const normalizeCodeForAuth = (raw: string): string =>
+    raw
+      .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+      .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+      .trim();
 
   if (!state) return null;
 
@@ -1173,18 +1201,30 @@ export const CustomerAccountDashboardPage: React.FC = () => {
   };
 
   const handleRequestCustomerOtp = async () => {
-    if (!loginPhone.trim()) {
-      notify('لطفاً شماره موبایل خود را وارد نمایید.');
+    const cleanPhone = normalizePhoneForAuth(loginPhone);
+    if (!/^09\d{9}$/.test(cleanPhone)) {
+      const msg = 'شماره موبایل معتبر نیست. لطفاً شماره ۱۱ رقمی با شروع 09 وارد کنید (مثلاً 09123456789).';
+      setLoginFeedback({ type: 'error', text: msg });
+      notify(msg);
       return;
     }
+    setLoginPhone(cleanPhone);
+    setLoginFeedback(null);
     setIsSendingCode(true);
     try {
-      const data = await adapter.sendOtp({ phone: loginPhone, patternKey: 'otp_login' });
+      const data = await adapter.sendOtp({ phone: cleanPhone, patternKey: 'otp_login' });
       if (data.ok) {
         setLoginOtpSent(true);
-        notify('کد تایید ۵ رقمی به شماره همراه شما پیامک شد.');
+        const msg = data.message || 'کد تایید ۵ رقمی به شماره همراه شما پیامک شد.';
+        setLoginFeedback({
+          type: data.requiresMasterCode || data.gatewayStatus === 'pending_sms_gateway' ? 'info' : 'success',
+          text: msg,
+        });
+        notify(msg);
       } else {
-        notify(data.error || 'خطا در ارسال پیامک تایید');
+        const errMsg = data.error || 'خطا در ارسال پیامک تایید';
+        setLoginFeedback({ type: 'error', text: errMsg });
+        notify(errMsg);
       }
     } finally {
       setIsSendingCode(false);
@@ -1193,17 +1233,30 @@ export const CustomerAccountDashboardPage: React.FC = () => {
 
   const handleVerifyCustomerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginPhone.trim() || !loginCode.trim()) {
-      notify('لطفاً شماره موبایل و کد تایید را وارد نمایید.');
+    const cleanPhone = normalizePhoneForAuth(loginPhone);
+    const cleanCode = normalizeCodeForAuth(loginCode);
+    if (!/^09\d{9}$/.test(cleanPhone)) {
+      const msg = 'شماره موبایل معتبر نیست. لطفاً شماره ۱۱ رقمی با شروع 09 وارد کنید (مثلاً 09123456789).';
+      setLoginFeedback({ type: 'error', text: msg });
+      notify(msg);
       return;
     }
+    if (!cleanCode) {
+      const msg = 'لطفاً کد تایید پیامکی یا رمز امنیتی حساب خود را وارد نمایید.';
+      setLoginFeedback({ type: 'error', text: msg });
+      notify(msg);
+      return;
+    }
+    setLoginPhone(cleanPhone);
+    setLoginFeedback(null);
     setIsVerifyingCode(true);
     try {
-      const data = await adapter.verifyOtp({ phone: loginPhone, code: loginCode });
+      const data = await adapter.verifyOtp({ phone: cleanPhone, code: cleanCode });
       if (data.ok && data.verified && data.user) {
         syncAuthSession(data.user, data.sessionToken);
         await refreshState();
         setActiveTab('dashboard');
+        setLoginFeedback(null);
         notify(
           data.message ||
             (data.user.role === 'super_admin' || data.user.role === 'admin'
@@ -1211,7 +1264,9 @@ export const CustomerAccountDashboardPage: React.FC = () => {
               : 'ورود به حساب کاربری با موفقیت انجام شد.')
         );
       } else {
-        notify(data.error || 'شماره موبایل یا کد امنیتی وارد شده معتبر نیست.');
+        const errMsg = data.error || 'شماره موبایل یا کد امنیتی وارد شده معتبر نیست.';
+        setLoginFeedback({ type: 'error', text: errMsg });
+        notify(errMsg);
       }
     } finally {
       setIsVerifyingCode(false);
@@ -1295,6 +1350,27 @@ export const CustomerAccountDashboardPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleVerifyCustomerLogin} className="space-y-4">
+            {loginFeedback && (
+              <div
+                className={`p-3 rounded-xl border text-xs font-bold leading-relaxed flex items-start gap-2 ${
+                  loginFeedback.type === 'error'
+                    ? 'bg-rose-50 border-rose-200 text-rose-800'
+                    : loginFeedback.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-amber-50 border-amber-200 text-amber-900'
+                }`}
+              >
+                {loginFeedback.type === 'error' ? (
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                ) : loginFeedback.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                ) : (
+                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                )}
+                <span>{loginFeedback.text}</span>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 شماره موبایل (نام کاربری):
@@ -1302,9 +1378,13 @@ export const CustomerAccountDashboardPage: React.FC = () => {
               <div className="flex gap-2">
                 <input
                   type="tel"
+                  inputMode="numeric"
                   dir="ltr"
                   value={loginPhone}
-                  onChange={(e) => setLoginPhone(e.target.value)}
+                  onChange={(e) => {
+                    setLoginPhone(e.target.value);
+                    if (loginFeedback?.type === 'error') setLoginFeedback(null);
+                  }}
                   placeholder="0912..."
                   className="flex-1 px-3.5 py-2.5 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-600"
                   required
@@ -1328,15 +1408,29 @@ export const CustomerAccountDashboardPage: React.FC = () => {
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 کد تایید پیامکی (OTP) یا رمز امنیتی حساب:
               </label>
-              <input
-                type="password"
-                dir="ltr"
-                value={loginCode}
-                onChange={(e) => setLoginCode(e.target.value)}
-                placeholder="•••••"
-                className="w-full px-3.5 py-2.5 text-sm font-mono tracking-widest text-center bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-600"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showLoginCode ? 'text' : 'password'}
+                  dir="ltr"
+                  autoComplete="one-time-code"
+                  value={loginCode}
+                  onChange={(e) => {
+                    setLoginCode(e.target.value);
+                    if (loginFeedback?.type === 'error') setLoginFeedback(null);
+                  }}
+                  placeholder="•••••"
+                  className="w-full px-10 py-2.5 text-sm font-mono tracking-widest text-center bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:border-blue-600"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginCode((prev) => !prev)}
+                  title={showLoginCode ? 'مخفی کردن کد' : 'نمایش کد واردشده'}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-1"
+                >
+                  {showLoginCode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button

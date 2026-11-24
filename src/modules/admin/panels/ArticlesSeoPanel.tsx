@@ -91,7 +91,7 @@ export const ArticlesSeoPanel: React.FC<ArticlesSeoPanelProps> = ({
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [artTitle, setArtTitle] = useState('');
   const [artSlug, setArtSlug] = useState('');
-  const [artCategory, setArtCategory] = useState('آموزش اسکیل و هوش مصنوعی');
+  const [artCategory, setArtCategory] = useState('راهنمای والدین و استعدادیابی');
   const [artSummary, setArtSummary] = useState('');
   const [artBody, setArtBody] = useState('');
   const [artReadTime, setArtReadTime] = useState<number>(5);
@@ -144,7 +144,7 @@ export const ArticlesSeoPanel: React.FC<ArticlesSeoPanelProps> = ({
     setEditingArticleId(null);
     setArtTitle('');
     setArtSlug('');
-    setArtCategory('آموزش اسکیل و هوش مصنوعی');
+    setArtCategory('راهنمای والدین و استعدادیابی');
     setArtSummary('');
     setArtBody('');
     setArtReadTime(5);
@@ -226,11 +226,11 @@ export const ArticlesSeoPanel: React.FC<ArticlesSeoPanelProps> = ({
         `سئو و محتوای هوشمند با موتور (${aiConfig.activeProvider.toUpperCase()} · ${aiConfig.modelName}) با موفقیت تکمیل شد.`
       );
     } catch {
-      setArtSeoTitle(`${artTitle} | مجله تخصصی اسکیل ۹۸`);
+      setArtSeoTitle(`${artTitle} | مجله علمی آموزشگاه رباتیک فاتحان`);
       setArtSeoDescription(
-        `مطالعه مقاله تخصصی «${artTitle}» در دسته‌بندی ${artCategory} به همراه نکات اجرایی و مهندسی.`
+        `مطالعه مقاله تخصصی «${artTitle}» در دسته‌بندی ${artCategory} در مجله آموزشی رباتیک، کدنویسی و هوش مصنوعی فاتحان.`
       );
-      setArtSeoKeywords(`${artTitle}, ${artCategory}, آموزش اسکیل ۹۸`);
+      setArtSeoKeywords(`${artTitle}, ${artCategory}, آموزشگاه رباتیک فاتحان`);
       if (!artSlug) setArtSlug(`article-${Date.now().toString(36)}`);
       onNotice('success', 'فیلدهای سئو به صورت هوشمند تکمیل شدند.');
     } finally {
@@ -255,13 +255,13 @@ export const ArticlesSeoPanel: React.FC<ArticlesSeoPanelProps> = ({
       featuredImageUrl: artFeaturedImageUrl.trim() || IMAGES.heroEditorial,
       featuredImageAlt: artFeaturedImageAlt.trim() || artTitle.trim(),
       galleryUrls: artGalleryUrls,
-      authorName: 'تحریریه مهندسی اسکیل ۹۸ (DPATech)',
+      authorName: 'شورای علمی آموزشگاه رباتیک فاتحان',
       readingTimeMinutes: Number(artReadTime) || 5,
       publishedDateLabel: new Date().toLocaleDateString('fa-IR'),
       status: artStatus,
-      seoTitle: artSeoTitle.trim() || `${artTitle.trim()} | مجله اسکیل ۹۸`,
+      seoTitle: artSeoTitle.trim() || `${artTitle.trim()} | مجله آموزشگاه رباتیک فاتحان`,
       seoDescription: artSeoDescription.trim() || artSummary.trim(),
-      seoKeywords: artSeoKeywords.trim() || 'اسکیل ۹۸, آموزش هوش مصنوعی',
+      seoKeywords: artSeoKeywords.trim() || 'آموزشگاه رباتیک فاتحان, آموزش رباتیک کودکان و نوجوانان',
       featured: true,
       composerRows: artComposerRows,
     };
@@ -306,7 +306,7 @@ export const ArticlesSeoPanel: React.FC<ArticlesSeoPanelProps> = ({
                     </span>
                   </div>
                   <div className="text-xs text-stone-500">
-                    عنوان متا: {prod.seoTitle || `${prod.title} | اسکیل ۹۸`}
+                    عنوان متا: {prod.seoTitle || `${prod.title} | آموزشگاه رباتیک فاتحان`}
                   </div>
                 </div>
                 <button
@@ -549,7 +549,7 @@ export const ArticlesSeoPanel: React.FC<ArticlesSeoPanelProps> = ({
                 required
                 value={artTitle}
                 onChange={(e) => setArtTitle(e.target.value)}
-                placeholder="مثال: راهنمای جامع مهندسی پرامپت Claude 3.7 و ایجنت‌های خودمختار"
+                placeholder="مثال: بهترین سن شروع آموزش رباتیک و کدنویسی برای کودکان و نوجوانان"
                 className="w-full px-4 py-3 text-base font-extrabold rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-white"
               />
             </div>
@@ -567,7 +567,7 @@ export const ArticlesSeoPanel: React.FC<ArticlesSeoPanelProps> = ({
                   type="text"
                   value={artSlug}
                   onChange={(e) => setArtSlug(e.target.value)}
-                  placeholder="claude-agent-architecture"
+                  placeholder="best-age-for-kids-robotics"
                   className="flex-1 bg-transparent outline-none text-xs font-mono text-stone-900 dark:text-white"
                 />
               </div>

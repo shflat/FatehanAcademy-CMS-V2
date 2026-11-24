@@ -9,6 +9,7 @@
 
 import React, { useState } from 'react';
 import { useFatehanTheme } from '../context/FatehanThemeContext';
+import { getResponsiveImageVariant } from '../../../src/core/responsiveImage';
 
 export interface FatehanLogoProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -24,34 +25,39 @@ export interface FatehanLogoProps {
 
 const SIZE_STYLES: Record<
   'xs' | 'sm' | 'md' | 'lg' | 'xl',
-  { imgSize: string; titleSize: string; subtitleSize: string; gap: string }
+  { imgSize: string; px: number; titleSize: string; subtitleSize: string; gap: string }
 > = {
   xs: {
     imgSize: 'w-9 h-9',
+    px: 36,
     titleSize: 'text-xs font-bold',
     subtitleSize: 'text-[9px]',
     gap: 'gap-1.5',
   },
   sm: {
     imgSize: 'w-12 h-12',
+    px: 48,
     titleSize: 'text-xs sm:text-sm font-extrabold',
     subtitleSize: 'text-[10px]',
     gap: 'gap-2',
   },
   md: {
     imgSize: 'w-14 h-14 sm:w-16 sm:h-16',
+    px: 64,
     titleSize: 'text-sm sm:text-base font-black',
     subtitleSize: 'text-[11px]',
     gap: 'gap-2.5',
   },
   lg: {
     imgSize: 'w-16 h-16 sm:w-[72px] sm:h-[72px]',
+    px: 72,
     titleSize: 'text-base sm:text-lg font-black',
     subtitleSize: 'text-xs',
     gap: 'gap-3',
   },
   xl: {
     imgSize: 'w-24 h-24 sm:w-28 sm:h-28',
+    px: 112,
     titleSize: 'text-xl sm:text-2xl font-black',
     subtitleSize: 'text-xs sm:text-sm',
     gap: 'gap-3.5',
@@ -75,18 +81,23 @@ export const FatehanLogo: React.FC<FatehanLogoProps> = ({
   const [imgError, setImgError] = useState(false);
   const cfg = SIZE_STYLES[size];
 
-  const logoSrc = logoUrlOverride || settings.logoUrl || DEFAULT_LOGO_FALLBACK;
+  const rawLogoSrc = logoUrlOverride || settings.logoUrl || DEFAULT_LOGO_FALLBACK;
+  const optimizedLogoSrc = getResponsiveImageVariant(rawLogoSrc, 'thumb-300');
   const titleFa = titleOverride || settings.academyNameFa;
   const subtitleEn = subtitleOverride || settings.academyNameEn;
   const cityLabel = settings.location.city || 'اندیشه';
   const hasCustomPx = typeof customSizePx === 'number' && Number.isFinite(customSizePx);
+  const intrinsicPx = hasCustomPx ? Math.round(customSizePx) : cfg.px;
 
   return (
     <div className={`inline-flex items-center ${cfg.gap} select-none whitespace-nowrap ${className}`}>
       {!imgError ? (
         <img
-          src={logoSrc}
+          src={optimizedLogoSrc}
           alt={titleFa}
+          width={intrinsicPx}
+          height={intrinsicPx}
+          decoding="async"
           style={
             hasCustomPx
               ? { width: `${customSizePx}px`, height: `${customSizePx}px` }
@@ -95,7 +106,15 @@ export const FatehanLogo: React.FC<FatehanLogoProps> = ({
           className={`${
             hasCustomPx ? '' : cfg.imgSize
           } shrink-0 block object-contain bg-transparent border-0 p-0 hover:scale-105 transition-all duration-150`}
-          onError={() => setImgError(true)}
+          onError={(e) => {
+            const target = e.currentTarget;
+            if (target.dataset.rawFallback !== '1' && rawLogoSrc && target.src !== rawLogoSrc) {
+              target.dataset.rawFallback = '1';
+              target.src = rawLogoSrc;
+              return;
+            }
+            setImgError(true);
+          }}
           loading="eager"
         />
       ) : (

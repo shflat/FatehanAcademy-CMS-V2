@@ -1,11 +1,11 @@
 # نقشه جامع معماری و گراف وابستگی پروژه (PROJECT_MAP)
 
-- **نسخه هسته:** `v2.7.0`
-- **زمان تولید گراف:** `2026-11-21T13:58:23.742Z`
-- **تعداد کل فایل‌های اسکن‌شده:** `205`
-- **مجموع خطوط کد:** `82248`
-- **تعداد اندپوینت‌های API:** `215`
-- **تعداد جداول دیتابیس SQL:** `69`
+- **نسخه هسته:** `v2.9.3`
+- **زمان تولید گراف:** `2026-11-24T22:08:56.855Z`
+- **تعداد کل فایل‌های اسکن‌شده:** `221`
+- **مجموع خطوط کد:** `102529`
+- **تعداد اندپوینت‌های API:** `230`
+- **تعداد جداول دیتابیس SQL:** `72`
 
 ## ۱. جداول دیتابیس (SQL Tables)
 - `mod_payment_hub_drivers`
@@ -58,6 +58,9 @@
 - `mod_ai_agent_tasks`
 - `mod_ai_agent_conversations`
 - `mod_ai_approval_queue`
+- `mod_ai_agent_memory`
+- `mod_ai_social_packages`
+- `mod_ai_knowledge_cache`
 - `mod_web_vitals`
 - `mod_announcements_popups`
 - `mod_b2b_tiers`
@@ -151,6 +154,7 @@
 | `GET` | `/api/v1/downloads/stream/:token` | `src/server/modules/downloads/downloadsRouter.ts` |
 | `POST` | `/api/v1/media/upload` | `src/server/modules/media/mediaEngineRouter.ts` |
 | `POST` | `/api/v1/media/migrate-base64` | `src/server/modules/media/mediaEngineRouter.ts` |
+| `POST` | `/api/v1/media/sweep-optimize` | `src/server/modules/media/mediaEngineRouter.ts` |
 | `POST` | `/api/orders/create` | `src/server/modules/orders/ordersRouter.ts` |
 | `PATCH` | `/api/orders/:id/status` | `src/server/modules/orders/ordersRouter.ts` |
 | `POST` | `/api/payment/request` | `src/server/modules/orders/ordersRouter.ts` |
@@ -189,6 +193,7 @@
 | `POST` | `/api/v1/modules/ai-digikala/import` | `modules/mod_ai_digikala/aiDigikalaRouter.ts` |
 | `POST` | `/api/v1/modules/ai-digikala/score` | `modules/mod_ai_digikala/aiDigikalaRouter.ts` |
 | `GET` | `/api/v1/modules/ai-hub/agent/overview` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `GET` | `/api/v1/modules/ai-hub/agent/jarvis-config` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
 | `POST` | `/api/v1/modules/ai-hub/agent/mode` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
 | `POST` | `/api/v1/modules/ai-hub/agent/command` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
 | `POST` | `/api/v1/modules/ai-hub/agent/skills` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
@@ -196,6 +201,19 @@
 | `POST` | `/api/v1/modules/ai-hub/agent/tasks/:id/run` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
 | `POST` | `/api/v1/modules/ai-hub/agent/approvals/:id/decide` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
 | `POST` | `/api/v1/modules/ai-hub/agent/bot-bridge/test` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/bale-alerts/test` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `GET` | `/api/v1/modules/ai-hub/agent/social-config` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/social-config` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/social-config/test` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/bale-pair/start` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/bale-pair/verify` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/daily-briefing/test` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/transcribe` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/speak` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `GET` | `/api/v1/modules/ai-hub/agent/knowledge-cache` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/knowledge-cache` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `POST` | `/api/v1/modules/ai-hub/agent/knowledge-cache/:id/status` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
+| `DELETE` | `/api/v1/modules/ai-hub/agent/knowledge-cache/:id` | `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` |
 | `GET` | `/api/v1/modules/ai-hub/config` | `modules/mod_ai_hub_agent/aiHubRouter.ts` |
 | `POST` | `/api/v1/modules/ai-hub/slots/save` | `modules/mod_ai_hub_agent/aiHubRouter.ts` |
 | `POST` | `/api/v1/modules/ai-hub/slots/test` | `modules/mod_ai_hub_agent/aiHubRouter.ts` |
@@ -300,30 +318,31 @@
 ## ۳. تفکیک فایل‌ها بر اساس لایه معماری
 | مسیر فایل | لایه | تعداد خط | خروجی‌ها (Exports) |
 | :--- | :--- | :--- | :--- |
-| `server.ts` | `root` | 293 | — |
-| `src/App.tsx` | `root` | 2361 | — |
+| `server.ts` | `root` | 336 | — |
+| `src/App.tsx` | `root` | 2545 | — |
 | `src/barba.d.ts` | `root` | 29 | — |
 | `src/components/GlobalActivityOverlay.tsx` | `root` | 123 | GlobalActivityOverlay |
 | `src/components/OfflineCaptchaWidget.tsx` | `root` | 90 | OfflineCaptchaWidget |
-| `src/core/apiClient.ts` | `core` | 291 | StoredClientSession, GlobalActivitySnapshot, GlobalToastPayload, purgeLegacySensitiveStorage, getClientBuildId, syncClientBuildId |
+| `src/core/apiClient.ts` | `core` | 358 | StoredClientSession, GlobalActivitySnapshot, GlobalToastPayload, purgeLegacySensitiveStorage, getClientBuildId, syncClientBuildId |
 | `src/core/iran-geo.ts` | `core` | 87 | IranProvinceEntry, IRAN_PROVINCES_AND_CITIES, getCitiesByProvince, isValidIranNationalId, isValidIranPostalCode, isValidIranMobile |
 | `src/core/jalali.ts` | `core` | 156 | JalaliDateParts, GregorianDateParts, JALALI_MONTH_NAMES, toPersianDigits, toEnglishDigits, gregorianToJalali |
 | `src/core/motionAndDragEngine.ts` | `core` | 761 | scrollToTopImmediate, scrollToElementSmooth, initSmoothScroll, pauseSmoothScroll, resumeSmoothScroll, installGlobalModalScrollLock |
 | `src/core/permissions.ts` | `core` | 100 | ALL_CAPABILITY_KEYS, CAPABILITY_LABELS_FA, EMPTY_ROLE_PERMISSIONS, FULL_ROLE_PERMISSIONS, resolveEffectivePermissions, canUserUseAiSeo |
 | `src/core/rbacMatrix.ts` | `core` | 85 | GranularActionKey, GranularActionSet, GranularResourceMeta, GRANULAR_ACTIONS, GRANULAR_RBAC_RESOURCES, GranularRbacMatrix |
+| `src/core/responsiveImage.ts` | `core` | 66 | ResponsiveImageVariant, getResponsiveImageVariant, getResponsiveSrcSet |
 | `src/core/seoHeadManager.ts` | `core` | 83 | PageSeoMetadata, syncPageSeoHead |
-| `src/core/types.ts` | `core` | 705 | AccentPresetId, AIToolCategory, PosterColorScheme, UserRoleType, ActiveTab, CatalogFilter |
+| `src/core/types.ts` | `core` | 772 | AccentPresetId, AIToolCategory, PosterColorScheme, UserRoleType, ActiveTab, CatalogFilter |
 | `src/core/webVitalsReporter.ts` | `core` | 65 | initWebVitalsReporter |
 | `src/core/zipGenerator.ts` | `core` | 89 | downloadSkill98StarterZip, downloadSingleSkillFile |
-| `src/data/defaults.ts` | `root` | 653 | APP_VERSION, IMAGES, resolveStaticImageUrl, INITIAL_MEDIA_LIBRARY, BRAND_LOGO_PRESETS, BRAND_FAVICON_PRESETS |
-| `src/data/initialCatalog.ts` | `root` | 1172 | INITIAL_SKILL98_CATALOG, createInteractiveMuuriGrid, revealStoreCards, INITIAL_ARTICLES, TARGET_ARCHITECTURE_GUIDE, STARTER_KIT_FILES |
+| `src/data/defaults.ts` | `root` | 716 | APP_VERSION, IMAGES, resolveStaticImageUrl, INITIAL_MEDIA_LIBRARY, DEFAULT_BRAND_LOGO_URL, BRAND_LOGO_PRESETS |
+| `src/data/initialCatalog.ts` | `root` | 1193 | INITIAL_SKILL98_CATALOG, INITIAL_ARTICLES, TARGET_ARCHITECTURE_GUIDE, STARTER_KIT_FILES, FULL_TARGET_GUIDE_MARKDOWN |
 | `src/data/mediaAssets.ts` | `root` | 146 | VITE_IMAGES, resolveStaticImageUrl, ResponsiveImageSlot, resolveResponsiveMediaUrl, buildResponsiveSrcSet, isVideoMediaUrl |
 | `src/data/skill98Data.ts` | `root` | 6 | — |
 | `src/data/verifiedSkillsCatalog.ts` | `root` | 1179 | serverConfig, DialogSurface, products, useCartStore, generateMetadata, appRouter |
-| `src/firebase.ts` | `root` | 88 | db, auth, googleProvider, BOOTSTRAPPED_ADMIN_EMAIL, OperationType, FirestoreErrorInfo |
+| `src/firebase.ts` | `root` | 106 | db, auth, googleProvider, BOOTSTRAPPED_ADMIN_EMAIL, OperationType, FirestoreErrorInfo |
 | `src/index.css` | `root` | 354 | — |
 | `src/main.tsx` | `root` | 6 | — |
-| `src/modules/admin/AdminCmsView.tsx` | `modules` | 1449 | AdminSection, AdminCmsView |
+| `src/modules/admin/AdminCmsView.tsx` | `modules` | 1458 | AdminSection, AdminCmsView |
 | `src/modules/admin/components/MaintenanceCleanersCard.tsx` | `modules` | 280 | MaintenanceCleanersCard |
 | `src/modules/admin/components/MediaPickerModal.tsx` | `modules` | 563 | MediaPickerSelection, MediaPickerModal |
 | `src/modules/admin/components/RbacMatrixEditorCard.tsx` | `modules` | 211 | RbacMatrixEditorCard |
@@ -332,10 +351,10 @@
 | `src/modules/admin/components/ServerPaginationBulkBar.tsx` | `modules` | 271 | BulkActionOption, ServerPaginationBulkBar |
 | `src/modules/admin/components/VisualComposerCanvas.tsx` | `modules` | 904 | ComposerContentSummaryContext, VisualComposerCanvas |
 | `src/modules/admin/components/VisualComposerRenderer.tsx` | `modules` | 721 | WidgetCatalogEntry, COMPOSER_WIDGET_CATALOG, VisualComposerRenderer |
-| `src/modules/admin/panels/AiSessionsThemePanel.tsx` | `modules` | 1061 | AiSessionsThemePanel |
+| `src/modules/admin/panels/AiSessionsThemePanel.tsx` | `modules` | 1166 | AiSessionsThemePanel |
 | `src/modules/admin/panels/ArticlesSeoPanel.tsx` | `modules` | 981 | ArticlesSeoPanel |
-| `src/modules/admin/panels/CatalogEditorPanel.tsx` | `modules` | 1615 | ProductEditorDraft, createEmptyProductDraft, productToDraft, computeSeoScore, CatalogEditorPanel |
-| `src/modules/admin/panels/DbBackupPanel.tsx` | `modules` | 1155 | DbBackupPanel |
+| `src/modules/admin/panels/CatalogEditorPanel.tsx` | `modules` | 1731 | ProductEditorDraft, createEmptyProductDraft, productToDraft, computeSeoScore, CatalogEditorPanel |
+| `src/modules/admin/panels/DbBackupPanel.tsx` | `modules` | 1232 | DbBackupPanel |
 | `src/modules/admin/panels/EnterpriseCoreHubPanel.tsx` | `modules` | 610 | EnterpriseHubMode, EnterpriseCoreHubPanel |
 | `src/modules/admin/panels/LogsDiagnosticsPanel.tsx` | `modules` | 396 | LogsDiagnosticsPanel |
 | `src/modules/admin/panels/MediaLibraryPanel.tsx` | `modules` | 805 | MediaLibraryPanel |
@@ -346,9 +365,10 @@
 | `src/modules/admin/panels/PagesManagerPanel.tsx` | `modules` | 522 | PagesManagerPanel |
 | `src/modules/admin/panels/PaymentGatewaysPanel.tsx` | `modules` | 681 | PaymentGatewaysPanel |
 | `src/modules/admin/panels/RbacPermissionsPanel.tsx` | `modules` | 563 | RbacPermissionsPanel |
-| `src/modules/admin/panels/SmsTriggersPanel.tsx` | `modules` | 2075 | SmsTriggersPanel |
+| `src/modules/admin/panels/SmsTriggersPanel.tsx` | `modules` | 2159 | SmsTriggersPanel |
 | `src/modules/admin/panels/TaxonomiesManagerPanel.tsx` | `modules` | 459 | TaxonomiesManagerPanel |
-| `src/modules/admin/panels/UnifiedSettingsHubPanel.tsx` | `modules` | 928 | UnifiedSettingsTabId, UnifiedSettingsHubPanel |
+| `src/modules/admin/panels/UnifiedBaleHubPanel.tsx` | `modules` | 1374 | UnifiedBaleHubPanel |
+| `src/modules/admin/panels/UnifiedSettingsHubPanel.tsx` | `modules` | 1918 | UnifiedSettingsTabId, UnifiedSettingsHubPanel |
 | `src/modules/admin/panels/UsersDirectoryPanel.tsx` | `modules` | 706 | UsersDirectoryPanel |
 | `src/modules/auth/AuthModal.tsx` | `modules` | 262 | AuthStep, toLatinDigits, formatLivePhoneInput, normalizeIranMobile, normalizeDigits, AuthModal |
 | `src/modules/cart/CartDrawerModal.tsx` | `modules` | 542 | CartDrawerModal |
@@ -358,36 +378,36 @@
 | `src/server/core/cacheEngine.ts` | `core` | 96 | CacheEntry, CacheTelemetry, LruCacheEngine, cmsCache |
 | `src/server/core/captchaService.ts` | `core` | 162 | generateOfflineCaptchaChallenge, verifyCaptchaToken, createCaptchaRouter |
 | `src/server/core/cryptoSecurity.ts` | `core` | 184 | getAiClient, checkRateLimit, hashOtpCode, timingSafeHexEqual, resolveServerPort, getRequestBaseUrl |
-| `src/server/core/envConfig.ts` | `core` | 156 | normalizeIranPhone, ServerEnvConfig, resolveBuildId, getEnvConfig |
+| `src/server/core/envConfig.ts` | `core` | 162 | normalizeIranPhone, ServerEnvConfig, resolveBuildId, getEnvConfig |
 | `src/server/core/permissionsEngine.ts` | `core` | 372 | PermissionsHashManifest, AuthenticatedRequest, computePermissionHash, syncPermissionsToDbAndFile, verifyRoleCapabilityHash, getHashedPermissionsReport |
 | `src/server/core/secretVault.ts` | `core` | 72 | encryptSecret, decryptSecret, maskSecret, isMaskedPlaceholder |
-| `src/server/database/backupService.ts` | `database` | 663 | getDatabaseStatus, runDatabaseReadWriteHealthTest, executeReadOnlySql, generateFullBackupPayload, sendSmtpBackupEmail, sendBaleNotification |
+| `src/server/database/backupService.ts` | `database` | 1024 | getDatabaseStatus, runDatabaseReadWriteHealthTest, executeReadOnlySql, generateFullBackupPayload, sendSmtpBackupEmail, sendBaleNotification |
 | `src/server/database/catalogOrdersRepo.ts` | `database` | 445 | getAllPaymentGateways, saveAllPaymentGateways, getAllSmsTriggers, saveAllSmsTriggers, getStorefrontBootstrapData, syncCmsEntities |
-| `src/server/database/connection.ts` | `database` | 460 | SqlEngineKind, SqliteStatementLike, SqliteDbLike, DATA_DIR, BACKUP_DIR, SQLITE_PATH |
-| `src/server/database/index.ts` | `database` | 66 | — |
-| `src/server/database/phase3Seeds.ts` | `database` | 610 | INITIAL_DYNAMIC_PAGES, INITIAL_MENU_ITEMS, INITIAL_INVOICE_TEMPLATES, seedPhase3Tables |
+| `src/server/database/connection.ts` | `database` | 486 | SqlEngineKind, SqliteStatementLike, SqliteDbLike, DATA_DIR, BACKUP_DIR, SQLITE_PATH |
+| `src/server/database/index.ts` | `database` | 68 | — |
+| `src/server/database/phase3Seeds.ts` | `database` | 637 | INITIAL_DYNAMIC_PAGES, INITIAL_MENU_ITEMS, INITIAL_INVOICE_TEMPLATES, seedPhase3Tables |
 | `src/server/database/phase5ModulesSchema.ts` | `database` | 326 | ModPaymentDriverRecord, INITIAL_PAYZITO_DRIVERS, createAndSeedPhase5ModulesSchema |
 | `src/server/database/phase6ModulesSchema.ts` | `database` | 245 | createAndSeedPhase6ModulesSchema |
-| `src/server/database/schema.ts` | `database` | 666 | initDatabase |
-| `src/server/database/settingsLogsRepo.ts` | `database` | 119 | getSetting, setSetting, writeSystemLog, getSystemLogs, clearAllSystemLogs |
-| `src/server/database/smsService.ts` | `database` | 1078 | renderSmsTemplate, ensureCancel11Suffix, dispatchEventSms |
+| `src/server/database/schema.ts` | `database` | 910 | initDatabase |
+| `src/server/database/settingsLogsRepo.ts` | `database` | 151 | getSetting, setSetting, SystemLogHookPayload, registerSystemLogErrorHook, writeSystemLog, getSystemLogs |
+| `src/server/database/smsService.ts` | `database` | 1324 | renderSmsTemplate, ensureCancel11Suffix, dispatchEventSms |
 | `src/server/database/usersSessionsRepo.ts` | `database` | 364 | DbUserRow, DbAuthSessionRow, findUserByPhone, findUserByEmail, countSuperAdmins, upsertUserByPhone |
 | `src/server/database.ts` | `root` | 2 | — |
 | `src/server/middleware/authMiddleware.ts` | `root` | 43 | requireAdmin, requireSuperAdmin |
-| `src/server/modules/admin/adminDbBackupRouter.ts` | `modules` | 289 | createAdminDbBackupRouter |
+| `src/server/modules/admin/adminDbBackupRouter.ts` | `modules` | 299 | createAdminDbBackupRouter |
 | `src/server/modules/admin/adminGatewaysSmsRouter.ts` | `modules` | 301 | createAdminGatewaysSmsRouter |
 | `src/server/modules/admin/adminUsersLogsRouter.ts` | `modules` | 435 | createAdminUsersLogsRouter |
 | `src/server/modules/admin/maintenanceCleanersRouter.ts` | `modules` | 213 | createMaintenanceCleanersRouter |
 | `src/server/modules/admin/modulesConfigRouter.ts` | `modules` | 334 | DEFAULT_SITE_MODULES_REGISTRY, createModulesConfigRouter |
 | `src/server/modules/admin/rbacMatrixRouter.ts` | `modules` | 158 | computeGranularMatrixHmac, createRbacMatrixRouter |
-| `src/server/modules/ai/aiSeoRouter.ts` | `modules` | 120 | createAiSeoRouter |
-| `src/server/modules/auth/authRouter.ts` | `modules` | 693 | createAuthRouter |
+| `src/server/modules/ai/aiSeoRouter.ts` | `modules` | 125 | createAiSeoRouter |
+| `src/server/modules/auth/authRouter.ts` | `modules` | 736 | createAuthRouter |
 | `src/server/modules/catalog/taxonomiesPaginationRouter.ts` | `modules` | 418 | listAllTaxonomies, createTaxonomiesPaginationRouter |
 | `src/server/modules/cms/pagesMenusComposerRouter.ts` | `modules` | 554 | createPagesMenusComposerRouter |
 | `src/server/modules/downloads/downloadsRouter.ts` | `modules` | 424 | getProtectedDownloadsDir, createProtectedDownloadsRouter |
-| `src/server/modules/media/mediaEngineRouter.ts` | `modules` | 379 | migrateDatabaseBase64ToPhysicalWebp, createMediaEngineRouter |
-| `src/server/modules/orders/ordersRouter.ts` | `modules` | 556 | createOrdersRouter |
-| `src/server/modules/storefront/storefrontRouter.ts` | `modules` | 201 | createStorefrontRouter |
+| `src/server/modules/media/mediaEngineRouter.ts` | `modules` | 496 | migrateDatabaseBase64ToPhysicalWebp, collectAllReferencedSiteImageUrls, runBackgroundMediaOptimizerSweep, initContinuousMediaOptimizerAgent, createMediaEngineRouter |
+| `src/server/modules/orders/ordersRouter.ts` | `modules` | 619 | createOrdersRouter |
+| `src/server/modules/storefront/storefrontRouter.ts` | `modules` | 205 | createStorefrontRouter |
 | `src/theme/accentStyles.ts` | `theme` | 68 | AccentStyleTokens, getAccentStyles |
 | `src/theme/components/ArticlesView.tsx` | `theme` | 768 | ArticlesView |
 | `src/theme/components/DynamicPageView.tsx` | `theme` | 108 | DynamicPageView |
@@ -395,14 +415,14 @@
 | `src/theme/components/ProgressiveImage.tsx` | `theme` | 103 | ProgressiveImage |
 | `src/theme/components/ResilientImage.tsx` | `theme` | 42 | ResilientImage |
 | `src/theme/components/SingleProductView.tsx` | `theme` | 416 | SingleProductView |
-| `src/theme/components/SiteFooter.tsx` | `theme` | 320 | SiteFooter |
-| `src/theme/components/SiteHeader.tsx` | `theme` | 370 | SiteHeader |
+| `src/theme/components/SiteFooter.tsx` | `theme` | 318 | SiteFooter |
+| `src/theme/components/SiteHeader.tsx` | `theme` | 475 | SiteHeader |
 | `src/theme/components/SkillPosterCard.tsx` | `theme` | 773 | getPosterPalette, PosterGeometricSymbol, SkillPosterCard, HeroSkillDeckSlider |
 | `src/theme/components/StorefrontView.tsx` | `theme` | 845 | StorefrontView |
 | `core/agents/clean-code-checker.js` | `core` | 82 | runCleanCodeCheck |
 | `core/agents/design-system-auditor.js` | `core` | 127 | runDesignSystemAudit |
-| `core/agents/media-optimizer.d.ts` | `core` | 29 | OptimizeImageInput, OptimizeImageResult, optimizeAndStoreImageBuffer, auditMediaStorage |
-| `core/agents/media-optimizer.js` | `core` | 117 | ALLOWED_IMAGE_MIMES, RESPONSIVE_SIZES, resolveUploadRootDir, getUploadMonthDir, optimizeAndStoreImageBuffer |
+| `core/agents/media-optimizer.d.ts` | `core` | 52 | OptimizeImageInput, OptimizeImageResult, MediaSweepResult, optimizeAndStoreImageBuffer, ensureSiblingWebpVariants, sweepAndOptimizeAllSiteImages |
+| `core/agents/media-optimizer.js` | `core` | 340 | ALLOWED_IMAGE_MIMES, RESPONSIVE_SIZES, resolveUploadRootDir, getUploadMonthDir, optimizeAndStoreImageBuffer, ensureSiblingWebpVariants |
 | `core/agents/project-indexer.js` | `core` | 190 | buildProjectGraph |
 | `core/agents/security-auditor.js` | `core` | 115 | runSecurityAudit |
 | `modules/mod_abandoned_cart/AbandonedCartPanel.tsx` | `modules` | 156 | AbandonedCartPanel |
@@ -414,17 +434,31 @@
 | `modules/mod_affiliate/affiliateRouter.ts` | `modules` | 137 | createAffiliateRouter |
 | `modules/mod_ai_digikala/Phase6EnterpriseSuitePanel.tsx` | `modules` | 285 | Phase6EnterpriseSuitePanel |
 | `modules/mod_ai_digikala/aiDigikalaRouter.ts` | `modules` | 230 | RankMathCheckItem, evaluateRankMathSeoScore, createModAiDigikalaRouter |
-| `modules/mod_ai_hub_agent/AiCommandCenterCard.tsx` | `modules` | 415 | AiCommandCenterCard |
-| `modules/mod_ai_hub_agent/AiHubAgentPanel.tsx` | `modules` | 222 | AiHubAgentPanel |
+| `modules/mod_ai_hub_agent/AiCommandCenterCard.tsx` | `modules` | 1398 | BaleAlertsUiConfig, AiCommandCenterCard |
+| `modules/mod_ai_hub_agent/AiHubAgentPanel.tsx` | `modules` | 279 | AiHubAgentPanel |
 | `modules/mod_ai_hub_agent/AiImageStudioWidget.tsx` | `modules` | 202 | AiImageStudioWidget |
+| `modules/mod_ai_hub_agent/AiJarvisSettingsCard.tsx` | `modules` | 362 | JarvisAvatarUiPreset, JarvisSettingsUiConfig, DEFAULT_JARVIS_UI_SETTINGS, AiJarvisSettingsCard |
+| `modules/mod_ai_hub_agent/AiKnowledgeCacheCard.tsx` | `modules` | 601 | AiKnowledgeCacheCard |
 | `modules/mod_ai_hub_agent/AiScheduledTasksCard.tsx` | `modules` | 79 | AgentTaskItem, AiScheduledTasksCard |
-| `modules/mod_ai_hub_agent/AiSkillsApprovalsCard.tsx` | `modules` | 234 | AiSkillsApprovalsCard |
-| `modules/mod_ai_hub_agent/AiSlotsConfigCard.tsx` | `modules` | 362 | AiSlotItem, AiSlotsConfigCard |
-| `modules/mod_ai_hub_agent/agentToolsEngine.ts` | `modules` | 426 | isGenericDisplayName, extractNameFromChatMessage, updateVisitorUserProfileTool, queueAgentApproval, dispatchAgentBotBridgeAlert, handleLiveChatAgentAutomation |
-| `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` | `modules` | 253 | registerSuperAdminAgentRoutes |
-| `modules/mod_ai_hub_agent/aiHubRouter.ts` | `modules` | 227 | createAiHubAgentRouter |
-| `modules/mod_ai_hub_agent/aiHubSchema.ts` | `modules` | 261 | AiSlotKey, AiProviderKind, AiSlotRow, AiHubRuntimeSettings, DEFAULT_AI_HUB_SETTINGS, ensureAiHubSchema |
-| `modules/mod_ai_hub_agent/aiProviderGateway.ts` | `modules` | 586 | SlotGenerationResult, getSlotConfig, generateTextViaSlot, AiConnectionTestResult, testAiSlotConnection, ImageStudioResult |
+| `modules/mod_ai_hub_agent/AiSkillsApprovalsCard.tsx` | `modules` | 254 | AiSkillsApprovalsCard |
+| `modules/mod_ai_hub_agent/AiSlotsConfigCard.tsx` | `modules` | 376 | AiSlotItem, AiSlotsConfigCard |
+| `modules/mod_ai_hub_agent/AiSocialPublisherCard.tsx` | `modules` | 494 | AiSocialPublisherCard |
+| `modules/mod_ai_hub_agent/SafeMarkdownText.tsx` | `modules` | 158 | SafeMarkdownText |
+| `modules/mod_ai_hub_agent/SuperAdminJarvisMascot.tsx` | `modules` | 857 | JarvisClientPageContext, SuperAdminJarvisMascot |
+| `modules/mod_ai_hub_agent/agentContentFactory.ts` | `modules` | 1166 | assertSafePublicUrl, fetchPublicSourceText, generateAndOptimizeWebpCover, runSkillToProductTool, runAuditMissingSeoAndMediaTool, runFixItemSeoAndMediaTool |
+| `modules/mod_ai_hub_agent/agentSocialPublisher.ts` | `modules` | 1030 | SocialChannelKey, InstagramFormatType, GeneratedSocialCopy, ChannelDispatchOutcome, testSocialChannelConnection, executeQueuedSocialApproval |
+| `modules/mod_ai_hub_agent/agentToolCallingEngine.ts` | `modules` | 2769 | AgentUiActionType, ExecutedToolRecord, JarvisPageContext, AgentToolContext, MultiStepAgentTurnResult, executeCmsTool |
+| `modules/mod_ai_hub_agent/agentToolsEngine.ts` | `modules` | 655 | isGenericDisplayName, sanitizePersianDisplayName, extractNameFromChatMessage, updateVisitorUserProfileTool, queueAgentApproval, dispatchAgentBotBridgeAlert |
+| `modules/mod_ai_hub_agent/aiAgentSubRouter.ts` | `modules` | 1148 | registerSuperAdminAgentRoutes |
+| `modules/mod_ai_hub_agent/aiHubRouter.ts` | `modules` | 280 | createAiHubAgentRouter |
+| `modules/mod_ai_hub_agent/aiHubSchema.ts` | `modules` | 1013 | AiSlotKey, AiProviderKind, MemoryScopeType, AgentActorRole, AiSlotRow, AgentMemoryRow |
+| `modules/mod_ai_hub_agent/aiProviderGateway.ts` | `modules` | 813 | SlotGenerationResult, getSlotConfig, generateTextViaSlot, AiConnectionTestResult, testAiSlotConnection, ImageStudioResult |
+| `modules/mod_ai_hub_agent/baleAlertBridge.ts` | `modules` | 1001 | BaleAlertCategory, BaleAlertDispatchResult, sanitizeBaleBotToken, resolveBaleBotTokenOnly, sendSuperAdminBaleAlert, startBalePairingSession |
+| `modules/mod_ai_hub_agent/browserSpeechHelper.ts` | `modules` | 156 | JarvisVoiceInputMode, BrowserSpeechRecognitionHandle, isBrowserSpeechSupported, getSavedVoiceMode, saveVoiceMode, startBrowserPersianSpeech |
+| `modules/mod_ai_hub_agent/jarvisCmsBuilderTools.ts` | `modules` | 448 | JarvisBuilderToolResult, sanitizePageHtml, runCreateOrUpdatePageTool, runReplyToLiveChatTool, runManageSiteModulesTool, runManageKnowledgeCacheTool |
+| `modules/mod_ai_hub_agent/jarvisTtsPlayer.ts` | `modules` | 199 | JarvisVoiceProvider, JarvisTtsConfig, stripMarkdownForSpeech, stopJarvisSpeech, speakWithFreeBrowserTts, speakWithSlot4PaidTts |
+| `modules/mod_ai_hub_agent/knowledgeCacheEngine.ts` | `modules` | 614 | KnowledgeCacheCategory, KnowledgeCacheStatus, KnowledgeCacheSource, KnowledgeCacheRow, KnowledgeMatchResult, normalizePersianText |
+| `modules/mod_ai_hub_agent/voiceWavEncoder.ts` | `modules` | 125 | encodeAudioBlobToMono16kWav |
 | `modules/mod_analytics_gsc/NativeAnalyticsGscPanel.tsx` | `modules` | 264 | NativeAnalyticsGscPanel |
 | `modules/mod_analytics_gsc/WebVitalsGa4Card.tsx` | `modules` | 90 | WebVitalsSummaryData, WebVitalsGa4Card |
 | `modules/mod_analytics_gsc/analyticsGscRouter.ts` | `modules` | 232 | createModAnalyticsGscRouter |
@@ -444,16 +478,16 @@
 | `modules/mod_ecommerce_suite/ecommerceSuiteRouter.ts` | `modules` | 316 | createModEcommerceSuiteRouter |
 | `modules/mod_forms/FormsManagerPanel.tsx` | `modules` | 1003 | FormsManagerPanel |
 | `modules/mod_forms/GravityFormsEcommerceSuitePanel.tsx` | `modules` | 373 | GravityFormsEcommerceSuitePanel |
-| `modules/mod_forms/formsEngineRouter.ts` | `modules` | 245 | createModFormsRouter |
+| `modules/mod_forms/formsEngineRouter.ts` | `modules` | 256 | createModFormsRouter |
 | `modules/mod_i18n/I18nPanel.tsx` | `modules` | 131 | I18nPanel |
 | `modules/mod_i18n/i18nRouter.ts` | `modules` | 129 | createI18nRouter |
 | `modules/mod_inventory_accounting/InventoryAccountingPanel.tsx` | `modules` | 299 | InventoryAccountingPanel |
 | `modules/mod_inventory_accounting/inventoryAccountingRouter.ts` | `modules` | 273 | createModInventoryAccountingRouter |
 | `modules/mod_live_chat/AdminGlobalChatAlarm.tsx` | `modules` | 206 | AdminGlobalChatAlarm |
-| `modules/mod_live_chat/ChatInlineOtpCard.tsx` | `modules` | 204 | ChatInlineOtpCard |
-| `modules/mod_live_chat/GoftinoLiveChatWidget.tsx` | `modules` | 403 | GoftinoLiveChatWidget |
+| `modules/mod_live_chat/ChatInlineOtpCard.tsx` | `modules` | 239 | ChatInlineOtpCard |
+| `modules/mod_live_chat/GoftinoLiveChatWidget.tsx` | `modules` | 490 | GoftinoLiveChatWidget |
 | `modules/mod_live_chat/GoftinoOperatorInboxPanel.tsx` | `modules` | 665 | GoftinoOperatorInboxPanel |
-| `modules/mod_live_chat/liveChatRouter.ts` | `modules` | 544 | createModLiveChatRouter |
+| `modules/mod_live_chat/liveChatRouter.ts` | `modules` | 623 | createModLiveChatRouter |
 | `modules/mod_maintenance_audit/MaintenanceAuditPanel.tsx` | `modules` | 154 | MaintenanceAuditPanel |
 | `modules/mod_maintenance_audit/maintenanceAuditRouter.ts` | `modules` | 135 | MaintenanceModeConfig, recordAuditTrailEvent, createMaintenanceAuditRouter |
 | `modules/mod_notifications_pwa/NotificationsPwaPanel.tsx` | `modules` | 231 | NotificationsPwaPanel |
@@ -474,30 +508,30 @@
 | `modules/registry.json` | `modules` | 202 | — |
 | `themes/default/theme.json` | `theme` | 21 | — |
 | `themes/fatehan/components/CartDrawer.tsx` | `theme` | 242 | CartDrawer |
-| `themes/fatehan/components/FatehanStorefrontHome.tsx` | `theme` | 2660 | FatehanStorefrontHome |
-| `themes/fatehan/components/StoreOtpLoginModal.tsx` | `theme` | 213 | StoreOtpLoginModal |
-| `themes/fatehan/components/StorefrontFooter.tsx` | `theme` | 263 | StorefrontFooter |
-| `themes/fatehan/components/StorefrontHeader.tsx` | `theme` | 475 | StorefrontHeader |
+| `themes/fatehan/components/FatehanStorefrontHome.tsx` | `theme` | 3197 | FatehanStorefrontHome |
+| `themes/fatehan/components/StoreOtpLoginModal.tsx` | `theme` | 260 | StoreOtpLoginModal |
+| `themes/fatehan/components/StorefrontFooter.tsx` | `theme` | 312 | StorefrontFooter |
+| `themes/fatehan/components/StorefrontHeader.tsx` | `theme` | 629 | StorefrontHeader |
 | `themes/fatehan/components/VideoLabModal.tsx` | `theme` | 325 | VideoLabModal |
-| `themes/fatehan/context/FatehanThemeContext.tsx` | `theme` | 474 | FatehanThemeContextValue, FatehanThemeProviderProps, FatehanThemeProvider, useFatehanTheme |
-| `themes/fatehan/context/cmsApiAdapter.ts` | `theme` | 414 | CmsApiAdapterOptions, createCmsV2ApiAdapter |
+| `themes/fatehan/context/FatehanThemeContext.tsx` | `theme` | 588 | FatehanThemeContextValue, FatehanThemeProviderProps, FatehanThemeProvider, useFatehanTheme |
+| `themes/fatehan/context/cmsApiAdapter.ts` | `theme` | 720 | CmsApiAdapterOptions, createCmsV2ApiAdapter |
 | `themes/fatehan/index.ts` | `theme` | 76 | FatehanThemeRootProps, FatehanThemeRoot |
 | `themes/fatehan/layouts/DesktopLayout.tsx` | `theme` | 30 | DesktopLayout |
-| `themes/fatehan/layouts/FatehanThemeShell.tsx` | `theme` | 56 | FatehanThemeShell |
+| `themes/fatehan/layouts/FatehanThemeShell.tsx` | `theme` | 71 | FatehanThemeShell |
 | `themes/fatehan/layouts/MobileLayout.tsx` | `theme` | 117 | MobileLayout |
 | `themes/fatehan/layouts/TabletLayout.tsx` | `theme` | 32 | TabletLayout |
-| `themes/fatehan/pages/BlogAndAccountRoutes.tsx` | `theme` | 2103 | BlogRoutesPage, CustomerAccountDashboardPage |
-| `themes/fatehan/pages/FatehanMultiPages.tsx` | `theme` | 2124 | FatehanCoursesPage, FatehanTuitionCalculatorPage, FatehanSimulatorPage, FatehanContactPage, FatehanFreeCoursesPage, FatehanAboutPage |
+| `themes/fatehan/pages/BlogAndAccountRoutes.tsx` | `theme` | 2241 | BlogRoutesPage, CustomerAccountDashboardPage |
+| `themes/fatehan/pages/FatehanMultiPages.tsx` | `theme` | 2133 | FatehanCoursesPage, FatehanTuitionCalculatorPage, FatehanSimulatorPage, FatehanContactPage, FatehanFreeCoursesPage, FatehanAboutPage |
 | `themes/fatehan/pages/PageRenderer.tsx` | `theme` | 1199 | PageRendererProps, PageRenderer |
-| `themes/fatehan/pages/StorefrontRouter.tsx` | `theme` | 2377 | StoreShimmerSkeleton, StorefrontRouter |
-| `themes/fatehan/styles/fatehan-theme.css` | `theme` | 370 | — |
+| `themes/fatehan/pages/StorefrontRouter.tsx` | `theme` | 2702 | StoreShimmerSkeleton, StorefrontRouter |
+| `themes/fatehan/styles/fatehan-theme.css` | `theme` | 331 | — |
 | `themes/fatehan/theme.manifest.json` | `theme` | 94 | — |
-| `themes/fatehan/types/index.ts` | `theme` | 684 | ViewportMode, PersianFontFamily, PrintPaperSize, DeviceFontSize, DeviceSpacingPreset, BuilderWidgetType |
+| `themes/fatehan/types/index.ts` | `theme` | 700 | ViewportMode, PersianFontFamily, PrintPaperSize, DeviceFontSize, DeviceSpacingPreset, BuilderWidgetType |
 | `themes/fatehan/ui/BiDiText.tsx` | `theme` | 46 | BiDiTextProps, BiDiText |
-| `themes/fatehan/ui/FatehanLogo.tsx` | `theme` | 130 | FatehanLogoProps, FatehanLogo |
-| `themes/fatehan/ui/ScrollReveal.tsx` | `theme` | 148 | ScrollRevealProps, ScrollReveal, SmoothScrollProgressBar, useAutoScrollReveal |
+| `themes/fatehan/ui/FatehanLogo.tsx` | `theme` | 157 | FatehanLogoProps, FatehanLogo |
+| `themes/fatehan/ui/ScrollReveal.tsx` | `theme` | 144 | ScrollRevealProps, ScrollReveal, SmoothScrollProgressBar, useAutoScrollReveal |
 | `themes/fatehan/utils/RichFormattedContent.tsx` | `theme` | 89 | RichFormattedContent |
-| `themes/fatehan/utils/defaultFallbacks.ts` | `theme` | 328 | DEFAULT_TYPOGRAPHY_CONFIG, DEFAULT_SITE_SETTINGS, DEFAULT_HEADER_MENU, DEFAULT_FOOTER_MENU, DEFAULT_MOBILE_BOTTOM_MENU, DEFAULT_DEPARTMENTS |
+| `themes/fatehan/utils/defaultFallbacks.ts` | `theme` | 674 | DEFAULT_TYPOGRAPHY_CONFIG, DEFAULT_SITE_SETTINGS, DEFAULT_HEADER_MENU, DEFAULT_FOOTER_MENU, DEFAULT_MOBILE_BOTTOM_MENU, DEFAULT_DEPARTMENTS |
 | `themes/fatehan/utils/formatters.ts` | `theme` | 50 | formatToman, formatPersianNumber, themeClientCache |
 | `themes/registry.ts` | `theme` | 91 | RegisteredThemeId, RegisteredThemeDefinition, THEME_REGISTRY, REGISTERED_THEMES_LIST, resolveRegisteredTheme |
 | `public/assets/vendor/barba.umd.js` | `public_assets` | 3 | — |

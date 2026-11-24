@@ -264,7 +264,7 @@ export const SeoVisibilityControlCard: React.FC<SeoVisibilityControlCardProps> =
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, customLlmsIntro: e.target.value }))
                     }
-                    placeholder="مثال: اسکیل ۹۸ مرجع تخصصی اسکیل‌های استاندارد Claude، ChatGPT و Codex..."
+                    placeholder="مثال: آموزشگاه رباتیک فاتحان مرجع تخصصی آموزش رباتیک، کدنویسی و هوش مصنوعی کودکان و نوجوانان در اندیشه..."
                     className="w-full px-3 py-2 text-xs rounded-xl border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
                   />
                 </div>

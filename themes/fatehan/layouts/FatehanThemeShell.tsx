@@ -4,22 +4,35 @@
  *
  * Fatehan Standalone Theme — Master Storefront Shell
  * Renders the appropriate viewport layout (Desktop / Tablet / Mobile)
- * along with global overlays (CartDrawer, VideoLabModal, StoreOtpLoginModal, Toast).
+ * along with lazy-loaded global overlays (CartDrawer, VideoLabModal, StoreOtpLoginModal, Toast).
  */
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CheckCircle2 } from 'lucide-react';
 import { useFatehanTheme } from '../context/FatehanThemeContext';
 import { DesktopLayout } from './DesktopLayout';
 import { TabletLayout } from './TabletLayout';
 import { MobileLayout } from './MobileLayout';
-import { CartDrawer } from '../components/CartDrawer';
-import { VideoLabModal } from '../components/VideoLabModal';
-import { StoreOtpLoginModal } from '../components/StoreOtpLoginModal';
+
+const CartDrawer = lazy(() =>
+  import('../components/CartDrawer').then((m) => ({ default: m.CartDrawer }))
+);
+const VideoLabModal = lazy(() =>
+  import('../components/VideoLabModal').then((m) => ({ default: m.VideoLabModal }))
+);
+const StoreOtpLoginModal = lazy(() =>
+  import('../components/StoreOtpLoginModal').then((m) => ({ default: m.StoreOtpLoginModal }))
+);
 
 export const FatehanThemeShell: React.FC = () => {
-  const { viewportMode, toastMessage } = useFatehanTheme();
+  const {
+    viewportMode,
+    toastMessage,
+    isCartDrawerOpen,
+    activeVideoModal,
+    isOtpModalOpen,
+  } = useFatehanTheme();
 
   return (
     <div dir="rtl" className="fatehan-theme-root">
@@ -31,10 +44,12 @@ export const FatehanThemeShell: React.FC = () => {
         <DesktopLayout />
       )}
 
-      {/* Global Storefront Drawers & Modals */}
-      <CartDrawer />
-      <VideoLabModal />
-      <StoreOtpLoginModal />
+      {/* Lazy-Loaded Global Storefront Drawers & Modals (only downloaded when opened) */}
+      <Suspense fallback={null}>
+        {isCartDrawerOpen && <CartDrawer />}
+        {Boolean(activeVideoModal) && <VideoLabModal />}
+        {isOtpModalOpen && <StoreOtpLoginModal />}
+      </Suspense>
 
       {/* Global Storefront Toast Feedback */}
       <AnimatePresence>

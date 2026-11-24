@@ -24,21 +24,28 @@ import {
   apiFetch,
   apiJson,
   emitGlobalToast,
+  fetchSharedStorefrontBootstrap,
   readStoredSession,
   syncClientBuildId,
   writeStoredSession,
 } from './core/apiClient';
 import { syncPageSeoHead } from './core/seoHeadManager';
 import { GlobalActivityOverlay } from './components/GlobalActivityOverlay';
-import {
-  initSmoothScroll,
-  installGlobalModalScrollLock,
-  triggerBarbaGsapTransition,
-  animatePageEntrance,
-  scrollToTopImmediate,
-  scrollToElementSmooth,
-  MuuriGridController,
-} from './core/motionAndDragEngine';
+import type { MuuriGridController } from './core/motionAndDragEngine';
+
+let motionEngineModulePromise: Promise<typeof import('./core/motionAndDragEngine')> | null = null;
+function loadMotionEngine() {
+  if (!motionEngineModulePromise) {
+    motionEngineModulePromise = import('./core/motionAndDragEngine');
+  }
+  return motionEngineModulePromise;
+}
+
+function scrollTopImmediateNative() {
+  if (typeof window !== 'undefined') {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+}
 import {
   resolveRegisteredTheme,
   createCmsV2ApiAdapter,
@@ -359,17 +366,70 @@ export default function App() {
       });
   }, []);
 
-  // 1. Initialize Lenis Smooth Scroll + Global Modal Scroll Lock
+  const isStandaloneStorefrontMode =
+    activeTab === 'store' && (themeConfig.activeThemeId || 'fatehan') !== 'default';
+
+  // 1. Initialize Lenis Smooth Scroll + Global Modal Scroll Lock ONLY for default Skill98 theme (saves 200 KiB on Fatehan)
   useEffect(() => {
-    const cleanupModalLock = installGlobalModalScrollLock();
-    return () => cleanupModalLock();
-  }, []);
+    if (isStandaloneStorefrontMode) return;
+    let disposed = false;
+    let cleanup: (() => void) | undefined;
+    void loadMotionEngine().then((mod) => {
+      if (disposed) return;
+      cleanup = mod.installGlobalModalScrollLock();
+    });
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
+  }, [isStandaloneStorefrontMode]);
 
   useEffect(() => {
     if (themeConfig.enableLenisSmoothScroll === false) return;
-    const { destroy } = initSmoothScroll();
-    return () => destroy();
-  }, [themeConfig.enableLenisSmoothScroll]);
+    let disposed = false;
+    let destroyFn: (() => void) | undefined;
+
+    if (!isStandaloneStorefrontMode) {
+      void loadMotionEngine().then((mod) => {
+        if (disposed) return;
+        destroyFn = mod.initSmoothScroll().destroy;
+      });
+      return () => {
+        disposed = true;
+        destroyFn?.();
+      };
+    }
+
+    // Standalone Fatehan storefront: load lightweight Lenis (~4KB gzip) on first scroll/interaction
+    // or idle after initial paint so PageSpeed FCP/LCP/TBT remain unaffected while scroll is silky smooth.
+    let started = false;
+    const activateLiteScroll = () => {
+      if (started || disposed) return;
+      started = true;
+      window.removeEventListener('wheel', activateLiteScroll);
+      window.removeEventListener('touchstart', activateLiteScroll);
+      window.removeEventListener('keydown', activateLiteScroll);
+      void import('./core/smoothScrollLite').then((mod) => {
+        if (disposed) return;
+        destroyFn = mod.initLiteSmoothScroll().destroy;
+      });
+    };
+
+    window.addEventListener('wheel', activateLiteScroll, { passive: true, once: true });
+    window.addEventListener('touchstart', activateLiteScroll, { passive: true, once: true });
+    window.addEventListener('keydown', activateLiteScroll, { passive: true, once: true });
+
+    const idleTimer = window.setTimeout(activateLiteScroll, 2200);
+
+    return () => {
+      disposed = true;
+      window.clearTimeout(idleTimer);
+      window.removeEventListener('wheel', activateLiteScroll);
+      window.removeEventListener('touchstart', activateLiteScroll);
+      window.removeEventListener('keydown', activateLiteScroll);
+      destroyFn?.();
+    };
+  }, [isStandaloneStorefrontMode, themeConfig.enableLenisSmoothScroll]);
 
   // 2A. Sync Dark/Light mode on <html>
   useEffect(() => {
@@ -396,12 +456,11 @@ export default function App() {
     link.href = favHref;
   }, [themeConfig.faviconUrl]);
 
-  // 2D. Hydrate Storefront & CMS State from Server Database (no localStorage caching of gateways/orders)
+  // 2D. Hydrate Storefront & CMS State from Server Database (shared deduplicated bootstrap fetch)
   const hydrateFromDatabase = async () => {
     try {
-      const res = await apiFetch('/api/storefront/bootstrap');
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await fetchSharedStorefrontBootstrap<Record<string, any>>();
+      if (!data) return;
       if (typeof data.buildId === 'string') {
         syncClientBuildId(data.buildId);
       }
@@ -507,7 +566,7 @@ export default function App() {
   const handleOpenDynamicPage = (page: CmsDynamicPage) => {
     setActiveDynamicPage(page);
     document.title = page.seoTitle || `${page.title} | ${themeConfig.brandNameFa}`;
-    scrollToTopImmediate();
+    scrollTopImmediateNative();
     navigateWithTransition('page_single');
   };
 
@@ -524,7 +583,7 @@ export default function App() {
     } catch {
       // ignore history error in sandboxed iframe
     }
-    scrollToTopImmediate();
+    scrollTopImmediateNative();
     navigateWithTransition('product_single', { skipHistoryPush: true });
   };
 
@@ -793,18 +852,20 @@ export default function App() {
     }
 
     if (nextTab === activeTab) {
-      scrollToTopImmediate();
+      scrollTopImmediateNative();
       return;
     }
-    if (themeConfig.enableBarbaTransitions !== false) {
-      triggerBarbaGsapTransition(
-        mainContainerRef.current,
-        transitionOverlayRef.current,
-        applyTab
-      );
+    if (!isStandaloneStorefrontMode && themeConfig.enableBarbaTransitions !== false) {
+      void loadMotionEngine().then((mod) => {
+        mod.triggerBarbaGsapTransition(
+          mainContainerRef.current,
+          transitionOverlayRef.current,
+          applyTab
+        );
+      });
     } else {
       applyTab();
-      scrollToTopImmediate();
+      scrollTopImmediateNative();
     }
   };
 
@@ -925,38 +986,57 @@ export default function App() {
     return filteredCatalog.slice(0, 12);
   }, [filteredCatalog, showAllCatalogSkills, searchQuery, catalogFilter]);
 
-  // 3A. Run GSAP Entrance on tab switch
+  // 3A. Run GSAP Entrance on tab switch (default Skill98 theme only)
   useEffect(() => {
-    if (themeConfig.enableGsapAnimations !== false) {
-      animatePageEntrance(mainContainerRef.current);
-    }
-  }, [activeTab, themeConfig.enableGsapAnimations]);
+    if (isStandaloneStorefrontMode || themeConfig.enableGsapAnimations === false) return;
+    let disposed = false;
+    void loadMotionEngine().then((mod) => {
+      if (!disposed) {
+        mod.animatePageEntrance(mainContainerRef.current);
+      }
+    });
+    return () => {
+      disposed = true;
+    };
+  }, [activeTab, isStandaloneStorefrontMode, themeConfig.enableGsapAnimations]);
 
-  // 3B. Muuri Interactive Grid Binding
+  // 3B. Muuri Interactive Grid Binding (default Skill98 theme only)
   useEffect(() => {
-    const muuriEnabled =
-      isMuuriDragEnabled && themeConfig.enableMuuriDrag !== false;
-    if (!dragControllerRef.current) {
-      dragControllerRef.current = new MuuriGridController(muuriEnabled);
-    } else {
-      dragControllerRef.current.setEnabled(muuriEnabled);
-    }
-    dragControllerRef.current.setOnDisplacementChange(setHasDisplacedLayout);
-
-    if (!muuriEnabled) {
-      dragControllerRef.current.unbindAll();
+    if (isStandaloneStorefrontMode) {
+      dragControllerRef.current?.unbindAll();
       return;
     }
+    const muuriEnabled =
+      isMuuriDragEnabled && themeConfig.enableMuuriDrag !== false;
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const timer = setTimeout(() => {
-      dragControllerRef.current?.bindContainer(mainContainerRef.current);
-    }, 30);
+    void loadMotionEngine().then((mod) => {
+      if (disposed) return;
+      if (!dragControllerRef.current) {
+        dragControllerRef.current = new mod.MuuriGridController(muuriEnabled);
+      } else {
+        dragControllerRef.current.setEnabled(muuriEnabled);
+      }
+      dragControllerRef.current.setOnDisplacementChange(setHasDisplacedLayout);
+
+      if (!muuriEnabled) {
+        dragControllerRef.current.unbindAll();
+        return;
+      }
+
+      timer = setTimeout(() => {
+        dragControllerRef.current?.bindContainer(mainContainerRef.current);
+      }, 30);
+    });
 
     return () => {
-      clearTimeout(timer);
+      disposed = true;
+      if (timer) clearTimeout(timer);
       dragControllerRef.current?.unbindAll();
     };
   }, [
+    isStandaloneStorefrontMode,
     activeTab,
     catalogFilter,
     filteredCatalog.length,
@@ -970,7 +1050,7 @@ export default function App() {
   }, [activeTab, catalogFilter]);
 
   useEffect(() => {
-    scrollToTopImmediate();
+    scrollTopImmediateNative();
   }, [activeTab, activeArticle?.id]);
 
   const handleResetDraggedElements = () => {
@@ -991,7 +1071,7 @@ export default function App() {
       } catch {
         // ignore
       }
-      scrollToTopImmediate();
+      scrollTopImmediateNative();
       return;
     }
     navigateWithTransition('article_single', { articleId: article.id });
@@ -1909,17 +1989,20 @@ export default function App() {
   const selectToolAndScroll = (tool: CatalogFilter) => {
     const needsTabSwitch = activeTab !== 'store';
     setCatalogFilter(tool);
+    const scrollToCatalog = () => {
+      void loadMotionEngine()
+        .then((mod) => mod.scrollToElementSmooth('#skills-catalog-section', -88))
+        .catch(() => {
+          document.querySelector('#skills-catalog-section')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    };
     if (needsTabSwitch) {
       navigateWithTransition('store');
-      window.setTimeout(() => {
-        scrollToElementSmooth('#skills-catalog-section', -88);
-      }, 420);
+      window.setTimeout(scrollToCatalog, 420);
       return;
     }
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        scrollToElementSmooth('#skills-catalog-section', -88);
-      });
+      window.requestAnimationFrame(scrollToCatalog);
     });
   };
 

@@ -62,8 +62,14 @@ export function normalizeIranPhone(raw: string): string {
     .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
     .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
     .replace(/[^0-9]/g, '');
+  if (digits.startsWith('009809') && digits.length === 15) {
+    return digits.slice(4);
+  }
   if (digits.startsWith('00989') && digits.length === 14) {
     return '0' + digits.slice(4);
+  }
+  if (digits.startsWith('9809') && digits.length === 13) {
+    return digits.slice(2);
   }
   if (digits.startsWith('989') && digits.length === 12) {
     return '0' + digits.slice(2);

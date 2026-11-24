@@ -10,8 +10,8 @@ import { getSetting, setSetting, writeSystemLog } from '../../database/index.js'
 export const DEFAULT_SITE_MODULES_REGISTRY: SiteModuleRegistryItem[] = [
   {
     id: 'mod_subscriptions',
-    titleFa: 'ماژول خرید اشتراک VIP (۱، ۳، ۶ و ۱۲ ماهه)',
-    description: 'تعریف پلن‌های اشتراک ماهانه تا سالانه با باز شدن خودکار اسکیل‌ها و آپدیت‌های جدید.',
+    titleFa: 'ماژول اشتراک باشگاه کارآموزان و بسته‌های آموزشی (۱ تا ۱۲ ماهه)',
+    description: 'تعریف پلن‌های اشتراک ماهانه تا سالانه برای دسترسی به بسته‌های آموزشی و کارگاه‌های تکمیلی.',
     category: 'ecommerce',
     enabled: true,
     hasTools: true,
@@ -21,8 +21,8 @@ export const DEFAULT_SITE_MODULES_REGISTRY: SiteModuleRegistryItem[] = [
   },
   {
     id: 'mod_smart_crm',
-    titleFa: 'ماژول CRM هوشمند و پیشنهاد خودکار',
-    description: 'تحلیل سابقه خرید کاربران و ارسال خودکار پیشنهاد هنگام آپدیت یا انتشار محصول جدید.',
+    titleFa: 'ماژول CRM هوشمند کارآموزان و پیشنهاد خودکار ترم بعد',
+    description: 'تحلیل سابقه ثبت‌نام کارآموزان و ارسال خودکار پیامک اطلاع‌رسانی ترم جدید یا کیت مرتبط.',
     category: 'marketing',
     enabled: true,
     hasTools: true,
@@ -32,8 +32,8 @@ export const DEFAULT_SITE_MODULES_REGISTRY: SiteModuleRegistryItem[] = [
   },
   {
     id: 'mod_live_chat',
-    titleFa: 'ماژول گفتگوی زنده آنلاین و صندوق پیام',
-    description: 'ویجت چت بومی ویترین با همگام‌سازی لحظه‌ای و صندوق پاسخ‌گویی اپراتورها.',
+    titleFa: 'ماژول گفتگوی زنده آنلاین و صندوق پیام مشاوره',
+    description: 'ویجت چت بومی سایت آموزشگاه با همگام‌سازی لحظه‌ای و صندوق پاسخ‌گویی مشاوران.',
     category: 'communication',
     enabled: true,
     hasTools: true,
@@ -76,8 +76,8 @@ export const DEFAULT_SITE_MODULES_REGISTRY: SiteModuleRegistryItem[] = [
   },
   {
     id: 'mod_inventory_accounting',
-    titleFa: 'ماژول انبارداری لحظه‌ای و دفتر کل حسابداری',
-    description: 'قفل رزرو موجودی سبد خرید، محاسبه مالیات، سود خالص و دفتر کل مالی.',
+    titleFa: 'ماژول انبارداری کیت‌های رباتیک و دفتر کل حسابداری',
+    description: 'مدیریت موجودی کیت‌ها و قطعات کارگاهی، محاسبه مالیات، شهریه‌ها و دفتر کل مالی آموزشگاه.',
     category: 'ecommerce',
     enabled: true,
     hasTools: true,
@@ -87,8 +87,8 @@ export const DEFAULT_SITE_MODULES_REGISTRY: SiteModuleRegistryItem[] = [
   },
   {
     id: 'mod_forms',
-    titleFa: 'ماژول فرم‌ساز چندمرحله‌ای و ابزارهای فروشگاهی',
-    description: 'فرم‌ساز پیشرفته با فیلدهای بومی و فید زنده ترب و ایمالز.',
+    titleFa: 'ماژول فرم‌ساز چندمرحله‌ای استعدادیابی و ثبت‌نام',
+    description: 'فرم‌ساز پیشرفته برای دریافت مشخصات کارآموز، رزرو مشاوره و فید محصولات.',
     category: 'marketing',
     enabled: true,
     hasTools: true,
@@ -98,8 +98,8 @@ export const DEFAULT_SITE_MODULES_REGISTRY: SiteModuleRegistryItem[] = [
   },
   {
     id: 'mod_booking',
-    titleFa: 'ماژول رزرواسیون و تقویم نوبت‌دهی شمسی',
-    description: 'مدیریت سرویس‌های مشاوره و نوبت‌دهی آنلاین با تقویم جلالی.',
+    titleFa: 'ماژول رزرواسیون جلسات مشاوره حضوری و تقویم شمسی',
+    description: 'مدیریت نوبت‌دهی جلسات استعدادیابی حضوری و مشاوره والدین با تقویم جلالی.',
     category: 'operations',
     enabled: true,
     hasTools: true,
@@ -110,7 +110,7 @@ export const DEFAULT_SITE_MODULES_REGISTRY: SiteModuleRegistryItem[] = [
   {
     id: 'mod_analytics_gsc',
     titleFa: 'آنالیتیکس بومی GA4 + Core Web Vitals و سرچ کنسول',
-    description: 'گزارش زنده بازدیدها، LCP/CLS/INP/TTFB، فروش ۳۱ استان و Google Search Console.',
+    description: 'گزارش زنده بازدیدها، LCP/CLS/INP/TTFB، آمار ثبت‌نام و Google Search Console.',
     category: 'seo',
     enabled: true,
     hasTools: true,
@@ -132,7 +132,7 @@ export const DEFAULT_SITE_MODULES_REGISTRY: SiteModuleRegistryItem[] = [
   {
     id: 'mod_auto_backup',
     titleFa: 'پشتیبان‌گیری کامل Core + mod_* و پاک‌سازها',
-    description: 'بکاپ کامل تمامی جداول، پاک‌سازی انتخابی دمو و اسکنر فایل‌های رسانه بلااستفاده.',
+    description: 'بکاپ کامل تمامی جداول آموزشگاه، پاک‌سازی انتخابی و اسکنر فایل‌های رسانه بلااستفاده.',
     category: 'operations',
     enabled: true,
     hasTools: true,
@@ -142,10 +142,10 @@ export const DEFAULT_SITE_MODULES_REGISTRY: SiteModuleRegistryItem[] = [
   },
   {
     id: 'mod_academy_suite',
-    titleFa: 'ماژول جامع آکادمی و آموزش',
-    description: 'دپارتمان‌ها، دوره‌های رسمی، کارگاه رایگان، بانک ایده‌ها، محاسبه‌گر شهریه و نقشه راه سنی.',
+    titleFa: 'ماژول جامع آموزشگاه رباتیک فاتحان (دوره‌ها، دپارتمان‌ها و شهریه)',
+    description: 'مدیریت ۵ دپارتمان تخصصی، ۱۵ دوره رسمی، کارگاه رایگان، بانک ایده کارآموزان، محاسبه‌گر اقساط شهریه و نقشه راه سنی.',
     category: 'academy',
-    enabled: false,
+    enabled: true,
     hasTools: true,
     hasSettings: true,
     targetSection: 'mod_academy_suite',

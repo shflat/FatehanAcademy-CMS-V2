@@ -591,25 +591,28 @@ async function seedInitialData(): Promise<void> {
   const roles = await getSetting<CmsRoleDefinition[]>('roles_config', INITIAL_CMS_ROLES);
   await syncPermissionsToDbAndFile(roles);
 
-  // Seed Dynamic Hierarchical Taxonomies (unlimited parent/child categories, brands & tags)
+  // Seed Dynamic Hierarchical Taxonomies for Fatehan Robotics Academy
   const initialTaxonomies = [
-    { id: 'tax_cat_claude', type: 'product_category', slug: 'Claude', titleFa: 'اسکیل‌های Claude Code و پروتکل MCP', parentId: null, icon: 'Sparkles', order: 1 },
-    { id: 'tax_cat_claude_sub1', type: 'product_category', slug: 'Claude-MCP', titleFa: 'سرورهای MCP (Context7، Playwright و Figma)', parentId: 'tax_cat_claude', icon: 'Layers', order: 2 },
-    { id: 'tax_cat_claude_sub2', type: 'product_category', slug: 'Cursor-Rules-MDC', titleFa: 'قوانین .cursor/rules (.mdc) و بهینه‌سازی توکن', parentId: 'tax_cat_claude', icon: 'Zap', order: 3 },
-    { id: 'tax_cat_chatgpt', type: 'product_category', slug: 'ChatGPT', titleFa: 'اسکیل‌های ChatGPT و دیزاین سیستم', parentId: null, icon: 'Bot', order: 4 },
-    { id: 'tax_cat_chatgpt_sub1', type: 'product_category', slug: 'ChatGPT-SEO', titleFa: 'سئو معنایی و معماری محتوا', parentId: 'tax_cat_chatgpt', icon: 'Globe', order: 5 },
-    { id: 'tax_cat_codex', type: 'product_category', slug: 'Codex', titleFa: 'کتابخانه‌های مدرن JS و فول‌استک', parentId: null, icon: 'Terminal', order: 6 },
-    { id: 'tax_cat_codex_sub1', type: 'product_category', slug: 'Modern-JS-Motion', titleFa: 'انیمیشن و سه‌بعدی (GSAP، Motion، Anime.js، WebGPU)', parentId: 'tax_cat_codex', icon: 'Palette', order: 7 },
-    { id: 'tax_cat_codex_sub2', type: 'product_category', slug: 'Fullstack-Edge', titleFa: 'استک مدرن (Hono، Drizzle ORM، TanStack، Biome)', parentId: 'tax_cat_codex', icon: 'Cpu', order: 8 },
-    { id: 'tax_cat_devops', type: 'product_category', slug: 'DevOps-Security', titleFa: 'امنیت OWASP، دواپس و زیرساخت', parentId: null, icon: 'Shield', order: 9 },
-    { id: 'tax_art_mcp', type: 'article_category', slug: 'mcp-skills-engineering', titleFa: 'پروتکل MCP و اسکیل‌نویسی', parentId: null, icon: 'FileText', order: 1 },
-    { id: 'tax_art_motion', type: 'article_category', slug: 'web-motion-ui', titleFa: 'مهندسی فرانت‌اند و انیمیشن', parentId: null, icon: 'Sparkles', order: 2 },
-    { id: 'tax_art_backend', type: 'article_category', slug: 'backend-architecture', titleFa: 'معماری نرم‌افزار و بک‌اند', parentId: null, icon: 'Database', order: 3 },
-    { id: 'tax_brand_anthropic', type: 'brand', slug: 'anthropic-claude', titleFa: 'Anthropic Claude & MCP', parentId: null, icon: 'Award', order: 1 },
-    { id: 'tax_brand_openai', type: 'brand', slug: 'openai-codex', titleFa: 'OpenAI Codex & Cursor', parentId: null, icon: 'Cpu', order: 2 },
-    { id: 'tax_brand_dpatech', type: 'brand', slug: 'skill98-studio', titleFa: 'استودیو مهندسی اسکیل ۹۸', parentId: null, icon: 'Crown', order: 3 },
-    { id: 'tax_tag_rtl', type: 'tag', slug: 'persian-rtl', titleFa: 'بومی‌سازی فارسی و RTL', parentId: null, icon: 'Tag', order: 1 },
-    { id: 'tax_tag_webgpu', type: 'tag', slug: 'webgpu-waapi', titleFa: 'WebGPU و انیمیشن ۶۰ فریم', parentId: null, icon: 'Zap', order: 2 },
+    { id: 'tax_dept_robotics', type: 'product_category', slug: 'دپارتمان رباتیک', titleFa: 'دپارتمان رباتیک', parentId: null, icon: 'Bot', order: 1 },
+    { id: 'tax_dept_robotics_sub1', type: 'product_category', slug: 'کیت کامل رباتیک', titleFa: 'کیت کامل رباتیک (مسیریاب، فوتبالیست، حل ماز)', parentId: 'tax_dept_robotics', icon: 'Cpu', order: 2 },
+    { id: 'tax_dept_3dp', type: 'product_category', slug: 'دپارتمان پرینترهای سه‌بعدی', titleFa: 'دپارتمان پرینترهای سه‌بعدی', parentId: null, icon: 'Layers', order: 3 },
+    { id: 'tax_dept_3dp_sub1', type: 'product_category', slug: 'تجهیزات و فیلامنت چاپ سه‌بعدی', titleFa: 'پرینتر سه‌بعدی، فیلامنت PLA و ابزار کارگاهی', parentId: 'tax_dept_3dp', icon: 'Palette', order: 4 },
+    { id: 'tax_dept_electronics', type: 'product_category', slug: 'دپارتمان الکترونیک', titleFa: 'دپارتمان الکترونیک', parentId: null, icon: 'Zap', order: 5 },
+    { id: 'tax_dept_electronics_sub1', type: 'product_category', slug: 'بردهای آردوینو و اینترنت اشیاء', titleFa: 'بردهای آردوینو UNO، سنسورها و اینترنت اشیاء ESP32', parentId: 'tax_dept_electronics', icon: 'Terminal', order: 6 },
+    { id: 'tax_dept_coding_ai', type: 'product_category', slug: 'دپارتمان برنامه‌نویسی و هوش مصنوعی', titleFa: 'دپارتمان برنامه‌نویسی و هوش مصنوعی', parentId: null, icon: 'Sparkles', order: 7 },
+    { id: 'tax_dept_coding_ai_sub1', type: 'product_category', slug: 'کیت هوش مصنوعی و بازی‌سازی', titleFa: 'کیت بینایی ماشین پایتون و کنسول بازی‌سازی', parentId: 'tax_dept_coding_ai', icon: 'Globe', order: 8 },
+    { id: 'tax_dept_mechanics', type: 'product_category', slug: 'دپارتمان مکانیک و سازه', titleFa: 'دپارتمان مکانیک و سازه', parentId: null, icon: 'Shield', order: 9 },
+    { id: 'tax_dept_mechanics_sub1', type: 'product_category', slug: 'سازه، چرخ‌دنده و بازوی مکانیکی', titleFa: 'پک چرخ‌دنده، انتقال قدرت و بازوهای هیدرولیکی و سروو', parentId: 'tax_dept_mechanics', icon: 'Award', order: 10 },
+    { id: 'tax_art_parents', type: 'article_category', slug: 'parenting-talent-guide', titleFa: 'راهنمای والدین و استعدادیابی', parentId: null, icon: 'FileText', order: 1 },
+    { id: 'tax_art_robotics', type: 'article_category', slug: 'robotics-mechatronics', titleFa: 'رباتیک و مکاترونیک', parentId: null, icon: 'Bot', order: 2 },
+    { id: 'tax_art_coding_ai', type: 'article_category', slug: 'coding-and-ai', titleFa: 'کدنویسی و هوش مصنوعی', parentId: null, icon: 'Sparkles', order: 3 },
+    { id: 'tax_art_competitions', type: 'article_category', slug: 'competitions-and-honors', titleFa: 'افتخارات و مسابقات', parentId: null, icon: 'Award', order: 4 },
+    { id: 'tax_art_3dp_elec', type: 'article_category', slug: '3d-printing-electronics', titleFa: 'چاپ سه‌بعدی و الکترونیک', parentId: null, icon: 'Layers', order: 5 },
+    { id: 'tax_brand_fatehan', type: 'brand', slug: 'fatehan-robotics', titleFa: 'کیت‌های استاندارد آموزشگاه رباتیک فاتحان', parentId: null, icon: 'Crown', order: 1 },
+    { id: 'tax_brand_arduino', type: 'brand', slug: 'arduino-esp32', titleFa: 'Arduino & ESP32 Official Modules', parentId: null, icon: 'Cpu', order: 2 },
+    { id: 'tax_brand_3dp_eco', type: 'brand', slug: 'fatehan-3d-lab', titleFa: 'واحد ساخت و پرینت سه‌بعدی فاتحان', parentId: null, icon: 'Award', order: 3 },
+    { id: 'tax_tag_stem', type: 'tag', slug: 'stem-education', titleFa: 'آموزش عملی و کارگاهی STEM', parentId: null, icon: 'Tag', order: 1 },
+    { id: 'tax_tag_tvto', type: 'tag', slug: 'tvto-certificate', titleFa: 'مدرک معتبر فنی و حرفه‌ای و بازار کار', parentId: null, icon: 'Zap', order: 2 },
   ];
   for (const tx of initialTaxonomies) {
     await dbExec(
@@ -622,6 +625,213 @@ async function seedInitialData(): Promise<void> {
 
   // Seed Phase 3 Dynamic Pages, Hierarchical Menus & Visual Invoice Templates
   await seedPhase3Tables(nowIso);
+
+  // One-time idempotent migration: Full Rebranding from legacy Skill98 to Fatehan Robotics Academy (v3.0.0)
+  const fatehanMigrationRows = await dbQuery<{ key: string }>(
+    `SELECT key FROM site_settings WHERE key = 'migration_fatehan_full_rebrand_v300' LIMIT 1`
+  );
+  if (fatehanMigrationRows.length === 0) {
+    // 1. Purge legacy Skill98 products (skill-*, pkg-*) and seed Fatehan Robotics Kits
+    await dbExec(`DELETE FROM products WHERE id LIKE 'skill-%' OR id LIKE 'pkg-%'`);
+    for (const p of INITIAL_SKILL98_CATALOG) {
+      await dbExec(
+        `INSERT INTO products (id, slug, title, category, item_type, price, original_price, status, featured, payload_json, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+         ON CONFLICT (id) DO UPDATE SET
+           slug = EXCLUDED.slug,
+           title = EXCLUDED.title,
+           category = EXCLUDED.category,
+           item_type = EXCLUDED.item_type,
+           price = EXCLUDED.price,
+           original_price = EXCLUDED.original_price,
+           status = EXCLUDED.status,
+           featured = EXCLUDED.featured,
+           payload_json = EXCLUDED.payload_json,
+           updated_at = EXCLUDED.updated_at`,
+        [
+          p.id,
+          p.slug,
+          p.title,
+          p.category,
+          p.itemType,
+          p.price,
+          p.originalPrice,
+          p.status,
+          p.featured ? 1 : 0,
+          JSON.stringify(p),
+          nowIso,
+        ]
+      );
+    }
+
+    // 2. Purge legacy Skill98 articles (art-*) and seed the 8 Fatehan Robotics & Parenting articles
+    await dbExec(`DELETE FROM articles WHERE id LIKE 'art-%'`);
+    for (const a of INITIAL_ARTICLES) {
+      await dbExec(
+        `INSERT INTO articles (id, slug, title, category, status, featured, payload_json, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (id) DO UPDATE SET
+           slug = EXCLUDED.slug,
+           title = EXCLUDED.title,
+           category = EXCLUDED.category,
+           status = EXCLUDED.status,
+           featured = EXCLUDED.featured,
+           payload_json = EXCLUDED.payload_json,
+           updated_at = EXCLUDED.updated_at`,
+        [a.id, a.slug, a.title, a.category, a.status || 'published', a.featured ? 1 : 0, JSON.stringify(a), nowIso]
+      );
+    }
+
+    // 3. Replace legacy Skill98 taxonomies with Fatehan Robotics departments & categories
+    await dbExec(
+      `DELETE FROM taxonomies WHERE id IN (
+        'tax_cat_claude', 'tax_cat_claude_sub1', 'tax_cat_claude_sub2',
+        'tax_cat_chatgpt', 'tax_cat_chatgpt_sub1',
+        'tax_cat_codex', 'tax_cat_codex_sub1', 'tax_cat_codex_sub2',
+        'tax_cat_devops', 'tax_art_mcp', 'tax_art_motion', 'tax_art_backend',
+        'tax_brand_anthropic', 'tax_brand_openai', 'tax_brand_dpatech',
+        'tax_tag_rtl', 'tax_tag_webgpu'
+      )`
+    );
+    for (const tx of initialTaxonomies) {
+      await dbExec(
+        `INSERT INTO taxonomies (id, taxonomy_type, slug, title_fa, parent_id, icon_name, image_url, description, sort_order, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         ON CONFLICT (id) DO UPDATE SET
+           taxonomy_type = EXCLUDED.taxonomy_type,
+           slug = EXCLUDED.slug,
+           title_fa = EXCLUDED.title_fa,
+           parent_id = EXCLUDED.parent_id,
+           icon_name = EXCLUDED.icon_name,
+           description = EXCLUDED.description,
+           sort_order = EXCLUDED.sort_order,
+           updated_at = EXCLUDED.updated_at`,
+        [tx.id, tx.type, tx.slug, tx.titleFa, tx.parentId, tx.icon, '', tx.titleFa, tx.order, nowIso]
+      );
+    }
+
+    // 4. Re-seed pages, menus, invoice templates, coupons, SMS triggers, and media items with Fatehan defaults
+    await dbExec(`DELETE FROM pages WHERE id IN ('page_about_us', 'page_contact_us', 'page_terms', 'page_b2b_enterprise')`);
+    await dbExec(`DELETE FROM menus`);
+    await dbExec(`DELETE FROM invoice_templates WHERE id IN ('inv_tpl_official_tax_a4', 'inv_tpl_thermal_80mm')`);
+    await seedPhase3Tables(nowIso);
+
+    await dbExec(`DELETE FROM coupons WHERE code IN ('SKILL98', 'DPATECH', 'MUURI15')`);
+    for (const c of INITIAL_COUPONS) {
+      await dbExec(
+        `INSERT INTO coupons (code, discount_percent, description, active)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (code) DO UPDATE SET
+           discount_percent = EXCLUDED.discount_percent,
+           description = EXCLUDED.description,
+           active = EXCLUDED.active`,
+        [c.code, c.discountPercent, c.description, c.active ? 1 : 0]
+      );
+    }
+
+    for (const trg of INITIAL_SMS_TRIGGER_RULES) {
+      await dbExec(
+        `INSERT INTO sms_triggers (id, title, event_key, section_label, send_mode, pattern_code, message_template, enabled, priority_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT (id) DO UPDATE SET
+           title = EXCLUDED.title,
+           section_label = EXCLUDED.section_label,
+           message_template = EXCLUDED.message_template`,
+        [
+          trg.id,
+          trg.title,
+          trg.eventKey,
+          trg.sectionLabel,
+          trg.sendMode,
+          trg.patternCode,
+          trg.messageTemplate,
+          trg.enabled ? 1 : 0,
+          trg.priorityOrder,
+        ]
+      );
+    }
+
+    for (const m of INITIAL_MEDIA_LIBRARY) {
+      await dbExec(
+        `INSERT INTO media_items (id, title, url, category, payload_json, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (id) DO UPDATE SET
+           title = EXCLUDED.title,
+           payload_json = EXCLUDED.payload_json,
+           updated_at = EXCLUDED.updated_at`,
+        [m.id, m.title, m.url, m.category || 'article', JSON.stringify(m), nowIso]
+      );
+    }
+
+    // 5. Upgrade theme_config (preserving any custom uploaded logoUrl / eitaaLogoUrl) & roles_config
+    const existingTheme = await getSetting<Partial<typeof DEFAULT_THEME_CONFIG>>('theme_config', {});
+    const mergedTheme = {
+      ...DEFAULT_THEME_CONFIG,
+      logoUrl: existingTheme.logoUrl || DEFAULT_THEME_CONFIG.logoUrl,
+      faviconUrl: existingTheme.faviconUrl || DEFAULT_THEME_CONFIG.faviconUrl,
+      headerLogoSizePx: existingTheme.headerLogoSizePx || DEFAULT_THEME_CONFIG.headerLogoSizePx,
+      socialChannels: {
+        ...DEFAULT_THEME_CONFIG.socialChannels,
+        ...(existingTheme.socialChannels || {}),
+        instagramId: existingTheme.socialChannels?.instagramId || DEFAULT_THEME_CONFIG.socialChannels?.instagramId,
+        instagramUrl: existingTheme.socialChannels?.instagramUrl || DEFAULT_THEME_CONFIG.socialChannels?.instagramUrl,
+        eitaaId: existingTheme.socialChannels?.eitaaId || DEFAULT_THEME_CONFIG.socialChannels?.eitaaId,
+        eitaaUrl: existingTheme.socialChannels?.eitaaUrl || DEFAULT_THEME_CONFIG.socialChannels?.eitaaUrl,
+        eitaaLogoUrl: existingTheme.socialChannels?.eitaaLogoUrl || '',
+      },
+      contactLocation: {
+        ...DEFAULT_THEME_CONFIG.contactLocation,
+        ...(existingTheme.contactLocation || {}),
+      },
+      contactPhones: {
+        ...DEFAULT_THEME_CONFIG.contactPhones,
+        ...(existingTheme.contactPhones || {}),
+      },
+      aboutPageConfig: {
+        ...DEFAULT_THEME_CONFIG.aboutPageConfig,
+        ...(existingTheme.aboutPageConfig || {}),
+      },
+      activeThemeId: 'fatehan' as const,
+    };
+
+    await dbExec(
+      `INSERT INTO site_settings (key, value_json, updated_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = EXCLUDED.updated_at`,
+      ['theme_config', JSON.stringify(mergedTheme), nowIso]
+    );
+
+    await dbExec(
+      `INSERT INTO site_settings (key, value_json, updated_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = EXCLUDED.updated_at`,
+      ['roles_config', JSON.stringify(INITIAL_CMS_ROLES), nowIso]
+    );
+
+    // 6. Ensure mod_academy_suite is enabled in site_modules_registry
+    const existingModules = await getSetting< Array<{ id: string; enabled: boolean }> >('site_modules_registry', []);
+    if (Array.isArray(existingModules) && existingModules.length > 0) {
+      const updatedModules = existingModules.map((m) =>
+        m.id === 'mod_academy_suite' ? { ...m, enabled: true } : m
+      );
+      if (!updatedModules.some((m) => m.id === 'mod_academy_suite')) {
+        updatedModules.push({ id: 'mod_academy_suite', enabled: true });
+      }
+      await dbExec(
+        `INSERT INTO site_settings (key, value_json, updated_at)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = EXCLUDED.updated_at`,
+        ['site_modules_registry', JSON.stringify(updatedModules), nowIso]
+      );
+    }
+
+    await dbExec(
+      `INSERT INTO site_settings (key, value_json, updated_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = EXCLUDED.updated_at`,
+      ['migration_fatehan_full_rebrand_v300', JSON.stringify({ appliedAt: nowIso }), nowIso]
+    );
+  }
 
   // Create & Seed Phase 5 Isolated Modular Tables (mod_payment_hub, mod_inventory_accounting, mod_forms, mod_ecommerce_suite)
   await createAndSeedPhase5ModulesSchema(nowIso);
@@ -638,9 +848,9 @@ async function seedInitialData(): Promise<void> {
     await writeSystemLog({
       level: 'success',
       category: 'database',
-      title: `راه‌اندازی دیتابیس ${activeEngine === 'postgresql' ? 'PostgreSQL 16' : 'SQLite Sandbox'} با ${TABLE_METADATA.length} جدول فعال`,
+      title: `راه‌اندازی دیتابیس آموزشگاه رباتیک فاتحان (${activeEngine === 'postgresql' ? 'PostgreSQL 16' : 'SQLite Sandbox'}) با ${TABLE_METADATA.length} جدول فعال`,
       detail:
-        'تمامی جداول فروشگاه، کاربران، پیامک، درگاه‌ها، سفارشات، تاریخچه بکاپ و هش دسترسی‌های RBAC با موفقیت همگام‌سازی شدند.',
+        'تمامی جداول دوره‌های رباتیک، کیت‌های فروشگاهی، مقالات علمی، برگه‌ها، کاربران، پیامک، درگاه‌ها و دسترسی‌های RBAC همگام‌سازی شدند.',
       sqlOrEndpoint: `INIT SCHEMA · ${TABLE_METADATA.length} TABLES READY`,
       payload: { engine: activeEngine, tablesCount: TABLE_METADATA.length },
     });

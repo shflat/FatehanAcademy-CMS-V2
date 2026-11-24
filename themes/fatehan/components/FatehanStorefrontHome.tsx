@@ -17,6 +17,10 @@ import {
   SHOP_DEPARTMENTS,
   resolveProductDepartmentId,
 } from '../utils/defaultFallbacks';
+import {
+  getResponsiveImageVariant,
+  getResponsiveSrcSet,
+} from '../../../src/core/responsiveImage';
 import { FatehanCourse, ProductItem } from '../types';
 import {
   Sparkles,
@@ -750,7 +754,7 @@ export const FatehanStorefrontHome: React.FC = () => {
             )}
 
             {/* Clean, Focused Primary & Secondary CTAs */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="flex flex-wrap items-center gap-3 pt-2 min-h-[54px]">
               <button
                 type="button"
                 onClick={() => navigateStore('/courses')}
@@ -808,42 +812,55 @@ export const FatehanStorefrontHome: React.FC = () => {
               <div className="relative z-10 flex flex-col items-center">
                 <div className="relative w-44 sm:w-52 h-44 sm:h-52 mb-3 flex items-center justify-center">
                   <img
-                    src={settings.logoUrl}
+                    src={getResponsiveImageVariant(settings.logoUrl, 'thumb-300')}
+                    srcSet={getResponsiveSrcSet(settings.logoUrl)}
+                    sizes="(max-width: 640px) 176px, 208px"
+                    width={208}
+                    height={208}
+                    fetchPriority="high"
+                    decoding="async"
                     alt={settings.academyNameFa}
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (target.dataset.rawFallback === '1') return;
+                      target.dataset.rawFallback = '1';
+                      target.srcset = '';
+                      target.src = settings.logoUrl || '/assets/aistudio/logo_8c26749f.webp';
+                    }}
                     className="w-full h-full object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <h3 className="text-base sm:text-lg font-black text-slate-900">
+                  <h2 className="text-base sm:text-lg font-black text-slate-900">
                     آموزشگاه تخصصی رباتیک فاتحان
-                  </h3>
+                  </h2>
                   <p className="text-xs text-blue-700 font-bold">
                     مجوز رسمی و مجهزترین کارگاه‌های تخصصی در اندیشه
                   </p>
                 </div>
 
                 {/* Bottom Card Footer: Status on Right + Social Channels on Left */}
-                <div className="mt-4 pt-3 border-t border-slate-100 w-full flex items-center justify-between gap-2 text-xs text-slate-500">
-                  <span className="flex items-center gap-1.5 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="font-bold text-slate-700 text-[11px]">پذیرش ترم جدید فعال</span>
+                <div className="mt-4 pt-3 border-t border-slate-100 w-full flex items-center justify-between gap-3 text-xs text-slate-500">
+                  <span className="inline-flex items-center gap-1.5 shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="font-bold text-slate-700 text-[11px] whitespace-nowrap">پذیرش ترم جدید فعال</span>
                   </span>
 
-                  {/* Left-Aligned Social Channels (with uploaded Eitaa Logo support) */}
-                  <div className="flex flex-col items-start gap-1.5 text-left" dir="ltr">
+                  {/* Left-Aligned Social Channels (uniform pixel-aligned rows & accessible touch spacing) */}
+                  <div className="flex flex-col items-stretch gap-1 text-left shrink-0" dir="ltr">
                     {igHandle && (
                       <a
                         href={igUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 font-mono text-[11px] font-bold text-blue-600 hover:text-pink-600 transition-colors"
+                        className="inline-flex items-center gap-2 min-h-[28px] px-2 py-1 rounded-lg hover:bg-blue-50/80 font-mono text-[11px] font-bold text-blue-600 hover:text-pink-600 transition-colors"
                         title="صفحه رسمی اینستاگرام"
                       >
                         <span className="w-4 h-4 rounded-md bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 text-white inline-flex items-center justify-center shrink-0 shadow-2xs">
                           <Instagram className="w-2.5 h-2.5" />
                         </span>
-                        <span>@{igHandle}</span>
+                        <span className="leading-none">@{igHandle}</span>
                       </a>
                     )}
 
@@ -852,13 +869,17 @@ export const FatehanStorefrontHome: React.FC = () => {
                         href={eitaaUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 font-mono text-[11px] font-bold text-orange-600 hover:text-orange-700 transition-colors"
+                        className="inline-flex items-center gap-2 min-h-[28px] px-2 py-1 rounded-lg hover:bg-orange-50/80 font-mono text-[11px] font-bold text-orange-600 hover:text-orange-700 transition-colors"
                         title="کانال رسمی ایتا آموزشگاه فاتحان"
                       >
                         {eitaaLogoUrl ? (
                           <img
-                            src={eitaaLogoUrl}
+                            src={getResponsiveImageVariant(eitaaLogoUrl, 'thumb-25')}
                             alt="ایتا"
+                            width={16}
+                            height={16}
+                            loading="lazy"
+                            decoding="async"
                             className="w-4 h-4 rounded-md object-contain shrink-0"
                           />
                         ) : (
@@ -866,7 +887,7 @@ export const FatehanStorefrontHome: React.FC = () => {
                             <Send className="w-2.5 h-2.5" />
                           </span>
                         )}
-                        <span>{eitaaHandle}</span>
+                        <span className="leading-none">{eitaaHandle}</span>
                       </a>
                     )}
 
@@ -875,13 +896,13 @@ export const FatehanStorefrontHome: React.FC = () => {
                         href={baleUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 font-mono text-[11px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                        className="inline-flex items-center gap-2 min-h-[28px] px-2 py-1 rounded-lg hover:bg-emerald-50/80 font-mono text-[11px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
                         title="کانال رسمی بله"
                       >
                         <span className="w-4 h-4 rounded-md bg-emerald-500 text-white inline-flex items-center justify-center shrink-0 shadow-2xs">
                           <Send className="w-2.5 h-2.5" />
                         </span>
-                        <span>{baleHandle}</span>
+                        <span className="leading-none">{baleHandle}</span>
                       </a>
                     )}
                   </div>
@@ -1673,10 +1694,12 @@ export const FatehanStorefrontHome: React.FC = () => {
             <div className="lg:col-span-7 bg-white/10 backdrop-blur-md rounded-2xl p-5 sm:p-6 border border-white/20 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-cyan-300 mb-1.5">
+                  <label htmlFor="fatehan-finder-age" className="block text-xs font-bold text-cyan-300 mb-1.5">
                     ۱. رده سنی دانش‌آموز:
                   </label>
                   <select
+                    id="fatehan-finder-age"
+                    aria-label="رده سنی دانش‌آموز"
                     value={finderAge}
                     onChange={(e) => setFinderAge(e.target.value)}
                     className="w-full rounded-xl bg-slate-900/90 border border-slate-700 text-white px-3.5 py-2.5 text-xs font-bold focus:outline-none focus:border-cyan-400"
@@ -1689,10 +1712,12 @@ export const FatehanStorefrontHome: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-cyan-300 mb-1.5">
+                  <label htmlFor="fatehan-finder-interest" className="block text-xs font-bold text-cyan-300 mb-1.5">
                     ۲. بیشترین علاقه و کنجکاوی:
                   </label>
                   <select
+                    id="fatehan-finder-interest"
+                    aria-label="بیشترین علاقه و کنجکاوی دانش‌آموز"
                     value={finderInterest}
                     onChange={(e) => setFinderInterest(e.target.value as any)}
                     className="w-full rounded-xl bg-slate-900/90 border border-slate-700 text-white px-3.5 py-2.5 text-xs font-bold focus:outline-none focus:border-cyan-400"
@@ -2144,10 +2169,20 @@ export const FatehanStorefrontHome: React.FC = () => {
                     className="relative h-44 rounded-2xl bg-slate-100 overflow-hidden cursor-pointer group mb-3"
                   >
                     <img
-                      src={prd.featuredImageUrl}
+                      src={getResponsiveImageVariant(prd.featuredImageUrl, 'thumb-300')}
+                      srcSet={getResponsiveSrcSet(prd.featuredImageUrl)}
+                      sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 280px"
+                      width={360}
+                      height={240}
+                      loading="lazy"
+                      decoding="async"
                       alt={prd.name}
                       onError={(e) => {
-                        e.currentTarget.src = '/assets/kits/kit-01.jpg';
+                        const target = e.currentTarget;
+                        if (target.dataset.fallbackApplied === '1') return;
+                        target.dataset.fallbackApplied = '1';
+                        target.srcset = '';
+                        target.src = prd.featuredImageUrl || '/assets/kits/kit-01.jpg';
                       }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
@@ -2406,10 +2441,12 @@ export const FatehanStorefrontHome: React.FC = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label htmlFor="fatehan-consult-dept" className="block text-xs font-bold text-slate-700 mb-1.5">
                         دپارتمان مورد علاقه:
                       </label>
                       <select
+                        id="fatehan-consult-dept"
+                        aria-label="دپارتمان مورد علاقه"
                         value={consultDept}
                         onChange={(e) => setConsultDept(e.target.value)}
                         className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
@@ -2423,10 +2460,12 @@ export const FatehanStorefrontHome: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label htmlFor="fatehan-consult-age" className="block text-xs font-bold text-slate-700 mb-1.5">
                         رده سنی دانش‌آموز:
                       </label>
                       <select
+                        id="fatehan-consult-age"
+                        aria-label="رده سنی دانش‌آموز برای مشاوره"
                         value={consultAge}
                         onChange={(e) => setConsultAge(e.target.value)}
                         className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
@@ -2475,22 +2514,22 @@ export const FatehanStorefrontHome: React.FC = () => {
             </div>
           </div>
 
-          {/* Left Column in RTL: Dark Navy Contact & Address Card (5 Cols) - Connected Live to BLK-HOME-CONTACT */}
+          {/* Left Column in RTL: Dark Navy Contact & Address Card (5 Cols) - Connected Live to Admin Settings & BLK-HOME-CONTACT */}
           {(() => {
-            const phone1Num = contactBlk?.itemsList?.[0]?.title || settings.phones.primaryFormatted;
-            const phone1Clean = phone1Num.replace(/\s+/g, '');
+            const phone1Num = settings.phones.primaryFormatted || contactBlk?.itemsList?.[0]?.title || '۰۹۱۰ ۳۱۱ ۶۷۵۳';
+            const phone1Clean = (settings.phones.primary || phone1Num).replace(/\s+/g, '');
             const phone1Label =
-              contactBlk?.itemsList?.[0]?.subtitle || settings.phones.primaryLabel || 'خط ۱ مشاوره و ثبت‌نام';
+              settings.phones.primaryLabel || contactBlk?.itemsList?.[0]?.subtitle || 'خط ۱ مشاوره و ثبت‌نام';
 
-            const phone2Num = contactBlk?.itemsList?.[1]?.title || settings.phones.secondaryFormatted;
-            const phone2Clean = phone2Num.replace(/\s+/g, '');
+            const phone2Num = settings.phones.secondaryFormatted || contactBlk?.itemsList?.[1]?.title || '۰۹۳۷ ۲۳۳ ۵۰۲۶';
+            const phone2Clean = (settings.phones.secondary || phone2Num).replace(/\s+/g, '');
             const phone2Label =
-              contactBlk?.itemsList?.[1]?.subtitle || settings.phones.secondaryLabel || 'خط ۲ پشتیبانی کارگاه';
+              settings.phones.secondaryLabel || contactBlk?.itemsList?.[1]?.subtitle || 'خط ۲ پشتیبانی کارگاه';
 
-            const landlineNum = contactBlk?.itemsList?.[2]?.title || settings.phones.landlineFormatted;
-            const landlineClean = landlineNum.replace(/\s+/g, '');
+            const landlineNum = settings.phones.landlineFormatted || contactBlk?.itemsList?.[2]?.title || '۰۲۱ ۶۵۵۰ ۶۰۱۵';
+            const landlineClean = (settings.phones.landline || landlineNum).replace(/\s+/g, '');
             const landlineLabel =
-              contactBlk?.itemsList?.[2]?.subtitle || settings.phones.landlineLabel || 'تلفن ثابت دفتر مرکزی';
+              settings.phones.landlineLabel || contactBlk?.itemsList?.[2]?.subtitle || 'تلفن ثابت دفتر مرکزی';
 
             const addressTitleLabel =
               contactBlk?.itemsList?.[3]?.badge &&
@@ -2498,9 +2537,9 @@ export const FatehanStorefrontHome: React.FC = () => {
                 ? contactBlk.itemsList[3].badge
                 : `آدرس ${settings.academyNameFa}:`;
             const addressExactText =
-              contactBlk?.itemsList?.[3]?.title || settings.location.addressFull;
+              settings.location.addressFull || contactBlk?.itemsList?.[3]?.title || '';
             const addressHoursText =
-              contactBlk?.itemsList?.[3]?.subtitle || settings.location.workingHours;
+              settings.location.workingHours || contactBlk?.itemsList?.[3]?.subtitle || '';
             const extraContactItems = (contactBlk?.itemsList || []).slice(4);
 
             return (
@@ -2710,8 +2749,12 @@ export const FatehanStorefrontHome: React.FC = () => {
                         <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md overflow-hidden">
                           {eitaaLogoUrl ? (
                             <img
-                              src={eitaaLogoUrl}
+                              src={getResponsiveImageVariant(eitaaLogoUrl, 'thumb-300')}
                               alt="لوگوی ایتا"
+                              width={48}
+                              height={48}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-contain bg-white p-1.5"
                             />
                           ) : (
@@ -3037,10 +3080,12 @@ export const FatehanStorefrontHome: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                      <label htmlFor="fatehan-idea-age" className="block text-xs font-bold text-slate-700 mb-1">
                         رده سنی:
                       </label>
                       <select
+                        id="fatehan-idea-age"
+                        aria-label="رده سنی صاحب ایده"
                         value={ideaAgeGroup}
                         onChange={(e) => setIdeaAgeGroup(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-900"

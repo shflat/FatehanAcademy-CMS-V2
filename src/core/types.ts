@@ -1,6 +1,14 @@
 export type AccentPresetId = 'cobalt' | 'amber' | 'emerald' | 'rose' | 'violet';
 export type AIToolCategory = 'Claude' | 'ChatGPT' | 'Codex';
-export type PosterColorScheme = 'cobalt' | 'sage' | 'terracotta' | 'violet' | 'slate';
+export type PosterColorScheme =
+  | 'cobalt'
+  | 'sage'
+  | 'terracotta'
+  | 'violet'
+  | 'slate'
+  | 'amber'
+  | 'emerald'
+  | 'rose';
 export type UserRoleType = 'guest' | 'customer' | 'admin' | 'super_admin';
 
 export type ActiveTab =
@@ -220,6 +228,35 @@ export interface SocialChannelsConfig {
   eitaaLogoUrl?: string;
   baleId?: string;
   baleUrl?: string;
+  whatsappUrl?: string;
+}
+
+export interface ContactLocationConfig {
+  province?: string;
+  city?: string;
+  fullAddress?: string;
+  workingHours?: string;
+  postalCode?: string;
+}
+
+export interface ContactPhonesConfig {
+  line1?: string;
+  line1Formatted?: string;
+  line1Label?: string;
+  line2?: string;
+  line2Formatted?: string;
+  line2Label?: string;
+  landline?: string;
+  landlineFormatted?: string;
+  landlineLabel?: string;
+}
+
+export interface AboutPageCmsConfig {
+  heroTitle?: string;
+  heroSubtitle?: string;
+  introParagraph?: string;
+  missionStatement?: string;
+  schoolPartnershipNote?: string;
 }
 
 export interface ThemeConfig {
@@ -228,6 +265,10 @@ export interface ThemeConfig {
   logoUrl?: string;
   faviconUrl?: string;
   headerLogoSizePx?: number;
+  taglinePrimary?: string;
+  taglineSecondary?: string;
+  mottoFa?: string;
+  mottoEn?: string;
   heroBadgeText?: string;
   heroTitleLine1: string;
   heroTitleAccent: string;
@@ -243,9 +284,13 @@ export interface ThemeConfig {
   footerQuoteTitle?: string;
   footerQuoteSubtitle?: string;
   footerDescription?: string;
+  footerCopyrightText?: string;
   siteDescription?: string;
   footerTrustBadges?: FooterTrustBadgesConfig;
   socialChannels?: SocialChannelsConfig;
+  contactLocation?: ContactLocationConfig;
+  contactPhones?: ContactPhonesConfig;
+  aboutPageConfig?: AboutPageCmsConfig;
   topAnnouncementText?: string;
   showTopAnnouncement?: boolean;
   accentPreset: AccentPresetId;
@@ -286,6 +331,7 @@ export interface ProductDownloadFile {
 
 export interface SkillProduct {
   id: string;
+  sku?: string;
   title: string;
   slug: string;
   category: string;
@@ -302,6 +348,10 @@ export interface SkillProduct {
   featured: boolean;
   status: 'published' | 'draft';
   authorId: string;
+  stock?: number;
+  salesCount?: number;
+  warranty?: string;
+  specs?: string;
   posterCode?: string;
   posterTagEn?: string;
   posterColor?: PosterColorScheme;
@@ -350,6 +400,7 @@ export interface SkillArticle {
   seoDescription: string;
   seoKeywords: string;
   featured: boolean;
+  relatedSkillIds?: string[];
   galleryUrls?: string[];
   composerRows?: ComposerRow[];
 }

@@ -288,3 +288,70 @@ export async function apiJson<T = unknown>(
     finish?.();
   }
 }
+
+interface SharedBootstrapCacheEntry {
+  fetchedAt: number;
+  data: unknown;
+}
+
+let inFlightBootstrapPromise: Promise<unknown | null> | null = null;
+let sharedBootstrapCache: SharedBootstrapCacheEntry | null = null;
+const SHARED_BOOTSTRAP_TTL_MS = 4000;
+
+export function invalidateSharedBootstrapCache(): void {
+  sharedBootstrapCache = null;
+  inFlightBootstrapPromise = null;
+}
+
+/**
+ * Deduplicates simultaneous /api/storefront/bootstrap requests triggered during initial boot
+ * by App.tsx and the active standalone theme adapter, eliminating duplicate 260+ KiB fetches.
+ */
+export async function fetchSharedStorefrontBootstrap<T = Record<string, unknown>>(
+  baseUrl = '',
+  options?: { forceRefresh?: boolean; headers?: HeadersInit }
+): Promise<T | null> {
+  const isSameOrigin = !baseUrl || baseUrl === '';
+  const now = Date.now();
+
+  if (
+    isSameOrigin &&
+    !options?.forceRefresh &&
+    sharedBootstrapCache &&
+    now - sharedBootstrapCache.fetchedAt < SHARED_BOOTSTRAP_TTL_MS
+  ) {
+    return sharedBootstrapCache.data as T;
+  }
+
+  if (isSameOrigin && !options?.forceRefresh && inFlightBootstrapPromise) {
+    return (await inFlightBootstrapPromise) as T | null;
+  }
+
+  const cleanBase = baseUrl.replace(/\/+$/, '');
+  const reqPromise = (async () => {
+    try {
+      const res = await apiFetch(`${cleanBase}/api/storefront/bootstrap`, {
+        headers: options?.headers,
+      });
+      if (!res.ok) return null;
+      const parsed = (await res.json()) as T;
+      if (isSameOrigin) {
+        sharedBootstrapCache = { fetchedAt: Date.now(), data: parsed };
+      }
+      return parsed;
+    } catch {
+      return null;
+    } finally {
+      if (isSameOrigin) {
+        inFlightBootstrapPromise = null;
+      }
+    }
+  })();
+
+  if (isSameOrigin) {
+    inFlightBootstrapPromise = reqPromise;
+  }
+
+  return (await reqPromise) as T | null;
+}
+

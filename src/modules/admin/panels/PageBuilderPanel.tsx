@@ -606,9 +606,9 @@ export const PageBuilderPanel: React.FC<PageBuilderPanelProps> = ({
                   title: newWidgetTitle.trim(),
                   subtitle:
                     newWidgetSubtitle.trim() ||
-                    'بلوک سفارشی اضافه‌شده توسط صفحه‌ساز اسکیل ۹۸',
+                    'بلوک سفارشی اضافه‌شده توسط صفحه‌ساز آموزشگاه رباتیک فاتحان',
                   badgeText: 'ویجت اختصاصی',
-                  buttonText: 'مشاهده اسکیل‌ها',
+                  buttonText: 'مشاهده دوره‌ها و کیت‌ها',
                   buttonTargetTab: 'store',
                   accentTone: newWidgetColor,
                   enabled: true,

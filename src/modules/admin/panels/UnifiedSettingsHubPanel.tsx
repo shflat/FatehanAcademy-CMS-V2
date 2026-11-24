@@ -126,7 +126,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
 }) => {
   const [activeTab, setActiveTab] = useState<UnifiedSettingsTabId>(initialTab);
   const [uploadingAsset, setUploadingAsset] = useState<'logo' | 'favicon' | 'eitaaLogo' | null>(null);
-  const [savingSection, setSavingSection] = useState<'general' | 'social' | 'badges' | 'theme' | null>(null);
+  const [savingSection, setSavingSection] = useState<'general' | 'social' | 'contact_location' | 'badges' | 'theme' | null>(null);
   const [badgePickerSlot, setBadgePickerSlot] = useState<'enamad' | 'license2' | 'logo' | 'favicon' | 'eitaaLogo' | null>(null);
   const [localUploadedMedia, setLocalUploadedMedia] = useState<MediaAssetItem[]>([]);
   const combinedMediaItems = [
@@ -135,7 +135,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
   ];
 
   const handleSaveThemeSection = async (
-    sectionKey: 'general' | 'social' | 'badges' | 'theme',
+    sectionKey: 'general' | 'social' | 'contact_location' | 'badges' | 'theme',
     nextTheme: ThemeConfig,
     successText: string
   ) => {
@@ -770,6 +770,661 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
             </div>
           </div>
 
+          {/* Contact Phones, Workshop Address, Working Hours, Header/Footer Texts & About Page Content */}
+          <div className="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 space-y-5 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-stone-900 dark:text-white">
+                  اطلاعات تماس، شماره‌های تلفن، آدرس کارگاه، شعارهای هدر/فوتر و محتوای درباره ما
+                </h3>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                  هرگونه تغییر در این بخش مستقیماً در هدر، فوتر، کارت تیره تماس صفحه اصلی، صفحه «تماس با ما» و صفحه «درباره ما» اعمال می‌شود.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={savingSection === 'contact_location'}
+                onClick={() =>
+                  void handleSaveThemeSection(
+                    'contact_location',
+                    themeConfig,
+                    'اطلاعات تماس، آدرس کارگاه، ساعات کاری، متون هدر/فوتر و برگه درباره ما با موفقیت ذخیره شد.'
+                  )
+                }
+                className="px-4 py-2.5 rounded-xl bg-[#1D4ED8] hover:bg-[#1E40AF] text-white text-xs font-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shrink-0 shadow-xs"
+              >
+                {savingSection === 'contact_location' ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {savingSection === 'contact_location'
+                    ? 'در حال ذخیره...'
+                    : 'ذخیره اطلاعات تماس و آدرس'}
+                </span>
+              </button>
+            </div>
+
+            {/* 1. Phone Numbers Grid */}
+            <div className="p-4 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 space-y-3">
+              <div className="text-xs font-extrabold text-stone-900 dark:text-white">
+                ۱. شماره‌های تماس آموزشگاه (نمایش در هدر، فوتر، صفحه اصلی و تماس با ما)
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                {/* Line 1 */}
+                <div className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-2">
+                  <label className="block text-[11px] font-extrabold text-[#1D4ED8]">
+                    خط ۱ همراه (مشاوره و ثبت‌نام)
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={themeConfig.contactPhones?.line1 || '09103116753'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactPhones: {
+                          line1: e.target.value,
+                          line1Formatted:
+                            themeConfig.contactPhones?.line1Formatted || '۰۹۱۰ ۳۱۱ ۶۷۵۳',
+                          line1Label:
+                            themeConfig.contactPhones?.line1Label || 'خط ۱ مشاوره و ثبت‌نام',
+                          line2: themeConfig.contactPhones?.line2 || '09372335026',
+                          line2Formatted:
+                            themeConfig.contactPhones?.line2Formatted || '۰۹۳۷ ۲۳۳ ۵۰۲۶',
+                          line2Label:
+                            themeConfig.contactPhones?.line2Label || 'خط ۲ پشتیبانی کارگاه',
+                          landline: themeConfig.contactPhones?.landline || '02165506015',
+                          landlineFormatted:
+                            themeConfig.contactPhones?.landlineFormatted || '۰۲۱ ۶۵۵۰ ۶۰۱۵',
+                          landlineLabel:
+                            themeConfig.contactPhones?.landlineLabel || 'تلفن ثابت دفتر مرکزی',
+                        },
+                      })
+                    }
+                    placeholder="09103116753"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 font-mono"
+                  />
+                  <input
+                    type="text"
+                    value={themeConfig.contactPhones?.line1Formatted || '۰۹۱۰ ۳۱۱ ۶۷۵۳'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactPhones: {
+                          ...(themeConfig.contactPhones || {
+                            line1: '09103116753',
+                            line1Formatted: '۰۹۱۰ ۳۱۱ ۶۷۵۳',
+                            line1Label: 'خط ۱ مشاوره و ثبت‌نام',
+                            line2: '09372335026',
+                            line2Formatted: '۰۹۳۷ ۲۳۳ ۵۰۲۶',
+                            line2Label: 'خط ۲ پشتیبانی کارگاه',
+                            landline: '02165506015',
+                            landlineFormatted: '۰۲۱ ۶۵۵۰ ۶۰۱۵',
+                            landlineLabel: 'تلفن ثابت دفتر مرکزی',
+                          }),
+                          line1Formatted: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="نمایش فارسی: ۰۹۱۰ ۳۱۱ ۶۷۵۳"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+                  />
+                  <input
+                    type="text"
+                    value={themeConfig.contactPhones?.line1Label || 'خط ۱ مشاوره و ثبت‌نام'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactPhones: {
+                          ...(themeConfig.contactPhones || {
+                            line1: '09103116753',
+                            line1Formatted: '۰۹۱۰ ۳۱۱ ۶۷۵۳',
+                            line1Label: 'خط ۱ مشاوره و ثبت‌نام',
+                            line2: '09372335026',
+                            line2Formatted: '۰۹۳۷ ۲۳۳ ۵۰۲۶',
+                            line2Label: 'خط ۲ پشتیبانی کارگاه',
+                            landline: '02165506015',
+                            landlineFormatted: '۰۲۱ ۶۵۵۰ ۶۰۱۵',
+                            landlineLabel: 'تلفن ثابت دفتر مرکزی',
+                          }),
+                          line1Label: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="عنوان خط ۱"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+                  />
+                </div>
+
+                {/* Line 2 */}
+                <div className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-2">
+                  <label className="block text-[11px] font-extrabold text-cyan-600">
+                    خط ۲ همراه (پشتیبانی کارگاه)
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={themeConfig.contactPhones?.line2 || '09372335026'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactPhones: {
+                          ...(themeConfig.contactPhones || {
+                            line1: '09103116753',
+                            line1Formatted: '۰۹۱۰ ۳۱۱ ۶۷۵۳',
+                            line1Label: 'خط ۱ مشاوره و ثبت‌نام',
+                            line2: '09372335026',
+                            line2Formatted: '۰۹۳۷ ۲۳۳ ۵۰۲۶',
+                            line2Label: 'خط ۲ پشتیبانی کارگاه',
+                            landline: '02165506015',
+                            landlineFormatted: '۰۲۱ ۶۵۵۰ ۶۰۱۵',
+                            landlineLabel: 'تلفن ثابت دفتر مرکزی',
+                          }),
+                          line2: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="09372335026"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 font-mono"
+                  />
+                  <input
+                    type="text"
+                    value={themeConfig.contactPhones?.line2Formatted || '۰۹۳۷ ۲۳۳ ۵۰۲۶'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactPhones: {
+                          ...(themeConfig.contactPhones || {
+                            line1: '09103116753',
+                            line1Formatted: '۰۹۱۰ ۳۱۱ ۶۷۵۳',
+                            line1Label: 'خط ۱ مشاوره و ثبت‌نام',
+                            line2: '09372335026',
+                            line2Formatted: '۰۹۳۷ ۲۳۳ ۵۰۲۶',
+                            line2Label: 'خط ۲ پشتیبانی کارگاه',
+                            landline: '02165506015',
+                            landlineFormatted: '۰۲۱ ۶۵۵۰ ۶۰۱۵',
+                            landlineLabel: 'تلفن ثابت دفتر مرکزی',
+                          }),
+                          line2Formatted: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="نمایش فارسی: ۰۹۳۷ ۲۳۳ ۵۰۲۶"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+                  />
+                  <input
+                    type="text"
+                    value={themeConfig.contactPhones?.line2Label || 'خط ۲ پشتیبانی کارگاه'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactPhones: {
+                          ...(themeConfig.contactPhones || {
+                            line1: '09103116753',
+                            line1Formatted: '۰۹۱۰ ۳۱۱ ۶۷۵۳',
+                            line1Label: 'خط ۱ مشاوره و ثبت‌نام',
+                            line2: '09372335026',
+                            line2Formatted: '۰۹۳۷ ۲۳۳ ۵۰۲۶',
+                            line2Label: 'خط ۲ پشتیبانی کارگاه',
+                            landline: '02165506015',
+                            landlineFormatted: '۰۲۱ ۶۵۵۰ ۶۰۱۵',
+                            landlineLabel: 'تلفن ثابت دفتر مرکزی',
+                          }),
+                          line2Label: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="عنوان خط ۲"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+                  />
+                </div>
+
+                {/* Landline */}
+                <div className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 space-y-2">
+                  <label className="block text-[11px] font-extrabold text-emerald-600">
+                    تلفن ثابت دفتر مرکزی آموزشگاه
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={themeConfig.contactPhones?.landline || '02165506015'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactPhones: {
+                          ...(themeConfig.contactPhones || {
+                            line1: '09103116753',
+                            line1Formatted: '۰۹۱۰ ۳۱۱ ۶۷۵۳',
+                            line1Label: 'خط ۱ مشاوره و ثبت‌نام',
+                            line2: '09372335026',
+                            line2Formatted: '۰۹۳۷ ۲۳۳ ۵۰۲۶',
+                            line2Label: 'خط ۲ پشتیبانی کارگاه',
+                            landline: '02165506015',
+                            landlineFormatted: '۰۲۱ ۶۵۵۰ ۶۰۱۵',
+                            landlineLabel: 'تلفن ثابت دفتر مرکزی',
+                          }),
+                          landline: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="02165506015"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950 font-mono"
+                  />
+                  <input
+                    type="text"
+                    value={themeConfig.contactPhones?.landlineFormatted || '۰۲۱ ۶۵۵۰ ۶۰۱۵'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactPhones: {
+                          ...(themeConfig.contactPhones || {
+                            line1: '09103116753',
+                            line1Formatted: '۰۹۱۰ ۳۱۱ ۶۷۵۳',
+                            line1Label: 'خط ۱ مشاوره و ثبت‌نام',
+                            line2: '09372335026',
+                            line2Formatted: '۰۹۳۷ ۲۳۳ ۵۰۲۶',
+                            line2Label: 'خط ۲ پشتیبانی کارگاه',
+                            landline: '02165506015',
+                            landlineFormatted: '۰۲۱ ۶۵۵۰ ۶۰۱۵',
+                            landlineLabel: 'تلفن ثابت دفتر مرکزی',
+                          }),
+                          landlineFormatted: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="نمایش فارسی: ۰۲۱ ۶۵۵۰ ۶۰۱۵"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+                  />
+                  <input
+                    type="text"
+                    value={themeConfig.contactPhones?.landlineLabel || 'تلفن ثابت دفتر مرکزی'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactPhones: {
+                          ...(themeConfig.contactPhones || {
+                            line1: '09103116753',
+                            line1Formatted: '۰۹۱۰ ۳۱۱ ۶۷۵۳',
+                            line1Label: 'خط ۱ مشاوره و ثبت‌نام',
+                            line2: '09372335026',
+                            line2Formatted: '۰۹۳۷ ۲۳۳ ۵۰۲۶',
+                            line2Label: 'خط ۲ پشتیبانی کارگاه',
+                            landline: '02165506015',
+                            landlineFormatted: '۰۲۱ ۶۵۵۰ ۶۰۱۵',
+                            landlineLabel: 'تلفن ثابت دفتر مرکزی',
+                          }),
+                          landlineLabel: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder="عنوان تلفن ثابت"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-950"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Physical Address, Working Hours & Postal Code */}
+            <div className="p-4 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 space-y-3 text-xs">
+              <div className="font-extrabold text-stone-900 dark:text-white">
+                ۲. آدرس دقیق کارگاه حضوری، شهر، کد پستی و ساعات کاری
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    استان
+                  </label>
+                  <input
+                    type="text"
+                    value={themeConfig.contactLocation?.province || 'تهران'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactLocation: {
+                          province: e.target.value,
+                          city: themeConfig.contactLocation?.city || 'اندیشه',
+                          fullAddress:
+                            themeConfig.contactLocation?.fullAddress ||
+                            'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                          workingHours:
+                            themeConfig.contactLocation?.workingHours ||
+                            'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
+                          postalCode:
+                            themeConfig.contactLocation?.postalCode || '3351984210',
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    شهر / منطقه
+                  </label>
+                  <input
+                    type="text"
+                    value={themeConfig.contactLocation?.city || 'اندیشه'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactLocation: {
+                          ...(themeConfig.contactLocation || {
+                            province: 'تهران',
+                            city: 'اندیشه',
+                            fullAddress:
+                              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                            workingHours:
+                              'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
+                          }),
+                          city: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    کد پستی ۱۰ رقمی
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={themeConfig.contactLocation?.postalCode || '3351984210'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactLocation: {
+                          ...(themeConfig.contactLocation || {
+                            province: 'تهران',
+                            city: 'اندیشه',
+                            fullAddress:
+                              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                            workingHours:
+                              'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
+                          }),
+                          postalCode: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    ساعات کاری آموزشگاه
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      themeConfig.contactLocation?.workingHours ||
+                      'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)'
+                    }
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        contactLocation: {
+                          ...(themeConfig.contactLocation || {
+                            province: 'تهران',
+                            city: 'اندیشه',
+                            fullAddress:
+                              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                            workingHours:
+                              'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
+                          }),
+                          workingHours: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                  نشانی کامل پستی کارگاه و دفتر ثبت‌نام حضوری
+                </label>
+                <input
+                  type="text"
+                  value={
+                    themeConfig.contactLocation?.fullAddress ||
+                    'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲'
+                  }
+                  onChange={(e) =>
+                    onUpdateThemeConfig({
+                      ...themeConfig,
+                      contactLocation: {
+                        ...(themeConfig.contactLocation || {
+                          province: 'تهران',
+                          city: 'اندیشه',
+                          fullAddress:
+                            'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                          workingHours:
+                            'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
+                        }),
+                        fullAddress: e.target.value,
+                      },
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-bold"
+                />
+              </div>
+            </div>
+
+            {/* 3. Header Taglines, Top Announcement Bar & Footer Texts */}
+            <div className="p-4 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 space-y-3 text-xs">
+              <div className="font-extrabold text-stone-900 dark:text-white">
+                ۳. شعارهای هدر، نوار اعلان بالای سایت و متن معرفی فوتر
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    شعار اصلی آموزشگاه (Tagline 1)
+                  </label>
+                  <input
+                    type="text"
+                    value={themeConfig.taglinePrimary || 'کارآموزان امروز، فاتحان فردا'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        taglinePrimary: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    شعار مکمل (Tagline 2)
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      themeConfig.taglineSecondary ||
+                      'رباتیک فقط یک رشته نیست... یک مهارت زندگی است'
+                    }
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        taglineSecondary: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    شعار کوتاه سه کلمه‌ای (Motto)
+                  </label>
+                  <input
+                    type="text"
+                    value={themeConfig.mottoFa || 'فکر کن، بساز، کشف کن!'}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        mottoFa: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                  متن نوار اعلان بالای هدر (Top Announcement Bar)
+                </label>
+                <input
+                  type="text"
+                  value={themeConfig.topAnnouncementText}
+                  onChange={(e) =>
+                    onUpdateThemeConfig({
+                      ...themeConfig,
+                      topAnnouncementText: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    متن معرفی آموزشگاه در فوتر
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={themeConfig.footerDescription}
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        footerDescription: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 leading-relaxed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    متن کپی‌رایت پایین فوتر
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={
+                      themeConfig.footerCopyrightText ||
+                      '© ۱۴۰۴ آموزشگاه تخصصی رباتیک، کدنویسی و هوش مصنوعی فاتحان (اندیشه).'
+                    }
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        footerCopyrightText: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 leading-relaxed"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4. About Us Page Direct Content Editor */}
+            <div className="p-4 rounded-2xl border border-stone-200 dark:border-stone-800 bg-stone-50/70 dark:bg-stone-950/40 space-y-3 text-xs">
+              <div className="font-extrabold text-stone-900 dark:text-white">
+                ۴. محتوای برگه «درباره ما» (/about)
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    تیتر اصلی صفحه درباره ما
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      themeConfig.aboutPageConfig?.heroTitle ||
+                      'درباره آموزشگاه تخصصی رباتیک فاتحان'
+                    }
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        aboutPageConfig: {
+                          heroTitle: e.target.value,
+                          heroSubtitle:
+                            themeConfig.aboutPageConfig?.heroSubtitle ||
+                            'کارآموزان امروز، فاتحان فردا — آموزش ۱۰۰٪ عملی و کارگاهی رباتیک، الکترونیک، چاپ سه‌بعدی و هوش مصنوعی ویژه کودکان و نوجوانان ۶ تا ۱۸ سال.',
+                          introParagraph:
+                            themeConfig.aboutPageConfig?.introParagraph || '',
+                          missionStatement:
+                            themeConfig.aboutPageConfig?.missionStatement || '',
+                          schoolPartnershipNote:
+                            themeConfig.aboutPageConfig?.schoolPartnershipNote || '',
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                    زیرتیتر صفحه درباره ما
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      themeConfig.aboutPageConfig?.heroSubtitle ||
+                      'کارآموزان امروز، فاتحان فردا — آموزش ۱۰۰٪ عملی و کارگاهی رباتیک، الکترونیک، چاپ سه‌بعدی و هوش مصنوعی ویژه کودکان و نوجوانان ۶ تا ۱۸ سال.'
+                    }
+                    onChange={(e) =>
+                      onUpdateThemeConfig({
+                        ...themeConfig,
+                        aboutPageConfig: {
+                          ...(themeConfig.aboutPageConfig || {
+                            heroTitle: 'درباره آموزشگاه تخصصی رباتیک فاتحان',
+                            heroSubtitle: '',
+                            introParagraph: '',
+                            missionStatement: '',
+                            schoolPartnershipNote: '',
+                          }),
+                          heroSubtitle: e.target.value,
+                        },
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-stone-500 mb-1">
+                  متن معرفی کامل داستان و رویکرد آموزشی فاتحان
+                </label>
+                <textarea
+                  rows={3}
+                  value={
+                    themeConfig.aboutPageConfig?.introParagraph ||
+                    'آموزشگاه رباتیک فاتحان در شهر اندیشه با هدف تبدیل کودکان و نوجوانان از مصرف‌کنندگان منفعل تکنولوژی به سازندگان و مخترعان فردا تأسیس شده است.'
+                  }
+                  onChange={(e) =>
+                    onUpdateThemeConfig({
+                      ...themeConfig,
+                      aboutPageConfig: {
+                        ...(themeConfig.aboutPageConfig || {
+                          heroTitle: 'درباره آموزشگاه تخصصی رباتیک فاتحان',
+                          heroSubtitle: '',
+                          introParagraph: '',
+                          missionStatement: '',
+                          schoolPartnershipNote: '',
+                        }),
+                        introParagraph: e.target.value,
+                      },
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 leading-relaxed"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Active Theme Registry Switcher (1-Click Storefront Theme Switch) */}
           <div className="p-6 rounded-2xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 space-y-5 shadow-xs">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 dark:border-stone-800 pb-3">
@@ -787,8 +1442,8 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
               <span className="px-2.5 py-1 rounded-xl bg-blue-500/10 text-[#1D4ED8] dark:text-sky-400 text-[11px] font-extrabold">
                 پوسته فعال:{' '}
                 {(themeConfig.activeThemeId || 'fatehan') === 'fatehan'
-                  ? 'آکادمی فاتحان'
-                  : 'پیش‌فرض اسکیل ۹۸'}
+                  ? 'آموزشگاه رباتیک فاتحان'
+                  : 'پوسته کلاسیک'}
               </span>
             </div>
 

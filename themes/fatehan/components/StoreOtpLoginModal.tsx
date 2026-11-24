@@ -21,19 +21,45 @@ export const StoreOtpLoginModal: React.FC = () => {
   const [fullName, setFullName] = useState(loggedInCustomer?.fullName || '');
   const [otpSent, setOtpSent] = useState(false);
   const [enteredCode, setEnteredCode] = useState('');
+  const [feedback, setFeedback] = useState<{ type: 'error' | 'info'; text: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const normalizePhone = (raw: string): string => {
+    const digits = raw
+      .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+      .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+      .replace(/[^0-9]/g, '');
+    if (digits.startsWith('009809') && digits.length === 15) return digits.slice(4);
+    if (digits.startsWith('00989') && digits.length === 14) return '0' + digits.slice(4);
+    if (digits.startsWith('9809') && digits.length === 13) return digits.slice(2);
+    if (digits.startsWith('989') && digits.length === 12) return '0' + digits.slice(2);
+    if (digits.startsWith('9') && digits.length === 10) return '0' + digits;
+    return digits;
+  };
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim()) return;
+    const cleanPhone = normalizePhone(phone);
+    if (!/^09\d{9}$/.test(cleanPhone)) {
+      const msg = 'شماره موبایل معتبر نیست. لطفاً شماره ۱۱ رقمی با شروع 09 وارد کنید.';
+      setFeedback({ type: 'error', text: msg });
+      notify(msg);
+      return;
+    }
+    setPhone(cleanPhone);
+    setFeedback(null);
     setSubmitting(true);
     try {
-      const result = await adapter.sendOtp({ phone, patternKey: 'otp_login' });
+      const result = await adapter.sendOtp({ phone: cleanPhone, patternKey: 'otp_login' });
       if (result.ok) {
         setOtpSent(true);
-        notify(`کد تایید پیامکی به شماره ${phone} ارسال شد.`);
+        const msg = result.message || `کد تایید پیامکی به شماره ${cleanPhone} ارسال شد.`;
+        setFeedback({ type: 'info', text: msg });
+        notify(msg);
       } else {
-        notify(result.error || 'خطا در ارسال پیامک OTP');
+        const msg = result.error || 'خطا در ارسال پیامک OTP';
+        setFeedback({ type: 'error', text: msg });
+        notify(msg);
       }
     } finally {
       setSubmitting(false);
@@ -42,17 +68,26 @@ export const StoreOtpLoginModal: React.FC = () => {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanPhone = normalizePhone(phone);
+    const cleanCode = enteredCode
+      .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+      .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+      .trim();
+    setFeedback(null);
     setSubmitting(true);
     try {
-      const result = await adapter.verifyOtp({ phone, code: enteredCode, fullName });
+      const result = await adapter.verifyOtp({ phone: cleanPhone, code: cleanCode, fullName });
       if (result.ok && result.verified && result.user) {
         syncAuthSession(result.user, result.sessionToken);
         await refreshState();
         notify(result.message || 'ورود پیامکی با موفقیت انجام شد.');
         setIsOtpModalOpen(false);
         setOtpSent(false);
+        setFeedback(null);
       } else {
-        notify(result.error || 'کد وارد شده معتبر نیست.');
+        const msg = result.error || 'کد وارد شده معتبر نیست.';
+        setFeedback({ type: 'error', text: msg });
+        notify(msg);
       }
     } finally {
       setSubmitting(false);
@@ -119,6 +154,18 @@ export const StoreOtpLoginModal: React.FC = () => {
                       {formatToman(loggedInCustomer.walletBalanceToman)}
                     </span>
                   </div>
+                </div>
+              )}
+
+              {feedback && (
+                <div
+                  className={`p-3 rounded-xl border text-xs font-bold leading-relaxed ${
+                    feedback.type === 'error'
+                      ? 'bg-rose-50 border-rose-200 text-rose-800'
+                      : 'bg-amber-50 border-amber-200 text-amber-900'
+                  }`}
+                >
+                  {feedback.text}
                 </div>
               )}
 

@@ -53,6 +53,10 @@ interface AdminMasterConfig {
 const activeOtpChallenges = new Map<string, OtpChallengeRecord>();
 
 function readFirebaseApiKey(): string {
+  const envKey = String(
+    process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY || ''
+  ).trim();
+  if (envKey) return envKey;
   try {
     const cfgPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
     if (fs.existsSync(cfgPath)) {
@@ -159,14 +163,6 @@ export function createAuthRouter(): express.Router {
         DEFAULT_SMS_GATEWAY_SETTINGS
       );
 
-      activeOtpChallenges.set(cleanPhone, {
-        phone: cleanPhone,
-        codeHash: hashOtpCode(cleanPhone, otpCode),
-        expiresAt,
-        provider: smsCfg.provider,
-        attempts: 0,
-      });
-
       const dispatchResult = await dispatchEventSms({
         eventKey: 'user_registered',
         phone: cleanPhone,
@@ -190,13 +186,32 @@ export function createAuthRouter(): express.Router {
 
       const gatewayStatus = dispatchResult.sandbox ? 'pending_sms_gateway' : 'live_dispatched';
 
+      // Only store an OTP challenge when an SMS was actually dispatched (never allow unverified sandbox bypass for admin)
+      if (!dispatchResult.sandbox && dispatchResult.dispatched) {
+        activeOtpChallenges.set(cleanPhone, {
+          phone: cleanPhone,
+          codeHash: hashOtpCode(cleanPhone, otpCode),
+          expiresAt,
+          provider: smsCfg.provider,
+          attempts: 0,
+        });
+      }
+
+      const responseMessage =
+        isMasterAdminPhone && dispatchResult.sandbox
+          ? 'شماره مدیریت شناسایی شد. سامانه پیامک در حالت آزمایشی (سندباکس) است؛ لطفاً کد امنیتی مستر (Master Code) را در کادر رمز وارد کرده و ورود را بزنید.'
+          : dispatchResult.sandbox
+          ? 'وب‌سرویس پیامک در حالت آزمایشی (سندباکس) است و پیامک واقعی ارسال نشد. لطفاً از مدیر آموزشگاه بخواهید پنل پیامک را فعال کند یا از ورود با گوگل استفاده نمایید.'
+          : 'کد تایید ۵ رقمی به شماره همراه شما ارسال شد.';
+
       res.json({
         success: true,
         phone: cleanPhone,
         provider: dispatchResult.provider,
         gatewayStatus,
+        requiresMasterCode: isMasterAdminPhone && dispatchResult.sandbox,
         expiresInSeconds: Number(expirySeconds || 120),
-        message: 'کد تایید ۵ رقمی به شماره همراه شما ارسال شد.',
+        message: responseMessage,
       });
     } catch (error) {
       res.status(500).json({
@@ -215,30 +230,49 @@ export function createAuthRouter(): express.Router {
     try {
       const { phone, code, fullName } = req.body || {};
       const cleanPhone = normalizeIranPhone(phone);
+      if (!/^09\d{9}$/.test(cleanPhone)) {
+        res.status(400).json({
+          error: 'شماره موبایل واردشده معتبر نیست. لطفاً شماره ۱۱ رقمی با شروع 09 وارد کنید.',
+        });
+        return;
+      }
+
       const cleanCode = String(code || '')
         .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
         .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
         .trim();
 
+      if (!cleanCode) {
+        res.status(400).json({ error: 'لطفاً کد تایید یا رمز امنیتی حساب را وارد کنید.' });
+        return;
+      }
+
       const master = await resolveMasterCredentials();
-      if (
+      const isMasterPhone = Boolean(
         master.masterPhone &&
-        cleanPhone === master.masterPhone &&
-        (master.masterCodeHash || master.masterCodeRaw)
-      ) {
+          cleanPhone === master.masterPhone &&
+          (master.masterCodeHash || master.masterCodeRaw)
+      );
+
+      if (isMasterPhone) {
         const submittedHmacHash = hashOtpCode(cleanPhone, cleanCode);
         const submittedSha256Hash = sha256Hex(cleanCode);
+        const submittedPhoneSha256Hash = sha256Hex(`${cleanPhone}:${cleanCode}`);
         const matchesHmac = Boolean(
           master.masterCodeHash && timingSafeHexEqual(submittedHmacHash, master.masterCodeHash)
         );
         const matchesDirectSha256 = Boolean(
           master.masterCodeHash && timingSafeHexEqual(submittedSha256Hash, master.masterCodeHash)
         );
+        const matchesPhoneSha256 = Boolean(
+          master.masterCodeHash &&
+            timingSafeHexEqual(submittedPhoneSha256Hash, master.masterCodeHash)
+        );
         const matchesEnvRaw = Boolean(
           master.masterCodeRaw &&
             timingSafeHexEqual(submittedSha256Hash, sha256Hex(master.masterCodeRaw))
         );
-        if (matchesHmac || matchesDirectSha256 || matchesEnvRaw) {
+        if (matchesHmac || matchesDirectSha256 || matchesPhoneSha256 || matchesEnvRaw) {
           activeOtpChallenges.delete(cleanPhone);
           const masterRow = await upsertUserByPhone({
             phone: cleanPhone,
@@ -250,7 +284,7 @@ export function createAuthRouter(): express.Router {
             level: 'success',
             category: 'auth',
             title: `ورود موفق مدیریت ارشد (${cleanPhone})`,
-            detail: 'احراز هویت مدیریت با مسترکد هش‌شده HMAC-SHA256 تایید شد.',
+            detail: 'احراز هویت مدیریت با مسترکد هش‌شده تایید شد.',
             sqlOrEndpoint: 'POST /api/sms/verify-otp (ADMIN)',
           });
           const clientMeta = extractClientDeviceAndIp(req);
@@ -285,21 +319,30 @@ export function createAuthRouter(): express.Router {
           });
           return;
         }
-        await writeSystemLog({
-          level: 'warning',
-          category: 'auth',
-          title: `تلاش ناموفق ورود مدیریت (${cleanPhone})`,
-          detail: 'کد مستر واردشده مطابقت نداشت.',
-          sqlOrEndpoint: 'POST /api/sms/verify-otp',
-        });
-        res.status(400).json({ error: 'کد مستر واردشده برای شماره مدیریت صحیح نیست.' });
-        return;
+
+        // If a live SMS OTP was sent to the admin's real phone, allow falling through to verify that OTP
+        const liveAdminOtp = activeOtpChallenges.get(cleanPhone);
+        if (!liveAdminOtp || Date.now() > liveAdminOtp.expiresAt) {
+          activeOtpChallenges.delete(cleanPhone);
+          await writeSystemLog({
+            level: 'warning',
+            category: 'auth',
+            title: `تلاش ناموفق ورود مدیریت (${cleanPhone})`,
+            detail: 'کد مستر واردشده مطابقت نداشت.',
+            sqlOrEndpoint: 'POST /api/sms/verify-otp',
+          });
+          res.status(400).json({
+            error:
+              'کد امنیتی (مستر کد) واردشده برای شماره مدیریت صحیح نیست. لطفاً کد مستر را دقیق و بدون فاصله وارد کنید.',
+          });
+          return;
+        }
       }
 
       const record = activeOtpChallenges.get(cleanPhone);
       if (!record || Date.now() > record.expiresAt) {
         activeOtpChallenges.delete(cleanPhone);
-        res.status(400).json({ error: 'کد تایید یافت نشد یا منقضی شده است.' });
+        res.status(400).json({ error: 'کد تایید یافت نشد یا منقضی شده است. لطفاً مجدداً درخواست کد دهید.' });
         return;
       }
 

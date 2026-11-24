@@ -297,7 +297,7 @@ export const SmsTriggersPanel: React.FC<SmsTriggersPanelProps> = ({
   const [inlineTestEitaaChatId, setInlineTestEitaaChatId] = useState('');
   const [inlineTestBaleChannel, setInlineTestBaleChannel] = useState<'bot_api' | 'safir_otp'>('bot_api');
   const [inlineTestMessage, setInlineTestMessage] = useState(
-    'سلام، این یک پیام آزمایشی از تنظیمات درگاه پلتفرم اسکیل ۹۸ است.'
+    'سلام، این یک پیام آزمایشی از سامانه پیامک آموزشگاه رباتیک فاتحان است.'
   );
   const [isSendingInlineTest, setIsSendingInlineTest] = useState(false);
   const [inlineTestResult, setInlineTestResult] = useState<{
@@ -782,7 +782,7 @@ export const SmsTriggersPanel: React.FC<SmsTriggersPanelProps> = ({
               sectionLabel: 'بخش: اطلاع‌رسانی دلخواه',
               sendMode: 'custom_text',
               patternCode: '',
-              messageTemplate: '{name} عزیز، عملیات در اسکیل ۹۸ انجام شد.',
+              messageTemplate: '{name} عزیز، درخواست شما در آموزشگاه رباتیک فاتحان ثبت شد.',
               providerOverride: 'default',
               enabled: true,
               priorityOrder: triggers.length + 1,

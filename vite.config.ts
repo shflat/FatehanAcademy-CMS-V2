@@ -69,9 +69,11 @@ export default defineConfig(() => {
             if (id.includes('/lucide-react/')) {
               return 'icons-vendor';
             }
+            if (id.includes('/lenis/')) {
+              return 'lenis-vendor';
+            }
             if (
               id.includes('/gsap/') ||
-              id.includes('/lenis/') ||
               id.includes('/@barba/') ||
               id.includes('/muuri/')
             ) {

@@ -430,7 +430,6 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
   const isModuleEnabled = useCallback(
     (moduleId: string): boolean => {
       const defaultOff = new Set([
-        'mod_academy_suite',
         'mod_abandoned_cart',
         'mod_wallet_rma',
         'mod_affiliate',
@@ -512,61 +511,61 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
     showNotice('success', `تصویر «${media.title}» برای نوشته انتخاب شد.`);
   };
 
-  // Compact, Short & Module-Driven Sidebar (Unified Settings + Per-Module Visibility)
+  // Compact, Short & Module-Driven Sidebar for Fatehan Robotics Academy
   const rawSidebarGroups: SidebarCategoryGroup[] = [
     {
       id: 'sec-1',
-      title: '۱. پیشخوان و آمار',
+      title: '۱. پیشخوان و آمار آموزشگاه',
       shortTitle: 'پیشخوان',
       icon: <Activity className="w-4 h-4 text-[#1D4ED8]" />,
       items: [{ id: 'dashboard', label: 'پیشخوان و گزارش بازدید' }],
     },
     {
       id: 'sec-2',
-      title: '۲. محتوا، برگه‌ها و رسانه',
+      title: '۲. دوره‌های رباتیک و فروشگاه کیت‌ها',
+      shortTitle: 'آموزش و کیت',
+      icon: <ShoppingBag className="w-4 h-4 text-[#1D4ED8]" />,
+      items: [
+        ...(isModuleEnabled('mod_academy_suite')
+          ? [{ id: 'mod_academy_suite' as AdminSection, label: 'دوره‌های رباتیک و دپارتمان‌ها', badge: '۱۵ دوره' }]
+          : []),
+        {
+          id: 'catalog',
+          label: 'کیت‌ها و محصولات رباتیک',
+          badge: products.length.toLocaleString('fa-IR'),
+        },
+        { id: 'editor', label: 'افزودن کیت / محصول جدید' },
+        {
+          id: 'orders',
+          label: 'سفارش‌ها و کدهای تخفیف',
+          badge: orders.length.toLocaleString('fa-IR'),
+        },
+        ...(isModuleEnabled('mod_inventory_accounting')
+          ? [{ id: 'inventory' as AdminSection, label: 'انبارداری کیت‌ها و حسابداری' }]
+          : []),
+        ...(isModuleEnabled('mod_subscriptions')
+          ? [{ id: 'mod_subscriptions' as AdminSection, label: 'اشتراک باشگاه کارآموزان' }]
+          : []),
+      ],
+    },
+    {
+      id: 'sec-3',
+      title: '۳. مجله علمی، برگه‌ها و رسانه',
       shortTitle: 'محتوا',
       icon: <FileText className="w-4 h-4 text-amber-500" />,
       items: [
         {
           id: 'articles_list',
-          label: 'نوشته‌ها و مجله',
+          label: 'مقالات و مجله علمی',
           badge: articles.length.toLocaleString('fa-IR'),
         },
-        { id: 'pages_list', label: 'برگه‌های سایت' },
+        { id: 'pages_list', label: 'برگه‌های سایت (درباره، تماس...)' },
         {
           id: 'media_list',
-          label: 'کتابخانه رسانه',
+          label: 'کتابخانه رسانه و تصاویر',
           badge: mediaItems.length.toLocaleString('fa-IR'),
         },
-        { id: 'taxonomies', label: 'دسته‌بندی و برچسب' },
-      ],
-    },
-    {
-      id: 'sec-3',
-      title: '۳. فروشگاه و اشتراک VIP',
-      shortTitle: 'فروشگاه',
-      icon: <ShoppingBag className="w-4 h-4 text-[#1D4ED8]" />,
-      items: [
-        {
-          id: 'catalog',
-          label: 'محصولات و اسکیل‌ها',
-          badge: products.length.toLocaleString('fa-IR'),
-        },
-        { id: 'editor', label: 'افزودن محصول جدید' },
-        {
-          id: 'orders',
-          label: 'سفارش‌ها و تخفیف‌ها',
-          badge: orders.length.toLocaleString('fa-IR'),
-        },
-        ...(isModuleEnabled('mod_subscriptions')
-          ? [{ id: 'mod_subscriptions' as AdminSection, label: 'اشتراک‌های VIP (۱ تا ۱۲ ماهه)' }]
-          : []),
-        ...(isModuleEnabled('mod_inventory_accounting')
-          ? [{ id: 'inventory' as AdminSection, label: 'انبارداری و حسابداری' }]
-          : []),
-        ...(isModuleEnabled('mod_academy_suite')
-          ? [{ id: 'mod_academy_suite' as AdminSection, label: 'آکادمی، دوره‌ها و شهریه' }]
-          : []),
+        { id: 'taxonomies', label: 'دپارتمان‌ها و دسته‌بندی‌ها' },
       ],
     },
     {
@@ -873,7 +872,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold">
             <span className={accentTextClass}>
-              هسته مدیریت محتوا و فروشگاه ماژولار (Skill98 Core Engine v2.7.0)
+              سیستم مدیریت یکپارچه آموزشگاه رباتیک فاتحان (Fatehan Robotics CMS v3.0)
             </span>
             <span className="text-stone-400">/</span>
             <span
@@ -886,15 +885,15 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
               {isSuperAdmin ? (
                 <>
                   <Crown className="w-3.5 h-3.5" />
-                  <span>سطح فعال: سوپر ادمین (دسترسی کل)</span>
+                  <span>سطح فعال: مدیریت ارشد آموزشگاه (دسترسی کل)</span>
                 </>
               ) : (
-                <span>سطح فعال: ادمین محتوا و فروشگاه</span>
+                <span>سطح فعال: مسئول آموزش و فروشگاه کیت‌ها</span>
               )}
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-stone-900 dark:text-white tracking-tight">
-            پیشخوان ماژولار مدیریت محتوا، هوش مصنوعی ۲۴/۷ و فروشگاه
+            پنل مدیریت یکپارچه دوره‌های رباتیک، دپارتمان‌ها، کیت‌های آموزشی و محتوای فاتحان
           </h1>
         </div>
 

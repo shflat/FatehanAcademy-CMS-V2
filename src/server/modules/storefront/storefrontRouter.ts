@@ -1,4 +1,5 @@
 import express from 'express';
+import { runBackgroundMediaOptimizerSweep } from '../media/mediaEngineRouter.js';
 import { cmsCache } from '../../core/cacheEngine.js';
 import { normalizeIranPhone } from '../../core/cryptoSecurity.js';
 import {
@@ -89,6 +90,9 @@ export function createStorefrontRouter(): express.Router {
           await syncPermissionsToDbAndFile(body.roles);
         }
         cmsCache.invalidatePrefix('bootstrap:');
+        void runBackgroundMediaOptimizerSweep().catch(() => {
+          // non-blocking background WebP + 4-size optimization after CMS save
+        });
         res.json({ ok: true, engine: getActiveEngine() });
       } catch (error) {
         await writeSystemLog({

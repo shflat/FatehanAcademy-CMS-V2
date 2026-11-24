@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-11-21T13:58:23.742Z",
-  "cmsVersion": "v2.7.0",
+  "generatedAt": "2026-11-24T22:08:56.855Z",
+  "cmsVersion": "v2.9.3",
   "summary": {
-    "totalFiles": 205,
-    "totalLines": 82248,
-    "totalEndpoints": 215,
-    "totalDbTables": 69,
+    "totalFiles": 221,
+    "totalLines": 102529,
+    "totalEndpoints": 230,
+    "totalDbTables": 72,
     "byCategory": {
       "root": 15,
-      "core": 22,
-      "modules": 113,
+      "core": 23,
+      "modules": 128,
       "database": 11,
       "theme": 39,
       "public_assets": 5
@@ -66,6 +66,9 @@
     "mod_ai_agent_tasks",
     "mod_ai_agent_conversations",
     "mod_ai_approval_queue",
+    "mod_ai_agent_memory",
+    "mod_ai_social_packages",
+    "mod_ai_knowledge_cache",
     "mod_web_vitals",
     "mod_announcements_popups",
     "mod_b2b_tiers",
@@ -439,6 +442,11 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/media/sweep-optimize",
+      "file": "src/server/modules/media/mediaEngineRouter.ts"
+    },
+    {
+      "method": "POST",
       "path": "/api/orders/create",
       "file": "src/server/modules/orders/ordersRouter.ts"
     },
@@ -628,6 +636,11 @@
       "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
     },
     {
+      "method": "GET",
+      "path": "/api/v1/modules/ai-hub/agent/jarvis-config",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
       "method": "POST",
       "path": "/api/v1/modules/ai-hub/agent/mode",
       "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
@@ -660,6 +673,71 @@
     {
       "method": "POST",
       "path": "/api/v1/modules/ai-hub/agent/bot-bridge/test",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/bale-alerts/test",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/ai-hub/agent/social-config",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/social-config",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/social-config/test",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/bale-pair/start",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/bale-pair/verify",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/daily-briefing/test",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/transcribe",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/speak",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/modules/ai-hub/agent/knowledge-cache",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/knowledge-cache",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/modules/ai-hub/agent/knowledge-cache/:id/status",
+      "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/modules/ai-hub/agent/knowledge-cache/:id",
       "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
     },
     {
@@ -1167,8 +1245,9 @@
     {
       "path": "server.ts",
       "category": "root",
-      "lines": 293,
+      "lines": 336,
       "imports": [
+        "compression",
         "dotenv",
         "express",
         "fs",
@@ -1237,7 +1316,7 @@
     {
       "path": "src/App.tsx",
       "category": "root",
-      "lines": 2361,
+      "lines": 2545,
       "imports": [
         "react",
         "lucide-react",
@@ -1303,7 +1382,7 @@
     {
       "path": "src/core/apiClient.ts",
       "category": "core",
-      "lines": 291,
+      "lines": 358,
       "imports": [],
       "exports": [
         "StoredClientSession",
@@ -1321,7 +1400,9 @@
         "getAuthHeaders",
         "buildAuthHeaders",
         "apiFetch",
-        "apiJson"
+        "apiJson",
+        "invalidateSharedBootstrapCache",
+        "fetchSharedStorefrontBootstrap"
       ],
       "apiEndpoints": [],
       "dbTables": []
@@ -1424,6 +1505,19 @@
       "dbTables": []
     },
     {
+      "path": "src/core/responsiveImage.ts",
+      "category": "core",
+      "lines": 66,
+      "imports": [],
+      "exports": [
+        "ResponsiveImageVariant",
+        "getResponsiveImageVariant",
+        "getResponsiveSrcSet"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
       "path": "src/core/seoHeadManager.ts",
       "category": "core",
       "lines": 83,
@@ -1438,7 +1532,7 @@
     {
       "path": "src/core/types.ts",
       "category": "core",
-      "lines": 705,
+      "lines": 772,
       "imports": [],
       "exports": [
         "AccentPresetId",
@@ -1464,6 +1558,10 @@
         "CmsPluginItem",
         "FooterTrustBadgesConfig",
         "SeoCrawlVisibilityConfig",
+        "SocialChannelsConfig",
+        "ContactLocationConfig",
+        "ContactPhonesConfig",
+        "AboutPageCmsConfig",
         "ThemeConfig",
         "ProductTypeKind",
         "ProductDownloadFile",
@@ -1476,6 +1574,7 @@
         "PaymentDisplayConfig",
         "SmsProviderId",
         "BaleSendMode",
+        "BaleSafirApiVersion",
         "SmsProviderCredential",
         "SmsGatewaySettings",
         "SiteModuleRegistryItem",
@@ -1538,7 +1637,7 @@
     {
       "path": "src/data/defaults.ts",
       "category": "root",
-      "lines": 653,
+      "lines": 716,
       "imports": [
         "../core/types.js",
         "../core/permissions.js"
@@ -1548,6 +1647,7 @@
         "IMAGES",
         "resolveStaticImageUrl",
         "INITIAL_MEDIA_LIBRARY",
+        "DEFAULT_BRAND_LOGO_URL",
         "BRAND_LOGO_PRESETS",
         "BRAND_FAVICON_PRESETS",
         "INITIAL_CUSTOM_WIDGETS",
@@ -1570,29 +1670,16 @@
     {
       "path": "src/data/initialCatalog.ts",
       "category": "root",
-      "lines": 1172,
+      "lines": 1193,
       "imports": [
         "../core/types.js",
-        "./defaults.js",
-        "./verifiedSkillsCatalog.js",
-        "muuri",
-        "gsap",
-        "lenis",
-        "gsap",
-        "animejs",
-        "gsap",
-        "lenis",
-        "@barba/core",
-        "muuri"
+        "./defaults.js"
       ],
       "exports": [
         "INITIAL_SKILL98_CATALOG",
-        "createInteractiveMuuriGrid",
-        "revealStoreCards",
         "INITIAL_ARTICLES",
         "TARGET_ARCHITECTURE_GUIDE",
         "STARTER_KIT_FILES",
-        "setupMotionEngine",
         "FULL_TARGET_GUIDE_MARKDOWN"
       ],
       "apiEndpoints": [],
@@ -1657,7 +1744,7 @@
     {
       "path": "src/firebase.ts",
       "category": "root",
-      "lines": 88,
+      "lines": 106,
       "imports": [
         "firebase/app",
         "firebase/auth",
@@ -1704,7 +1791,7 @@
     {
       "path": "src/modules/admin/AdminCmsView.tsx",
       "category": "modules",
-      "lines": 1449,
+      "lines": 1458,
       "imports": [
         "react",
         "lucide-react",
@@ -1858,7 +1945,7 @@
     {
       "path": "src/modules/admin/panels/AiSessionsThemePanel.tsx",
       "category": "modules",
-      "lines": 1061,
+      "lines": 1166,
       "imports": [
         "react",
         "lucide-react",
@@ -1898,7 +1985,7 @@
     {
       "path": "src/modules/admin/panels/CatalogEditorPanel.tsx",
       "category": "modules",
-      "lines": 1615,
+      "lines": 1731,
       "imports": [
         "react",
         "lucide-react",
@@ -1925,7 +2012,7 @@
     {
       "path": "src/modules/admin/panels/DbBackupPanel.tsx",
       "category": "modules",
-      "lines": 1155,
+      "lines": 1232,
       "imports": [
         "react",
         "lucide-react",
@@ -2113,7 +2200,7 @@
     {
       "path": "src/modules/admin/panels/SmsTriggersPanel.tsx",
       "category": "modules",
-      "lines": 2075,
+      "lines": 2159,
       "imports": [
         "react",
         "lucide-react",
@@ -2144,9 +2231,26 @@
       "dbTables": []
     },
     {
+      "path": "src/modules/admin/panels/UnifiedBaleHubPanel.tsx",
+      "category": "modules",
+      "lines": 1374,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../../core/types",
+        "../../../core/apiClient",
+        "../../../data/defaults"
+      ],
+      "exports": [
+        "UnifiedBaleHubPanel"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
       "path": "src/modules/admin/panels/UnifiedSettingsHubPanel.tsx",
       "category": "modules",
-      "lines": 928,
+      "lines": 1918,
       "imports": [
         "react",
         "lucide-react",
@@ -2165,6 +2269,7 @@
         "../components/SeoVisibilityControlCard",
         "../../../../modules/mod_booking/SolarBookingAutoBackupPanel",
         "../../../../modules/mod_ecommerce_suite/ShippingSettingsPanel",
+        "./UnifiedBaleHubPanel",
         "../../../../themes/registry"
       ],
       "exports": [
@@ -2352,7 +2457,7 @@
     {
       "path": "src/server/core/envConfig.ts",
       "category": "core",
-      "lines": 156,
+      "lines": 162,
       "imports": [
         "crypto",
         "fs",
@@ -2419,7 +2524,7 @@
     {
       "path": "src/server/database/backupService.ts",
       "category": "database",
-      "lines": 663,
+      "lines": 1024,
       "imports": [
         "crypto",
         "fs",
@@ -2440,6 +2545,8 @@
         "createBackupSnapshot",
         "getBackupHistory",
         "getBackupFileById",
+        "BackupRestoreResult",
+        "BackupRestoreError",
         "restoreBackupFromContent",
         "runScheduledBackupTick"
       ],
@@ -2473,7 +2580,7 @@
     {
       "path": "src/server/database/connection.ts",
       "category": "database",
-      "lines": 460,
+      "lines": 486,
       "imports": [
         "fs",
         "path",
@@ -2507,7 +2614,7 @@
     {
       "path": "src/server/database/index.ts",
       "category": "database",
-      "lines": 66,
+      "lines": 68,
       "imports": [],
       "exports": [],
       "apiEndpoints": [],
@@ -2516,9 +2623,10 @@
     {
       "path": "src/server/database/phase3Seeds.ts",
       "category": "database",
-      "lines": 610,
+      "lines": 637,
       "imports": [
         "../../core/types.js",
+        "../../data/defaults.js",
         "./connection.js"
       ],
       "exports": [
@@ -2582,7 +2690,7 @@
     {
       "path": "src/server/database/schema.ts",
       "category": "database",
-      "lines": 666,
+      "lines": 910,
       "imports": [
         "fs",
         "path",
@@ -2627,7 +2735,7 @@
     {
       "path": "src/server/database/settingsLogsRepo.ts",
       "category": "database",
-      "lines": 119,
+      "lines": 151,
       "imports": [
         "crypto",
         "../../core/types.js",
@@ -2636,6 +2744,8 @@
       "exports": [
         "getSetting",
         "setSetting",
+        "SystemLogHookPayload",
+        "registerSystemLogErrorHook",
         "writeSystemLog",
         "getSystemLogs",
         "clearAllSystemLogs"
@@ -2646,8 +2756,9 @@
     {
       "path": "src/server/database/smsService.ts",
       "category": "database",
-      "lines": 1078,
+      "lines": 1324,
       "imports": [
+        "crypto",
         "../../core/types.js",
         "../../data/defaults.js",
         "./catalogOrdersRepo.js",
@@ -2722,7 +2833,7 @@
     {
       "path": "src/server/modules/admin/adminDbBackupRouter.ts",
       "category": "modules",
-      "lines": 289,
+      "lines": 299,
       "imports": [
         "express",
         "../../../core/types.js",
@@ -3011,7 +3122,7 @@
     {
       "path": "src/server/modules/ai/aiSeoRouter.ts",
       "category": "modules",
-      "lines": 120,
+      "lines": 125,
       "imports": [
         "express",
         "@google/genai",
@@ -3035,7 +3146,7 @@
     {
       "path": "src/server/modules/auth/authRouter.ts",
       "category": "modules",
-      "lines": 693,
+      "lines": 736,
       "imports": [
         "crypto",
         "fs",
@@ -3257,7 +3368,7 @@
     {
       "path": "src/server/modules/media/mediaEngineRouter.ts",
       "category": "modules",
-      "lines": 379,
+      "lines": 496,
       "imports": [
         "express",
         "fs",
@@ -3272,6 +3383,9 @@
       ],
       "exports": [
         "migrateDatabaseBase64ToPhysicalWebp",
+        "collectAllReferencedSiteImageUrls",
+        "runBackgroundMediaOptimizerSweep",
+        "initContinuousMediaOptimizerAgent",
         "createMediaEngineRouter"
       ],
       "apiEndpoints": [
@@ -3284,6 +3398,11 @@
           "method": "POST",
           "path": "/api/v1/media/migrate-base64",
           "file": "src/server/modules/media/mediaEngineRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/media/sweep-optimize",
+          "file": "src/server/modules/media/mediaEngineRouter.ts"
         }
       ],
       "dbTables": []
@@ -3291,7 +3410,7 @@
     {
       "path": "src/server/modules/orders/ordersRouter.ts",
       "category": "modules",
-      "lines": 556,
+      "lines": 619,
       "imports": [
         "crypto",
         "express",
@@ -3299,7 +3418,8 @@
         "../../../data/defaults.js",
         "../../core/cryptoSecurity.js",
         "../../core/permissionsEngine.js",
-        "../../database/index.js"
+        "../../database/index.js",
+        "../../../../modules/mod_ai_hub_agent/baleAlertBridge.js"
       ],
       "exports": [
         "createOrdersRouter"
@@ -3331,9 +3451,10 @@
     {
       "path": "src/server/modules/storefront/storefrontRouter.ts",
       "category": "modules",
-      "lines": 201,
+      "lines": 205,
       "imports": [
         "express",
+        "../media/mediaEngineRouter.js",
         "../../core/cacheEngine.js",
         "../../core/cryptoSecurity.js",
         "../../core/permissionsEngine.js",
@@ -3491,7 +3612,7 @@
     {
       "path": "src/theme/components/SiteFooter.tsx",
       "category": "theme",
-      "lines": 320,
+      "lines": 318,
       "imports": [
         "react",
         "lucide-react",
@@ -3509,10 +3630,11 @@
     {
       "path": "src/theme/components/SiteHeader.tsx",
       "category": "theme",
-      "lines": 370,
+      "lines": 475,
       "imports": [
         "react",
         "lucide-react",
+        "../../data/defaults",
         "../../core/types",
         "../accentStyles"
       ],
@@ -3590,13 +3712,16 @@
     {
       "path": "core/agents/media-optimizer.d.ts",
       "category": "core",
-      "lines": 29,
+      "lines": 52,
       "imports": [],
       "exports": [
         "OptimizeImageInput",
         "OptimizeImageResult",
+        "MediaSweepResult",
         "optimizeAndStoreImageBuffer",
-        "auditMediaStorage"
+        "ensureSiblingWebpVariants",
+        "sweepAndOptimizeAllSiteImages",
+        "startBackgroundMediaOptimizerAgent"
       ],
       "apiEndpoints": [],
       "dbTables": []
@@ -3604,7 +3729,7 @@
     {
       "path": "core/agents/media-optimizer.js",
       "category": "core",
-      "lines": 117,
+      "lines": 340,
       "imports": [
         "fs",
         "path",
@@ -3615,7 +3740,10 @@
         "RESPONSIVE_SIZES",
         "resolveUploadRootDir",
         "getUploadMonthDir",
-        "optimizeAndStoreImageBuffer"
+        "optimizeAndStoreImageBuffer",
+        "ensureSiblingWebpVariants",
+        "sweepAndOptimizeAllSiteImages",
+        "startBackgroundMediaOptimizerAgent"
       ],
       "apiEndpoints": [],
       "dbTables": []
@@ -3962,14 +4090,21 @@
     {
       "path": "modules/mod_ai_hub_agent/AiCommandCenterCard.tsx",
       "category": "modules",
-      "lines": 415,
+      "lines": 1398,
       "imports": [
         "react",
         "lucide-react",
         "../../src/core/apiClient",
-        "./AiScheduledTasksCard"
+        "./AiScheduledTasksCard",
+        "./AiJarvisSettingsCard",
+        "./AiSocialPublisherCard",
+        "./jarvisTtsPlayer",
+        "./voiceWavEncoder",
+        "./browserSpeechHelper",
+        "./SafeMarkdownText"
       ],
       "exports": [
+        "BaleAlertsUiConfig",
         "AiCommandCenterCard"
       ],
       "apiEndpoints": [],
@@ -3978,7 +4113,7 @@
     {
       "path": "modules/mod_ai_hub_agent/AiHubAgentPanel.tsx",
       "category": "modules",
-      "lines": 222,
+      "lines": 279,
       "imports": [
         "react",
         "lucide-react",
@@ -3986,7 +4121,9 @@
         "./AiSlotsConfigCard",
         "./AiCommandCenterCard",
         "./AiSkillsApprovalsCard",
-        "./AiImageStudioWidget"
+        "./AiImageStudioWidget",
+        "./AiKnowledgeCacheCard",
+        "./AiJarvisSettingsCard"
       ],
       "exports": [
         "AiHubAgentPanel"
@@ -4010,6 +4147,39 @@
       "dbTables": []
     },
     {
+      "path": "modules/mod_ai_hub_agent/AiJarvisSettingsCard.tsx",
+      "category": "modules",
+      "lines": 362,
+      "imports": [
+        "react",
+        "lucide-react",
+        "./jarvisTtsPlayer"
+      ],
+      "exports": [
+        "JarvisAvatarUiPreset",
+        "JarvisSettingsUiConfig",
+        "DEFAULT_JARVIS_UI_SETTINGS",
+        "AiJarvisSettingsCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/AiKnowledgeCacheCard.tsx",
+      "category": "modules",
+      "lines": 601,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AiKnowledgeCacheCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
       "path": "modules/mod_ai_hub_agent/AiScheduledTasksCard.tsx",
       "category": "modules",
       "lines": 79,
@@ -4028,7 +4198,7 @@
     {
       "path": "modules/mod_ai_hub_agent/AiSkillsApprovalsCard.tsx",
       "category": "modules",
-      "lines": 234,
+      "lines": 254,
       "imports": [
         "react",
         "lucide-react",
@@ -4043,7 +4213,7 @@
     {
       "path": "modules/mod_ai_hub_agent/AiSlotsConfigCard.tsx",
       "category": "modules",
-      "lines": 362,
+      "lines": 376,
       "imports": [
         "react",
         "lucide-react",
@@ -4057,9 +4227,152 @@
       "dbTables": []
     },
     {
+      "path": "modules/mod_ai_hub_agent/AiSocialPublisherCard.tsx",
+      "category": "modules",
+      "lines": 494,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "AiSocialPublisherCard"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/SafeMarkdownText.tsx",
+      "category": "modules",
+      "lines": 158,
+      "imports": [
+        "react"
+      ],
+      "exports": [
+        "SafeMarkdownText"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/SuperAdminJarvisMascot.tsx",
+      "category": "modules",
+      "lines": 857,
+      "imports": [
+        "react",
+        "lucide-react",
+        "../../src/core/apiClient",
+        "./AiJarvisSettingsCard",
+        "./jarvisTtsPlayer",
+        "./voiceWavEncoder",
+        "./browserSpeechHelper",
+        "./SafeMarkdownText"
+      ],
+      "exports": [
+        "JarvisClientPageContext",
+        "SuperAdminJarvisMascot"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/agentContentFactory.ts",
+      "category": "modules",
+      "lines": 1166,
+      "imports": [
+        "dns/promises",
+        "net",
+        "@google/genai",
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "../../src/server/core/secretVault.js",
+        "../../src/server/core/envConfig.js",
+        "../../core/agents/media-optimizer.js",
+        "./aiHubSchema.js",
+        "./aiProviderGateway.js",
+        "./agentToolCallingEngine.js"
+      ],
+      "exports": [
+        "assertSafePublicUrl",
+        "fetchPublicSourceText",
+        "generateAndOptimizeWebpCover",
+        "runSkillToProductTool",
+        "runAuditMissingSeoAndMediaTool",
+        "runFixItemSeoAndMediaTool"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/agentSocialPublisher.ts",
+      "category": "modules",
+      "lines": 1030,
+      "imports": [
+        "fs",
+        "path",
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "../../src/server/core/secretVault.js",
+        "../../src/server/core/envConfig.js",
+        "../mod_delivery_logs/deliveryLogsRouter.js",
+        "./aiHubSchema.js",
+        "./aiProviderGateway.js",
+        "./agentToolsEngine.js",
+        "./baleAlertBridge.js",
+        "./agentContentFactory.js",
+        "./agentToolCallingEngine.js"
+      ],
+      "exports": [
+        "SocialChannelKey",
+        "InstagramFormatType",
+        "GeneratedSocialCopy",
+        "ChannelDispatchOutcome",
+        "testSocialChannelConnection",
+        "executeQueuedSocialApproval",
+        "runPublishOrDraftSocialPostTool"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/agentToolCallingEngine.ts",
+      "category": "modules",
+      "lines": 2769,
+      "imports": [
+        "fs",
+        "path",
+        "@google/genai",
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "../../src/server/core/secretVault.js",
+        "../../src/server/core/envConfig.js",
+        "./aiHubSchema.js",
+        "./aiProviderGateway.js",
+        "./baleAlertBridge.js",
+        "../../src/server/modules/admin/modulesConfigRouter.js",
+        "./agentContentFactory.js",
+        "./agentSocialPublisher.js",
+        "./jarvisCmsBuilderTools.js",
+        "../../src/server/database/smsService.js",
+        "./agentToolsEngine.js"
+      ],
+      "exports": [
+        "AgentUiActionType",
+        "ExecutedToolRecord",
+        "JarvisPageContext",
+        "AgentToolContext",
+        "MultiStepAgentTurnResult",
+        "executeCmsTool",
+        "buildGroundedSystemPrompt",
+        "runMultiStepAgentTurn"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
       "path": "modules/mod_ai_hub_agent/agentToolsEngine.ts",
       "category": "modules",
-      "lines": 426,
+      "lines": 655,
       "imports": [
         "../../src/server/database/connection.js",
         "../../src/server/database/usersSessionsRepo.js",
@@ -4067,10 +4380,13 @@
         "../../src/server/core/secretVault.js",
         "../mod_delivery_logs/deliveryLogsRouter.js",
         "./aiHubSchema.js",
-        "./aiProviderGateway.js"
+        "./agentToolCallingEngine.js",
+        "./baleAlertBridge.js",
+        "./knowledgeCacheEngine.js"
       ],
       "exports": [
         "isGenericDisplayName",
+        "sanitizePersianDisplayName",
         "extractNameFromChatMessage",
         "updateVisitorUserProfileTool",
         "queueAgentApproval",
@@ -4083,14 +4399,19 @@
     {
       "path": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts",
       "category": "modules",
-      "lines": 253,
+      "lines": 1148,
       "imports": [
         "express",
         "../../src/server/database/connection.js",
         "../../src/server/database/settingsLogsRepo.js",
         "./aiHubSchema.js",
         "./aiProviderGateway.js",
-        "./agentToolsEngine.js"
+        "./agentToolsEngine.js",
+        "./agentToolCallingEngine.js",
+        "./baleAlertBridge.js",
+        "./agentSocialPublisher.js",
+        "./agentContentFactory.js",
+        "./knowledgeCacheEngine.js"
       ],
       "exports": [
         "registerSuperAdminAgentRoutes"
@@ -4099,6 +4420,11 @@
         {
           "method": "GET",
           "path": "/api/v1/modules/ai-hub/agent/overview",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/ai-hub/agent/jarvis-config",
           "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
         },
         {
@@ -4135,6 +4461,71 @@
           "method": "POST",
           "path": "/api/v1/modules/ai-hub/agent/bot-bridge/test",
           "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/bale-alerts/test",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/ai-hub/agent/social-config",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/social-config",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/social-config/test",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/bale-pair/start",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/bale-pair/verify",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/daily-briefing/test",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/transcribe",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/speak",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/modules/ai-hub/agent/knowledge-cache",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/knowledge-cache",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/modules/ai-hub/agent/knowledge-cache/:id/status",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/modules/ai-hub/agent/knowledge-cache/:id",
+          "file": "modules/mod_ai_hub_agent/aiAgentSubRouter.ts"
         }
       ],
       "dbTables": []
@@ -4142,7 +4533,7 @@
     {
       "path": "modules/mod_ai_hub_agent/aiHubRouter.ts",
       "category": "modules",
-      "lines": 227,
+      "lines": 280,
       "imports": [
         "express",
         "../../src/server/database/connection.js",
@@ -4150,7 +4541,9 @@
         "../../src/server/core/secretVault.js",
         "./aiHubSchema.js",
         "./aiProviderGateway.js",
-        "./aiAgentSubRouter.js"
+        "./aiAgentSubRouter.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "./baleAlertBridge.js"
       ],
       "exports": [
         "createAiHubAgentRouter"
@@ -4182,23 +4575,49 @@
     {
       "path": "modules/mod_ai_hub_agent/aiHubSchema.ts",
       "category": "modules",
-      "lines": 261,
+      "lines": 1013,
       "imports": [
         "express",
         "../../src/server/database/connection.js",
         "../../src/server/database/settingsLogsRepo.js",
-        "../../src/server/core/permissionsEngine.js"
+        "../../src/server/core/permissionsEngine.js",
+        "../../src/server/core/secretVault.js",
+        "./knowledgeCacheEngine.js"
       ],
       "exports": [
         "AiSlotKey",
         "AiProviderKind",
+        "MemoryScopeType",
+        "AgentActorRole",
         "AiSlotRow",
+        "AgentMemoryRow",
+        "AgentSkillRow",
+        "BaleAdminAlertsConfig",
+        "BaleAdminAlertsPublicConfig",
+        "DEFAULT_BALE_ADMIN_ALERTS",
+        "InstagramPublishMode",
+        "SocialPublisherStoredConfig",
+        "SocialPublisherPublicConfig",
+        "DEFAULT_SOCIAL_PUBLISHER_CONFIG",
+        "VoiceReplyProvider",
+        "JarvisAvatarPreset",
+        "JarvisSettingsConfig",
+        "DEFAULT_JARVIS_SETTINGS",
+        "KnowledgeAutoLearnMode",
         "AiHubRuntimeSettings",
         "DEFAULT_AI_HUB_SETTINGS",
         "ensureAiHubSchema",
         "getAiHubSettings",
+        "maskAiHubSettingsForClient",
         "saveAiHubSettings",
+        "getSocialPublisherConfig",
+        "getMaskedSocialPublisherConfig",
+        "saveSocialPublisherConfig",
         "isAiHubModuleEnabled",
+        "upsertAgentMemory",
+        "readScopedAgentMemories",
+        "migrateGuestMemoriesToUser",
+        "getAllActiveAgentSkills",
         "requireStrictSuperAdmin"
       ],
       "apiEndpoints": [],
@@ -4207,13 +4626,16 @@
         "mod_ai_agent_skills",
         "mod_ai_agent_tasks",
         "mod_ai_agent_conversations",
-        "mod_ai_approval_queue"
+        "mod_ai_approval_queue",
+        "mod_ai_agent_memory",
+        "mod_ai_social_packages",
+        "mod_ai_knowledge_cache"
       ]
     },
     {
       "path": "modules/mod_ai_hub_agent/aiProviderGateway.ts",
       "category": "modules",
-      "lines": 586,
+      "lines": 813,
       "imports": [
         "fs",
         "path",
@@ -4230,7 +4652,146 @@
         "AiConnectionTestResult",
         "testAiSlotConnection",
         "ImageStudioResult",
-        "generateImagePromptAndAsset"
+        "generateImagePromptAndAsset",
+        "VoiceTranscriptionResult",
+        "transcribeAudioViaVoiceSlot",
+        "VoiceTtsResult",
+        "synthesizeSpeechViaVoiceSlot"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/baleAlertBridge.ts",
+      "category": "modules",
+      "lines": 1001,
+      "imports": [
+        "crypto",
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "../../src/server/core/secretVault.js",
+        "../mod_delivery_logs/deliveryLogsRouter.js",
+        "./aiHubSchema.js"
+      ],
+      "exports": [
+        "BaleAlertCategory",
+        "BaleAlertDispatchResult",
+        "sanitizeBaleBotToken",
+        "resolveBaleBotTokenOnly",
+        "sendSuperAdminBaleAlert",
+        "startBalePairingSession",
+        "verifyBalePairingSession",
+        "getTehranDateAndTime",
+        "DailyBriefingMetrics",
+        "collectDailyBriefingMetrics",
+        "sendDailyMorningBriefing",
+        "startDailyMorningBriefingScheduler",
+        "buildSystemErrorSignatureKey",
+        "markHeartbeatErrorSeen",
+        "runZeroTokenHeartbeatCheckOnce",
+        "startZeroTokenHeartbeatScheduler"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/browserSpeechHelper.ts",
+      "category": "modules",
+      "lines": 156,
+      "imports": [],
+      "exports": [
+        "JarvisVoiceInputMode",
+        "BrowserSpeechRecognitionHandle",
+        "isBrowserSpeechSupported",
+        "getSavedVoiceMode",
+        "saveVoiceMode",
+        "startBrowserPersianSpeech"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/jarvisCmsBuilderTools.ts",
+      "category": "modules",
+      "lines": 448,
+      "imports": [
+        "../../src/core/types.js",
+        "../../src/server/core/cacheEngine.js",
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "../../src/server/modules/admin/modulesConfigRouter.js",
+        "./knowledgeCacheEngine.js"
+      ],
+      "exports": [
+        "JarvisBuilderToolResult",
+        "sanitizePageHtml",
+        "runCreateOrUpdatePageTool",
+        "runReplyToLiveChatTool",
+        "runManageSiteModulesTool",
+        "runManageKnowledgeCacheTool"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/jarvisTtsPlayer.ts",
+      "category": "modules",
+      "lines": 199,
+      "imports": [
+        "../../src/core/apiClient"
+      ],
+      "exports": [
+        "JarvisVoiceProvider",
+        "JarvisTtsConfig",
+        "stripMarkdownForSpeech",
+        "stopJarvisSpeech",
+        "speakWithFreeBrowserTts",
+        "speakWithSlot4PaidTts",
+        "playJarvisMessageAudio"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/knowledgeCacheEngine.ts",
+      "category": "modules",
+      "lines": 614,
+      "imports": [
+        "../../src/server/database/connection.js",
+        "../../src/server/database/settingsLogsRepo.js",
+        "./aiHubSchema.js"
+      ],
+      "exports": [
+        "KnowledgeCacheCategory",
+        "KnowledgeCacheStatus",
+        "KnowledgeCacheSource",
+        "KnowledgeCacheRow",
+        "KnowledgeMatchResult",
+        "normalizePersianText",
+        "extractNormalizedTokens",
+        "getLiveSiteTitleAndDesc",
+        "seedDefaultKnowledgeCache",
+        "matchKnowledgeCache",
+        "isSafeForKnowledgeCache",
+        "tryLearnToKnowledgeCache",
+        "listKnowledgeCache",
+        "getKnowledgeCacheStats",
+        "upsertKnowledgeCacheEntry",
+        "updateKnowledgeCacheStatus",
+        "deleteKnowledgeCacheEntry",
+        "getGuestLlmQuotaUsage",
+        "incrementGuestLlmQuotaUsage"
+      ],
+      "apiEndpoints": [],
+      "dbTables": []
+    },
+    {
+      "path": "modules/mod_ai_hub_agent/voiceWavEncoder.ts",
+      "category": "modules",
+      "lines": 125,
+      "imports": [],
+      "exports": [
+        "encodeAudioBlobToMono16kWav"
       ],
       "apiEndpoints": [],
       "dbTables": []
@@ -4728,11 +5289,12 @@
     {
       "path": "modules/mod_forms/formsEngineRouter.ts",
       "category": "modules",
-      "lines": 245,
+      "lines": 256,
       "imports": [
         "express",
         "../../src/server/core/permissionsEngine.js",
-        "../../src/server/database/index.js"
+        "../../src/server/database/index.js",
+        "../mod_ai_hub_agent/baleAlertBridge.js"
       ],
       "exports": [
         "createModFormsRouter"
@@ -4899,7 +5461,7 @@
     {
       "path": "modules/mod_live_chat/ChatInlineOtpCard.tsx",
       "category": "modules",
-      "lines": 204,
+      "lines": 239,
       "imports": [
         "react",
         "lucide-react",
@@ -4915,7 +5477,7 @@
     {
       "path": "modules/mod_live_chat/GoftinoLiveChatWidget.tsx",
       "category": "modules",
-      "lines": 403,
+      "lines": 490,
       "imports": [
         "react",
         "lucide-react",
@@ -4947,12 +5509,13 @@
     {
       "path": "modules/mod_live_chat/liveChatRouter.ts",
       "category": "modules",
-      "lines": 544,
+      "lines": 623,
       "imports": [
         "express",
         "../../src/server/core/permissionsEngine.js",
         "../../src/server/database/index.js",
-        "../mod_ai_hub_agent/agentToolsEngine.js"
+        "../mod_ai_hub_agent/agentToolsEngine.js",
+        "../mod_ai_hub_agent/aiHubSchema.js"
       ],
       "exports": [
         "createModLiveChatRouter"
@@ -5533,7 +6096,7 @@
     {
       "path": "themes/fatehan/components/FatehanStorefrontHome.tsx",
       "category": "theme",
-      "lines": 2660,
+      "lines": 3197,
       "imports": [
         "react",
         "motion/react",
@@ -5541,6 +6104,7 @@
         "../ui/FatehanLogo",
         "../utils/formatters",
         "../utils/defaultFallbacks",
+        "../../../src/core/responsiveImage",
         "../types",
         "lucide-react"
       ],
@@ -5553,7 +6117,7 @@
     {
       "path": "themes/fatehan/components/StoreOtpLoginModal.tsx",
       "category": "theme",
-      "lines": 213,
+      "lines": 260,
       "imports": [
         "react",
         "motion/react",
@@ -5571,7 +6135,7 @@
     {
       "path": "themes/fatehan/components/StorefrontFooter.tsx",
       "category": "theme",
-      "lines": 263,
+      "lines": 312,
       "imports": [
         "react",
         "../context/FatehanThemeContext",
@@ -5588,7 +6152,7 @@
     {
       "path": "themes/fatehan/components/StorefrontHeader.tsx",
       "category": "theme",
-      "lines": 475,
+      "lines": 629,
       "imports": [
         "react",
         "motion/react",
@@ -5625,11 +6189,12 @@
     {
       "path": "themes/fatehan/context/FatehanThemeContext.tsx",
       "category": "theme",
-      "lines": 474,
+      "lines": 588,
       "imports": [
         "react",
         "../types",
         "./cmsApiAdapter",
+        "../../../src/core/apiClient",
         "../utils/defaultFallbacks"
       ],
       "exports": [
@@ -5644,10 +6209,11 @@
     {
       "path": "themes/fatehan/context/cmsApiAdapter.ts",
       "category": "theme",
-      "lines": 414,
+      "lines": 720,
       "imports": [
         "../types",
-        "../../../src/core/apiClient"
+        "../../../src/core/apiClient",
+        "../utils/defaultFallbacks"
       ],
       "exports": [
         "CmsApiAdapterOptions",
@@ -5694,7 +6260,7 @@
     {
       "path": "themes/fatehan/layouts/FatehanThemeShell.tsx",
       "category": "theme",
-      "lines": 56,
+      "lines": 71,
       "imports": [
         "react",
         "motion/react",
@@ -5702,10 +6268,7 @@
         "../context/FatehanThemeContext",
         "./DesktopLayout",
         "./TabletLayout",
-        "./MobileLayout",
-        "../components/CartDrawer",
-        "../components/VideoLabModal",
-        "../components/StoreOtpLoginModal"
+        "./MobileLayout"
       ],
       "exports": [
         "FatehanThemeShell"
@@ -5755,7 +6318,7 @@
     {
       "path": "themes/fatehan/pages/BlogAndAccountRoutes.tsx",
       "category": "theme",
-      "lines": 2103,
+      "lines": 2241,
       "imports": [
         "react",
         "motion/react",
@@ -5776,7 +6339,7 @@
     {
       "path": "themes/fatehan/pages/FatehanMultiPages.tsx",
       "category": "theme",
-      "lines": 2124,
+      "lines": 2133,
       "imports": [
         "react",
         "motion/react",
@@ -5822,7 +6385,7 @@
     {
       "path": "themes/fatehan/pages/StorefrontRouter.tsx",
       "category": "theme",
-      "lines": 2377,
+      "lines": 2702,
       "imports": [
         "react",
         "motion/react",
@@ -5834,8 +6397,8 @@
         "../types",
         "./PageRenderer",
         "../components/FatehanStorefrontHome",
-        "./BlogAndAccountRoutes",
-        "./FatehanMultiPages",
+        "../../../src/core/responsiveImage",
+        "../utils/defaultFallbacks",
         "lucide-react"
       ],
       "exports": [
@@ -5848,7 +6411,7 @@
     {
       "path": "themes/fatehan/styles/fatehan-theme.css",
       "category": "theme",
-      "lines": 370,
+      "lines": 331,
       "imports": [],
       "exports": [],
       "apiEndpoints": [],
@@ -5866,7 +6429,7 @@
     {
       "path": "themes/fatehan/types/index.ts",
       "category": "theme",
-      "lines": 684,
+      "lines": 700,
       "imports": [],
       "exports": [
         "ViewportMode",
@@ -5936,10 +6499,11 @@
     {
       "path": "themes/fatehan/ui/FatehanLogo.tsx",
       "category": "theme",
-      "lines": 130,
+      "lines": 157,
       "imports": [
         "react",
-        "../context/FatehanThemeContext"
+        "../context/FatehanThemeContext",
+        "../../../src/core/responsiveImage"
       ],
       "exports": [
         "FatehanLogoProps",
@@ -5951,7 +6515,7 @@
     {
       "path": "themes/fatehan/ui/ScrollReveal.tsx",
       "category": "theme",
-      "lines": 148,
+      "lines": 144,
       "imports": [
         "react",
         "motion/react"
@@ -5981,7 +6545,7 @@
     {
       "path": "themes/fatehan/utils/defaultFallbacks.ts",
       "category": "theme",
-      "lines": 328,
+      "lines": 674,
       "imports": [
         "../types"
       ],
@@ -5994,7 +6558,11 @@
         "DEFAULT_DEPARTMENTS",
         "DEFAULT_FALLBACK_ANNOUNCEMENTS",
         "DEFAULT_FALLBACK_FREE_COURSES",
-        "DEFAULT_FALLBACK_COURSES"
+        "DEFAULT_FALLBACK_COURSES",
+        "ShopDepartmentDef",
+        "SHOP_DEPARTMENTS",
+        "resolveProductDepartmentId",
+        "DEFAULT_FATEHAN_HARDWARE_PRODUCTS"
       ],
       "apiEndpoints": [],
       "dbTables": []

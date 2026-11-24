@@ -144,7 +144,7 @@ export const RbacPermissionsPanel: React.FC<RbacPermissionsPanelProps> = ({
       titleFa: newRoleTitle.trim(),
       badgeColor: badgeMap[newRoleSlug],
       description:
-        newRoleDesc.trim() || 'نقش سفارشی تعریف‌شده در سیستم مدیریت اسکیل ۹۸',
+        newRoleDesc.trim() || 'نقش سفارشی تعریف‌شده در سیستم مدیریت آموزشگاه رباتیک فاتحان',
       usersCount: 0,
       permissions: {
         ...EMPTY_ROLE_PERMISSIONS,

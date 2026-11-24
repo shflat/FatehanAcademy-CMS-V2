@@ -60,30 +60,30 @@ interface StaticCmsPageItem {
 const INITIAL_CMS_PAGES: StaticCmsPageItem[] = [
   {
     id: 'page-home',
-    title: 'برگه نخست (ویترین اصلی اسکیل ۹۸)',
+    title: 'برگه نخست (ویترین اصلی آموزشگاه رباتیک فاتحان)',
     slug: '/',
     template: 'landing',
     status: 'published',
     updatedAtIso: new Date().toISOString(),
-    summary: 'چیدمان هیرو، گرید تعاملی Muuri و مجله تخصصی اسکیل ۹۸',
+    summary: 'چیدمان هیرو، ۵ دپارتمان تخصصی، دوره‌ها، کیت‌های رباتیک و مجله علمی فاتحان',
   },
   {
     id: 'page-about',
-    title: 'درباره استودیو مهندسی اسکیل ۹۸',
+    title: 'درباره آموزشگاه تخصصی رباتیک فاتحان',
     slug: '/about',
     template: 'content',
     status: 'published',
     updatedAtIso: new Date().toISOString(),
-    summary: 'معرفی تیم مهندسی، استانداردهای کدنویسی و معماری ماژولار',
+    summary: 'معرفی کارگاه‌های ۵ دپارتمان، گواهینامه‌های معتبر و رویکرد پروژه محور',
   },
   {
     id: 'page-terms',
-    title: 'قوانین، حریم خصوصی و شرایط استفاده',
+    title: 'قوانین آموزشی، ثبت‌نام و خرید کیت‌های رباتیک',
     slug: '/terms',
     template: 'content',
     status: 'published',
     updatedAtIso: new Date().toISOString(),
-    summary: 'شرایط لایسنس محصولات دیجیتال، پشتیبانی و تحویل آنی',
+    summary: 'شرایط ثبت‌نام دوره‌ها، اقساط شهریه و گارانتی سلامت قطعات کیت‌ها',
   },
 ];
 
