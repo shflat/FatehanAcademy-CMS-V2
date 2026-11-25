@@ -833,6 +833,55 @@ async function seedInitialData(): Promise<void> {
     );
   }
 
+  // One-time safe idempotent migration: upgrade legacy default address seed (واحد ۲ -> واحد ۳)
+  // Only touches exact legacy default string; never overwrites custom addresses entered by admin.
+  const unit3Mig = await dbQuery<{ key: string }>(
+    `SELECT key FROM site_settings WHERE key = $1 LIMIT 1`,
+    ['migration_address_unit3_v301']
+  );
+  if (unit3Mig.length === 0) {
+    const OLD_DEFAULT_ADDR = 'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲';
+    const NEW_DEFAULT_ADDR = 'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳';
+
+    const existingTheme = await getSetting<Record<string, any> | null>('theme_config', null);
+    if (existingTheme && existingTheme.contactLocation?.fullAddress === OLD_DEFAULT_ADDR) {
+      existingTheme.contactLocation.fullAddress = NEW_DEFAULT_ADDR;
+      await dbExec(
+        `INSERT INTO site_settings (key, value_json, updated_at)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = EXCLUDED.updated_at`,
+        ['theme_config', JSON.stringify(existingTheme), nowIso]
+      );
+    }
+
+    const contactPages = await dbQuery<{ id: string; seo_description: string; composer_rows_json: string }>(
+      `SELECT id, seo_description, composer_rows_json FROM pages WHERE id = $1 LIMIT 1`,
+      ['page_contact_us']
+    );
+    if (contactPages[0]) {
+      const nextSeo = (contactPages[0].seo_description || '').split(OLD_DEFAULT_ADDR).join(NEW_DEFAULT_ADDR);
+      const nextRows = (contactPages[0].composer_rows_json || '').split(OLD_DEFAULT_ADDR).join(NEW_DEFAULT_ADDR);
+      if (nextSeo !== contactPages[0].seo_description || nextRows !== contactPages[0].composer_rows_json) {
+        await dbExec(
+          `UPDATE pages SET seo_description = $1, composer_rows_json = $2, updated_at = $3 WHERE id = $4`,
+          [nextSeo, nextRows, nowIso, contactPages[0].id]
+        );
+      }
+    }
+
+    await dbExec(
+      `UPDATE invoice_templates SET seller_address = $1, updated_at = $2 WHERE seller_address = $3`,
+      [NEW_DEFAULT_ADDR, nowIso, OLD_DEFAULT_ADDR]
+    );
+
+    await dbExec(
+      `INSERT INTO site_settings (key, value_json, updated_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (key) DO UPDATE SET value_json = EXCLUDED.value_json, updated_at = EXCLUDED.updated_at`,
+      ['migration_address_unit3_v301', JSON.stringify({ appliedAt: nowIso }), nowIso]
+    );
+  }
+
   // Create & Seed Phase 5 Isolated Modular Tables (mod_payment_hub, mod_inventory_accounting, mod_forms, mod_ecommerce_suite)
   await createAndSeedPhase5ModulesSchema(nowIso);
 

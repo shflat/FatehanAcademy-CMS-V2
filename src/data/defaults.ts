@@ -256,7 +256,7 @@ export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   contactLocation: {
     province: 'تهران / البرز',
     city: 'اندیشه',
-    fullAddress: 'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+    fullAddress: 'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳',
     workingHours: 'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
     postalCode: '3351984210',
   },

@@ -1087,7 +1087,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                           city: themeConfig.contactLocation?.city || 'اندیشه',
                           fullAddress:
                             themeConfig.contactLocation?.fullAddress ||
-                            'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                            'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳',
                           workingHours:
                             themeConfig.contactLocation?.workingHours ||
                             'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
@@ -1114,7 +1114,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                             province: 'تهران',
                             city: 'اندیشه',
                             fullAddress:
-                              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳',
                             workingHours:
                               'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
                           }),
@@ -1141,7 +1141,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                             province: 'تهران',
                             city: 'اندیشه',
                             fullAddress:
-                              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳',
                             workingHours:
                               'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
                           }),
@@ -1170,7 +1170,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                             province: 'تهران',
                             city: 'اندیشه',
                             fullAddress:
-                              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳',
                             workingHours:
                               'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
                           }),
@@ -1191,7 +1191,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                   type="text"
                   value={
                     themeConfig.contactLocation?.fullAddress ||
-                    'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲'
+                    'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳'
                   }
                   onChange={(e) =>
                     onUpdateThemeConfig({
@@ -1201,7 +1201,7 @@ export const UnifiedSettingsHubPanel: React.FC<UnifiedSettingsHubPanelProps> = (
                           province: 'تهران',
                           city: 'اندیشه',
                           fullAddress:
-                            'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                            'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳',
                           workingHours:
                             'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
                         }),

@@ -352,12 +352,15 @@ export const FatehanCoursesPage: React.FC = () => {
                 </button>
 
                 <a
-                  href={`tel:${settings.phones.primary}`}
+                  href={`tel:${(settings.phones.primary || '').replace(/\s+/g, '')}`}
                   className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all border border-slate-700 whitespace-nowrap"
-                  dir="ltr"
+                  dir="rtl"
                 >
                   <Phone className="w-4 h-4 shrink-0 text-cyan-400" />
-                  <span>مشاوره تلفنی: {settings.phones.primaryFormatted}</span>
+                  <span>مشاوره تلفنی:</span>
+                  <bdi dir="ltr" className="bidi-safe font-mono tabular-nums tracking-wide">
+                    {settings.phones.primaryFormatted}
+                  </bdi>
                 </a>
               </div>
             </div>
@@ -2114,16 +2117,16 @@ export const FatehanAboutPage: React.FC = () => {
             📍 نشانی دفتر مرکزی و کارگاه:{' '}
             {settings.location.addressFull ||
               (state?.builderBlocks || []).find((b) => b.id === 'BLK-HOME-CONTACT')?.itemsList?.[3]?.title ||
-              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲'}
+              'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳'}
           </span>
           <div className="flex items-center gap-3 font-mono font-bold text-blue-700" dir="ltr">
-            <span>
-              {settings.phones.primaryFormatted || '0910 311 67 53'}
-            </span>
+            <bdi dir="ltr" className="bidi-safe tabular-nums">
+              {settings.phones.primaryFormatted || '۰۹۱۰ ۳۱۱ ۶۷۵۳'}
+            </bdi>
             <span>|</span>
-            <span>
-              {settings.phones.landlineFormatted || '021 6550 60 15'}
-            </span>
+            <bdi dir="ltr" className="bidi-safe tabular-nums">
+              {settings.phones.landlineFormatted || '۰۲۱ ۶۵۵۰ ۶۰۱۵'}
+            </bdi>
           </div>
         </div>
       </section>

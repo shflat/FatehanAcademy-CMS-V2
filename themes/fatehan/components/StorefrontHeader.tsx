@@ -85,11 +85,20 @@ export const StorefrontHeader: React.FC = () => {
   const contactBlk = state.builderBlocks.find(
     (b) => b.id === 'BLK-HOME-CONTACT' || b.id === 'BLK-CONTACT-MAIN'
   );
-  const topBarAddress = contactBlk?.itemsList?.[3]?.title || settings.location.addressShort;
-  const topBarLandline = contactBlk?.itemsList?.[2]?.title || settings.phones.landlineFormatted;
-  const topBarLandlineClean = topBarLandline.replace(/\s+/g, '');
-  const topBarPrimary = contactBlk?.itemsList?.[0]?.title || settings.phones.primaryFormatted;
-  const topBarPrimaryClean = topBarPrimary.replace(/\s+/g, '');
+  const topBarAddress =
+    settings.location.addressFull ||
+    contactBlk?.itemsList?.[3]?.title ||
+    settings.location.addressShort;
+  const topBarLandline =
+    settings.phones.landlineFormatted ||
+    contactBlk?.itemsList?.[2]?.title ||
+    '';
+  const topBarLandlineClean = (settings.phones.landline || topBarLandline).replace(/\s+/g, '');
+  const topBarPrimary =
+    settings.phones.primaryFormatted ||
+    contactBlk?.itemsList?.[0]?.title ||
+    '';
+  const topBarPrimaryClean = (settings.phones.primary || topBarPrimary).replace(/\s+/g, '');
 
   const visibleAnnouncements = useMemo(() => {
     const rawList = state.announcements || [];
@@ -152,7 +161,7 @@ export const StorefrontHeader: React.FC = () => {
                 title="تلفن ثابت آموزشگاه"
               >
                 <Phone className="w-3 h-3 text-amber-400" />
-                <span>{topBarLandline}</span>
+                <bdi dir="ltr" className="bidi-safe tabular-nums">{topBarLandline}</bdi>
               </a>
               <span className="text-slate-600">|</span>
               <a
@@ -162,7 +171,7 @@ export const StorefrontHeader: React.FC = () => {
                 title="تلفن همراه و مشاوره ثبت‌نام"
               >
                 <Phone className="w-3 h-3 text-cyan-400" />
-                <span>{topBarPrimary}</span>
+                <bdi dir="ltr" className="bidi-safe tabular-nums">{topBarPrimary}</bdi>
               </a>
             </div>
           </div>

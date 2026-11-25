@@ -356,7 +356,7 @@ export function createCmsV2ApiAdapter(options: CmsApiAdapterOptions = {}): CmsAp
               city: loc?.city || 'اندیشه',
               addressFull:
                 loc?.fullAddress ||
-                'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+                'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳',
               workingHours:
                 loc?.workingHours || 'ساعات کاری: شنبه تا پنجشنبه (۹ صبح تا ۸ شب)',
             },

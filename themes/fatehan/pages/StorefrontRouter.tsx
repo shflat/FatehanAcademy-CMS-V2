@@ -2591,7 +2591,12 @@ export const StorefrontRouter: React.FC = () => {
               <div className="font-extrabold text-slate-900">
                 فروشنده: {settings.academyNameFa} ({settings.location.city})
               </div>
-              <div>تلفن تماس: {settings.phones.primaryFormatted}</div>
+              <div>
+                تلفن تماس:{' '}
+                <bdi dir="ltr" className="bidi-safe font-mono tabular-nums">
+                  {settings.phones.primaryFormatted}
+                </bdi>
+              </div>
               <div>نشانی: {settings.location.addressFull} · وب‌سایت: {settings.domain}</div>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-300 space-y-1">
@@ -2600,7 +2605,11 @@ export const StorefrontRouter: React.FC = () => {
                 شناسه/کد ملی: {order.nationalId} · کد پستی: {order.postalCode}
               </div>
               <div>
-                تلفن: {order.phone} · نشانی: {order.address}
+                تلفن:{' '}
+                <bdi dir="ltr" className="bidi-safe font-mono tabular-nums">
+                  {order.phone}
+                </bdi>{' '}
+                · نشانی: {order.address}
               </div>
             </div>
           </div>

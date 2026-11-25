@@ -1176,7 +1176,7 @@ export const STARTER_KIT_FILES: StarterFileEntry[] = [
           ],
           address:
             theme.contactLocation?.fullAddress ||
-            'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۲',
+            'اندیشه، فاز ۱، نبش خیابان شاهد غربی، ساختمان کیمیا، طبقه اول، واحد ۳',
           instagram: theme.socialChannels?.instagramId || 'fatehan.robot',
           eitaa: theme.socialChannels?.eitaaId || 'fatehan_robotics',
         },
