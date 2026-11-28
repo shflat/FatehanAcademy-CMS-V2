@@ -30,32 +30,32 @@ import {
 } from 'lucide-react';
 
 function renderMobileIcon(icon?: CmsMenuItem['icon'], path?: string) {
-  if (path === '/cart') return <ShoppingBag className="w-4 h-4 shrink-0" />;
+  if (path === '/cart') return <ShoppingBag className="w-[15px] h-[15px] shrink-0" />;
   switch (icon) {
     case 'home':
-      return <Home className="w-4 h-4 shrink-0" />;
+      return <Home className="w-[15px] h-[15px] shrink-0" />;
     case 'sparkles':
-      return <Sparkles className="w-4 h-4 shrink-0" />;
+      return <Sparkles className="w-[15px] h-[15px] shrink-0" />;
     case 'store':
-      return <Store className="w-4 h-4 shrink-0" />;
+      return <Store className="w-[15px] h-[15px] shrink-0" />;
     case 'phone':
-      return <Phone className="w-4 h-4 shrink-0" />;
+      return <Phone className="w-[15px] h-[15px] shrink-0" />;
     case 'gift':
-      return <Gift className="w-4 h-4 shrink-0" />;
+      return <Gift className="w-[15px] h-[15px] shrink-0" />;
     case 'file-text':
-      return <FileText className="w-4 h-4 shrink-0" />;
+      return <FileText className="w-[15px] h-[15px] shrink-0" />;
     case 'info':
-      return <Info className="w-4 h-4 shrink-0" />;
+      return <Info className="w-[15px] h-[15px] shrink-0" />;
     case 'map-pin':
-      return <MapPin className="w-4 h-4 shrink-0" />;
+      return <MapPin className="w-[15px] h-[15px] shrink-0" />;
     case 'compass':
-      return <Compass className="w-4 h-4 shrink-0" />;
+      return <Compass className="w-[15px] h-[15px] shrink-0" />;
     case 'credit-card':
-      return <CreditCard className="w-4 h-4 shrink-0" />;
+      return <CreditCard className="w-[15px] h-[15px] shrink-0" />;
     case 'user':
-      return <User className="w-4 h-4 shrink-0" />;
+      return <User className="w-[15px] h-[15px] shrink-0" />;
     default:
-      return <Home className="w-4 h-4 shrink-0" />;
+      return <Home className="w-[15px] h-[15px] shrink-0" />;
   }
 }
 
@@ -76,9 +76,9 @@ export const MobileLayout: React.FC = () => {
   };
 
   return (
-    <div className="viewport-mobile min-h-screen bg-slate-100 sm:py-2">
+    <div className="viewport-mobile min-h-screen bg-[#f8fcfd] sm:py-2">
       <SmoothScrollProgressBar />
-      <div className="max-w-[430px] mx-auto bg-[#F4F7FE] text-slate-900 sm:border sm:border-slate-200 sm:rounded-3xl shadow-xl overflow-x-clip pb-20 min-h-screen relative">
+      <div className="max-w-[430px] mx-auto fatehan-blue-canvas text-slate-900 sm:border sm:border-cyan-200/70 sm:rounded-3xl shadow-xl overflow-x-clip pb-18 min-h-screen relative">
         <StorefrontHeader />
 
         <main className="px-3.5 pb-10">
@@ -86,8 +86,8 @@ export const MobileLayout: React.FC = () => {
           <StorefrontFooter />
         </main>
 
-        {/* Mobile Native Storefront Bottom Tab Navigation */}
-        <nav className="no-print fixed bottom-2 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl py-1.5 px-2 flex items-center justify-around text-[10px] font-bold text-slate-500 z-30 shadow-lg">
+        {/* Mobile Native Storefront Bottom Tab Navigation — Sleek Floating Inset Dock */}
+        <nav className="no-print fixed bottom-2.5 left-1/2 -translate-x-1/2 w-[calc(100%-28px)] max-w-[396px] bg-white/95 backdrop-blur-md border border-cyan-200/80 rounded-2xl py-1 px-1.5 flex items-center justify-around text-[10px] font-bold text-slate-500 z-30 shadow-[0_10px_28px_-10px_rgba(8,145,178,0.22)]">
           {mobileTabs.map((item) => {
             const active = isTabActive(item);
             const isCartTab = item.path === '/cart';
@@ -96,7 +96,7 @@ export const MobileLayout: React.FC = () => {
                 key={item.id}
                 type="button"
                 onClick={() => navigateStore(item.path)}
-                className={`relative flex flex-col items-center gap-0.5 cursor-pointer whitespace-nowrap min-w-[56px] py-1 ${
+                className={`relative flex flex-col items-center justify-center gap-0.5 cursor-pointer whitespace-nowrap min-w-[48px] py-0.5 px-1 rounded-xl leading-tight transition-colors ${
                   active ? 'text-blue-600 font-black' : 'hover:text-slate-900'
                 }`}
               >

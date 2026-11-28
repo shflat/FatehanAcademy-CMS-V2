@@ -210,6 +210,26 @@ export interface FatehanCourse {
   seoTitle?: string;
   seoDescription?: string;
   focusKeyword?: string;
+  departmentId?: string;
+  instructorName?: string;
+  maxCapacity?: number;
+  enrolledCount?: number;
+  scheduleTime?: string;
+  termSeason?: string;
+  branchName?: string;
+  gradeLevel?: string;
+  classDays?: string;
+  deliveryMode?: string;
+  hasCertificate?: boolean;
+  certificateTitle?: string;
+  installmentAvailable?: boolean;
+  installmentNote?: string;
+  introVideoUrl?: string;
+  galleryImages?: string[];
+  fullDescription?: string;
+  tags?: string[];
+  isPublished?: boolean;
+  isFeatured?: boolean;
 }
 
 export interface AcademyCourseItem {

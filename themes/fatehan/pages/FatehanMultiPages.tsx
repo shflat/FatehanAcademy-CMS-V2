@@ -11,6 +11,11 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFatehanTheme } from '../context/FatehanThemeContext';
 import { FatehanLogo } from '../ui/FatehanLogo';
+import {
+  RoboticsBlueprintGrid,
+  RoboticArmVector,
+  AutonomousRoverVector,
+} from '../ui/RoboticsVisualAccents';
 import { formatPersianNumber, formatToman } from '../utils/formatters';
 import { DEFAULT_FALLBACK_COURSES, DEFAULT_FALLBACK_FREE_COURSES } from '../utils/defaultFallbacks';
 import { FatehanCourse, ProductItem } from '../types';
@@ -209,8 +214,18 @@ export const FatehanCoursesPage: React.FC = () => {
                 {singleCourse.category}
               </span>
               <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold whitespace-nowrap">
-                {singleCourse.ageRangeFa}
+                {singleCourse.gradeLevel || singleCourse.ageRangeFa}
               </span>
+              {singleCourse.termSeason && (
+                <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold whitespace-nowrap">
+                  ترم {singleCourse.termSeason}
+                </span>
+              )}
+              {singleCourse.deliveryMode && (
+                <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-200 text-xs font-bold whitespace-nowrap">
+                  {singleCourse.deliveryMode}
+                </span>
+              )}
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-mono font-bold whitespace-nowrap" dir="ltr">
                 {singleCourse.code}
               </span>
@@ -224,7 +239,13 @@ export const FatehanCoursesPage: React.FC = () => {
               {singleCourse.summaryFa}
             </p>
 
-            {/* Quick Specs Strip */}
+            {singleCourse.fullDescription && (
+              <div className="text-xs sm:text-sm text-slate-700 leading-loose whitespace-pre-line bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
+                {singleCourse.fullDescription}
+              </div>
+            )}
+
+            {/* Quick Specs Strip (Core + Optional Educational Product Fields) */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2">
               <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-right">
                 <div className="text-[11px] text-slate-500 font-bold">تعداد جلسات:</div>
@@ -238,38 +259,93 @@ export const FatehanCoursesPage: React.FC = () => {
                   {formatPersianNumber(singleCourse.hoursPerSession)} ساعت
                 </div>
               </div>
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-right col-span-2 sm:col-span-1">
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-right">
                 <div className="text-[11px] text-slate-500 font-bold">پیش‌نیاز علمی:</div>
                 <div className="text-xs sm:text-sm font-black text-slate-900 mt-0.5">
-                  {singleCourse.prerequisites}
+                  {singleCourse.prerequisites || 'بدون پیش‌نیاز'}
                 </div>
               </div>
+              {singleCourse.instructorName && (
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-right">
+                  <div className="text-[11px] text-slate-500 font-bold">استاد / مدرس دوره:</div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 mt-0.5">
+                    {singleCourse.instructorName}
+                  </div>
+                </div>
+              )}
+              {(singleCourse.scheduleTime || singleCourse.classDays) && (
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-right">
+                  <div className="text-[11px] text-slate-500 font-bold">زمان و روز برگزاری:</div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 mt-0.5">
+                    {singleCourse.scheduleTime || singleCourse.classDays}
+                  </div>
+                </div>
+              )}
+              {singleCourse.branchName && (
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-right">
+                  <div className="text-[11px] text-slate-500 font-bold">شعبه برگزاری:</div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 mt-0.5">
+                    {singleCourse.branchName}
+                  </div>
+                </div>
+              )}
+              {typeof singleCourse.maxCapacity === 'number' && singleCourse.maxCapacity > 0 && (
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-right">
+                  <div className="text-[11px] text-slate-500 font-bold">ظرفیت کلاس:</div>
+                  <div className="text-xs sm:text-sm font-black text-slate-900 mt-0.5">
+                    حداکثر {formatPersianNumber(singleCourse.maxCapacity)} نفر
+                    {typeof singleCourse.enrolledCount === 'number' && singleCourse.enrolledCount > 0 && (
+                      <span className="text-[11px] text-emerald-700 font-bold mr-1">
+                        ({formatPersianNumber(Math.max(0, singleCourse.maxCapacity - singleCourse.enrolledCount))} نفر باقی‌مانده)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              {singleCourse.hasCertificate && (
+                <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200 text-right">
+                  <div className="text-[11px] text-emerald-700 font-bold">گواهی‌نامه پایان دوره:</div>
+                  <div className="text-xs sm:text-sm font-black text-emerald-950 mt-0.5">
+                    {singleCourse.certificateTitle || 'مدرک معتبر فنی و حرفه‌ای'}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {singleCourse.installmentAvailable && (
+              <div className="p-3 rounded-2xl bg-blue-50/80 border border-blue-200 text-xs font-bold text-blue-950">
+                💳 امکان پرداخت اقساطی شهریه فعال است{singleCourse.installmentNote ? `: ${singleCourse.installmentNote}` : '.'}
+              </div>
+            )}
 
             {/* Syllabus Points */}
-            <div className="space-y-3 pt-3 border-t border-slate-100">
-              <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4 text-blue-600" />
-                <span>سرفصل‌های آموزشی و مباحث عملی این دوره:</span>
-              </h3>
-              <div className="space-y-2">
-                {(singleCourse.syllabusPoints || []).map((pt, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 leading-relaxed"
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>{pt}</span>
-                  </div>
-                ))}
+            {(singleCourse.syllabusPoints || []).length > 0 && (
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-blue-600" />
+                  <span>سرفصل‌های آموزشی و مباحث عملی این دوره:</span>
+                </h3>
+                <div className="space-y-2">
+                  {(singleCourse.syllabusPoints || []).map((pt, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 leading-relaxed"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{pt}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Equipment Needed */}
-            <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs text-amber-950 font-bold space-y-1">
-              <div>📦 پکیج و تجهیزات کارگاهی مورد نیاز:</div>
-              <div className="text-slate-800 font-normal">{singleCourse.equipmentNeeded}</div>
-            </div>
+            {singleCourse.equipmentNeeded && (
+              <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs text-amber-950 font-bold space-y-1">
+                <div>📦 پکیج و تجهیزات کارگاهی مورد نیاز:</div>
+                <div className="text-slate-800 font-normal">{singleCourse.equipmentNeeded}</div>
+              </div>
+            )}
           </div>
 
           {/* Left Column: Tuition Selector & Direct Enrollment */}
@@ -377,8 +453,13 @@ export const FatehanCoursesPage: React.FC = () => {
   return (
     <div className="py-4 sm:py-6 space-y-6">
       {/* Top Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 text-white p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-        <div className="space-y-1 text-right">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-l from-[#0A2560] via-[#1342A3] to-[#1D4ED8] text-white p-6 sm:p-8 border border-sky-400/35 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[0_22px_50px_-20px_rgba(29,78,216,0.45)]">
+        <RoboticsBlueprintGrid variant="dark" className="opacity-80" />
+        <RoboticArmVector
+          variant="dark"
+          className="hidden lg:block absolute -bottom-8 left-60 w-40 h-40 opacity-30"
+        />
+        <div className="relative z-10 space-y-1 text-right">
           <div className="flex items-center gap-2 text-xs font-bold text-cyan-300">
             <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
             <span>{coursesHeroBlk?.highlightWord || 'کاتالوگ رسمی دوره‌های آموزشگاه رباتیک فاتحان'}</span>
@@ -386,14 +467,14 @@ export const FatehanCoursesPage: React.FC = () => {
           <h1 className="text-lg sm:text-2xl font-black text-white">
             {coursesHeroBlk?.heading || 'برنامه ترمیک و سرفصل‌های آموزشی مقاطع مختلف تحصیلی'}
           </h1>
-          <p className="text-xs text-slate-200">
+          <p className="text-xs text-blue-100">
             {coursesHeroBlk?.subheading || '۱۵ دوره تخصصی در ۵ دپارتمان با تخفیف‌های رسمی زودهنگام و دو مرحله‌ای'}
           </p>
         </div>
 
         <a
           href="#tuition-calculator-section"
-          className="px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm whitespace-nowrap self-start sm:self-auto cursor-pointer shadow-md transition-all flex items-center gap-1.5"
+          className="relative z-10 px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm whitespace-nowrap self-start sm:self-auto cursor-pointer shadow-md transition-all flex items-center gap-1.5"
         >
           <Calendar className="w-4 h-4" />
           <span>{coursesHeroBlk?.ctaPrimary || 'محاسبه‌گر شهریه و تقویم ثبت‌نام'}</span>
@@ -1238,9 +1319,10 @@ export const FatehanContactPage: React.FC = () => {
         </a>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] p-6 sm:p-10 border border-slate-200/90 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch text-right">
+      <div className="relative overflow-hidden bg-gradient-to-bl from-white via-[#F4F9FF] to-[#E6F1FF] rounded-[2.5rem] p-6 sm:p-10 border-2 border-blue-200/95 shadow-[0_20px_50px_-24px_rgba(29,78,216,0.25)] grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch text-right">
+        <RoboticsBlueprintGrid variant="light" className="opacity-65" />
         {/* Right Column in RTL: Booking Form (7 Cols) */}
-        <div className="lg:col-span-7 flex flex-col justify-between space-y-5">
+        <div className="relative z-10 lg:col-span-7 flex flex-col justify-between space-y-5">
           <div>
             <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-100/90 text-amber-900 text-xs font-black mb-3">
               <span>📞 {contactMainBlk?.highlightWord || 'با ما در ارتباط باشید'}</span>
@@ -1392,168 +1474,221 @@ export const FatehanContactPage: React.FC = () => {
             </p>
           </div>
 
-          {/* Interactive Contact Cards — Left-Aligned LTR Numbers/IDs & Right-Aligned RTL Subtitles */}
+          {/* Interactive Contact Cards — Mobile-Safe Responsive Layout (Zero Overflow / Single-Line Numbers) */}
           <div className="space-y-3">
             {/* Phone 1 */}
-            <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-blue-500/50 transition-colors">
-              <button
-                type="button"
-                onClick={() => handleCopy(phone1Clean, 'p1', 'شماره تماس خط ۱')}
-                className="px-3.5 py-1.5 rounded-xl bg-[#222d4c] hover:bg-blue-600 text-slate-200 hover:text-white font-bold text-xs border border-slate-700/60 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-              >
-                {copiedKey === 'p1' ? 'کپی شد!' : 'کپی'}
-              </button>
+            <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-blue-500/50 transition-colors overflow-hidden">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#fbbf24] text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+                  <PhoneCall className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
 
-              <div className="flex items-center gap-3">
-                <div>
+                <div className="min-w-0 flex-1 text-right">
                   <a
                     href={`tel:${phone1Clean}`}
-                    className="font-mono text-white font-black text-lg sm:text-xl tracking-wider block text-left hover:text-cyan-300 transition-colors"
+                    className="font-mono text-white font-black text-base sm:text-xl tracking-wider inline-block max-w-full whitespace-nowrap truncate hover:text-cyan-300 transition-colors"
                     dir="ltr"
                   >
                     {phone1Num}
                   </a>
-                  <div className="text-slate-400 text-[11px] font-medium mt-0.5 text-right" dir="rtl">
+                  <div className="text-slate-400 text-[11px] font-medium mt-0.5 leading-snug" dir="rtl">
                     {phone1Label}
                   </div>
                 </div>
+              </div>
 
-                <div className="w-12 h-12 rounded-2xl bg-[#fbbf24] text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                  <PhoneCall className="w-6 h-6" />
-                </div>
+              <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-slate-700/50 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                <a
+                  href={`tel:${phone1Clean}`}
+                  className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-amber-200 transition-colors"
+                >
+                  <PhoneCall className="w-3.5 h-3.5" />
+                  <span>تماس مستقیم</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(phone1Clean, 'p1', 'شماره تماس خط ۱')}
+                  className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#222d4c] hover:bg-blue-600 text-slate-100 hover:text-white font-bold text-xs border border-slate-700/70 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                >
+                  {copiedKey === 'p1' ? 'کپی شد!' : 'کپی شماره'}
+                </button>
               </div>
             </div>
 
             {/* Phone 2 */}
-            <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-cyan-500/50 transition-colors">
-              <button
-                type="button"
-                onClick={() => handleCopy(phone2Clean, 'p2', 'شماره تماس خط ۲')}
-                className="px-3.5 py-1.5 rounded-xl bg-[#222d4c] hover:bg-cyan-600 text-slate-200 hover:text-white font-bold text-xs border border-slate-700/60 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-              >
-                {copiedKey === 'p2' ? 'کپی شد!' : 'کپی'}
-              </button>
+            <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-cyan-500/50 transition-colors overflow-hidden">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#06b6d4] text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+                  <Smartphone className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
 
-              <div className="flex items-center gap-3">
-                <div>
+                <div className="min-w-0 flex-1 text-right">
                   <a
                     href={`tel:${phone2Clean}`}
-                    className="font-mono text-white font-black text-lg sm:text-xl tracking-wider block text-left hover:text-cyan-300 transition-colors"
+                    className="font-mono text-white font-black text-base sm:text-xl tracking-wider inline-block max-w-full whitespace-nowrap truncate hover:text-cyan-300 transition-colors"
                     dir="ltr"
                   >
                     {phone2Num}
                   </a>
-                  <div className="text-slate-400 text-[11px] font-medium mt-0.5 text-right" dir="rtl">
+                  <div className="text-slate-400 text-[11px] font-medium mt-0.5 leading-snug" dir="rtl">
                     {phone2Label}
                   </div>
                 </div>
+              </div>
 
-                <div className="w-12 h-12 rounded-2xl bg-[#06b6d4] text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                  <Smartphone className="w-6 h-6" />
-                </div>
+              <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-slate-700/50 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                <a
+                  href={`tel:${phone2Clean}`}
+                  className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-cyan-300 hover:text-cyan-200 transition-colors"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>تماس مستقیم</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(phone2Clean, 'p2', 'شماره تماس خط ۲')}
+                  className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#222d4c] hover:bg-cyan-600 text-slate-100 hover:text-white font-bold text-xs border border-slate-700/70 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                >
+                  {copiedKey === 'p2' ? 'کپی شد!' : 'کپی شماره'}
+                </button>
               </div>
             </div>
 
             {/* Landline Phone */}
-            <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-emerald-500/50 transition-colors">
-              <button
-                type="button"
-                onClick={() => handleCopy(landlineClean, 'landline', 'تلفن ثابت آموزشگاه')}
-                className="px-3.5 py-1.5 rounded-xl bg-[#222d4c] hover:bg-emerald-600 text-slate-200 hover:text-white font-bold text-xs border border-slate-700/60 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-              >
-                {copiedKey === 'landline' ? 'کپی شد!' : 'کپی'}
-              </button>
+            <div className="bg-[#162039] border border-slate-700/60 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-emerald-500/50 transition-colors overflow-hidden">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+                  <Phone className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
 
-              <div className="flex items-center gap-3">
-                <div>
+                <div className="min-w-0 flex-1 text-right">
                   <a
                     href={`tel:${landlineClean}`}
-                    className="font-mono text-white font-black text-lg sm:text-xl tracking-wider block text-left hover:text-emerald-300 transition-colors"
+                    className="font-mono text-white font-black text-base sm:text-xl tracking-wider inline-block max-w-full whitespace-nowrap truncate hover:text-emerald-300 transition-colors"
                     dir="ltr"
                   >
                     {landlineNum}
                   </a>
-                  <div className="text-slate-400 text-[11px] font-medium mt-0.5 text-right" dir="rtl">
+                  <div className="text-slate-400 text-[11px] font-medium mt-0.5 leading-snug" dir="rtl">
                     {landlineLabel}
                   </div>
                 </div>
+              </div>
 
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
-                  <Phone className="w-6 h-6" />
-                </div>
+              <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-slate-700/50 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                <a
+                  href={`tel:${landlineClean}`}
+                  className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300 hover:text-emerald-200 transition-colors"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>تماس ثابت</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(landlineClean, 'landline', 'تلفن ثابت آموزشگاه')}
+                  className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#222d4c] hover:bg-emerald-600 text-slate-100 hover:text-white font-bold text-xs border border-slate-700/70 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                >
+                  {copiedKey === 'landline' ? 'کپی شد!' : 'کپی شماره'}
+                </button>
               </div>
             </div>
 
             {/* Instagram Card Row */}
-            <div className="bg-gradient-to-r from-[#281c44] via-[#1c1d3c] to-[#162039] border border-purple-500/40 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-pink-500/60 transition-colors">
-              <button
-                type="button"
-                onClick={() => handleCopy(`@${igHandle}`, 'ig', 'آی‌دی اینستاگرام')}
-                className="px-3 py-1.5 rounded-xl bg-[#2b1f49] hover:bg-pink-600 text-pink-200 hover:text-white font-bold text-xs border border-purple-500/40 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-              >
-                {copiedKey === 'ig' ? 'کپی شد!' : 'کپی آی‌دی'}
-              </button>
+            <div className="bg-gradient-to-r from-[#281c44] via-[#1c1d3c] to-[#162039] border border-purple-500/40 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-pink-500/60 transition-colors overflow-hidden">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                  <Instagram className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
 
-              <div className="flex items-center gap-3">
-                <div>
+                <div className="min-w-0 flex-1 text-right">
                   <a
                     href={igUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-mono text-white font-black text-base sm:text-lg tracking-wide block text-left hover:text-pink-300 transition-colors"
+                    className="font-mono text-white font-black text-sm sm:text-base tracking-wide inline-block max-w-full whitespace-nowrap truncate hover:text-pink-300 transition-colors"
                     dir="ltr"
                   >
                     @{igHandle}
                   </a>
-                  <div className="text-slate-400 text-[11px] font-medium mt-0.5 text-right" dir="rtl">
+                  <div className="text-slate-400 text-[11px] font-medium mt-0.5 leading-snug" dir="rtl">
                     صفحه رسمی اینستاگرام {settings.academyNameFa}
                   </div>
                 </div>
+              </div>
 
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                  <Instagram className="w-6 h-6" />
-                </div>
+              <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-purple-400/20 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                <a
+                  href={igUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-pink-300 hover:text-pink-200 transition-colors"
+                >
+                  <Instagram className="w-3.5 h-3.5" />
+                  <span>مشاهده صفحه</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(`@${igHandle}`, 'ig', 'آی‌دی اینستاگرام')}
+                  className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#2b1f49] hover:bg-pink-600 text-pink-200 hover:text-white font-bold text-xs border border-purple-500/40 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                >
+                  {copiedKey === 'ig' ? 'کپی شد!' : 'کپی آی‌دی'}
+                </button>
               </div>
             </div>
 
             {/* Eitaa Channel Card Row */}
             {eitaaHandle && (
-              <div className="bg-[#162039] border border-orange-500/35 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 hover:border-orange-400/70 transition-colors">
-                <button
-                  type="button"
-                  onClick={() => handleCopy(eitaaHandle, 'eitaa', 'آی‌دی کانال ایتا')}
-                  className="px-3 py-1.5 rounded-xl bg-[#222d4c] hover:bg-orange-500 text-orange-200 hover:text-white font-bold text-xs border border-orange-500/30 cursor-pointer transition-colors whitespace-nowrap shrink-0"
-                >
-                  {copiedKey === 'eitaa' ? 'کپی شد!' : 'کپی آی‌دی'}
-                </button>
-
-                <div className="flex items-center gap-3">
-                  <div>
-                    <a
-                      href={eitaaUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-mono text-white font-black text-base sm:text-lg tracking-wide block text-left hover:text-orange-300 transition-colors"
-                      dir="ltr"
-                    >
-                      {eitaaHandle}
-                    </a>
-                    <div className="text-slate-400 text-[11px] font-medium mt-0.5 text-right" dir="rtl">
-                      کانال رسمی ایتا {settings.academyNameFa}
-                    </div>
-                  </div>
-
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md overflow-hidden p-1.5">
+              <div className="bg-[#162039] border border-orange-500/35 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-orange-400/70 transition-colors overflow-hidden">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md overflow-hidden p-1.5">
                     {eitaaLogoUrl ? (
                       <img
                         src={eitaaLogoUrl}
                         alt="لوگوی کانال ایتا"
+                        width={44}
+                        height={44}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-contain"
                       />
                     ) : (
-                      <Send className="w-6 h-6" />
+                      <Send className="w-5 h-5 sm:w-6 sm:h-6" />
                     )}
                   </div>
+
+                  <div className="min-w-0 flex-1 text-right">
+                    <a
+                      href={eitaaUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-mono text-white font-black text-sm sm:text-base tracking-wide inline-block max-w-full whitespace-nowrap truncate hover:text-orange-300 transition-colors"
+                      dir="ltr"
+                    >
+                      {eitaaHandle}
+                    </a>
+                    <div className="text-slate-400 text-[11px] font-medium mt-0.5 leading-snug" dir="rtl">
+                      کانال رسمی ایتا {settings.academyNameFa}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between sm:justify-end gap-2 pt-2.5 border-t border-orange-400/20 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                  <a
+                    href={eitaaUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="sm:hidden inline-flex items-center gap-1.5 text-xs font-bold text-orange-300 hover:text-orange-200 transition-colors"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>ورود به کانال</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(eitaaHandle, 'eitaa', 'آی‌دی کانال ایتا')}
+                    className="px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#222d4c] hover:bg-orange-500 text-orange-200 hover:text-white font-bold text-xs border border-orange-500/30 cursor-pointer transition-colors whitespace-nowrap shrink-0"
+                  >
+                    {copiedKey === 'eitaa' ? 'کپی شد!' : 'کپی آی‌دی'}
+                  </button>
                 </div>
               </div>
             )}
@@ -1681,7 +1816,12 @@ export const FatehanFreeCoursesPage: React.FC = () => {
       </div>
 
       {/* Hero Banner (Simulator Test Button Removed per Image 10 Request) */}
-      <section className="relative rounded-[2.5rem] bg-gradient-to-l from-[#eef7ff] via-[#f5faff] to-[#e0f2fe] border-2 border-cyan-200/80 p-6 sm:p-12 overflow-hidden shadow-md">
+      <section className="relative rounded-[2.5rem] bg-gradient-to-l from-[#D5E9FF] via-[#ECF5FF] to-[#DFF0FF] border-2 border-blue-300/90 p-6 sm:p-12 overflow-hidden shadow-[0_20px_50px_-22px_rgba(29,78,216,0.28)]">
+        <RoboticsBlueprintGrid variant="light" className="opacity-85" />
+        <AutonomousRoverVector
+          variant="light"
+          className="hidden lg:block absolute -bottom-3 right-8 w-44 h-28 opacity-35"
+        />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
           {/* Right 7 Cols: Title, 4 Practical Projects Subtitle & Single Clean CTA Button */}
           <div className="lg:col-span-7 space-y-5 text-right">
@@ -2035,17 +2175,22 @@ export const FatehanAboutPage: React.FC = () => {
       </div>
 
       {/* Hero Official Introduction Card */}
-      <section className="bg-gradient-to-l from-slate-900 via-blue-950 to-slate-900 text-white rounded-3xl p-6 sm:p-10 border border-slate-800 shadow-xl space-y-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400 text-slate-950 text-xs font-black">
+      <section className="relative overflow-hidden bg-gradient-to-l from-[#092154] via-[#123B91] to-[#0A245B] text-white rounded-3xl p-6 sm:p-10 border border-sky-400/35 shadow-[0_24px_54px_-20px_rgba(14,50,130,0.48)] space-y-6">
+        <RoboticsBlueprintGrid variant="dark" className="opacity-80" />
+        <RoboticArmVector
+          variant="dark"
+          className="hidden lg:block absolute -bottom-6 left-6 w-48 h-48 opacity-30"
+        />
+        <div className="relative z-10 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400 text-slate-950 text-xs font-black">
           <Building2 className="w-4 h-4" />
           <span>{about.heroBadge}</span>
         </div>
 
-        <h1 className="text-xl sm:text-3xl lg:text-4xl font-black leading-snug text-white">
+        <h1 className="relative z-10 text-xl sm:text-3xl lg:text-4xl font-black leading-snug text-white">
           {about.title}
         </h1>
 
-        <p className="text-xs sm:text-base text-cyan-300 font-bold leading-relaxed">
+        <p className="relative z-10 text-xs sm:text-base text-cyan-300 font-bold leading-relaxed">
           {about.subtitle}
         </p>
 

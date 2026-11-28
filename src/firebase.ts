@@ -1,7 +1,23 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseAppletConfig from '../firebase-applet-config.json';
+import { getFirestore } from 'firebase/firestore';
+
+type FirebaseAppletConfigShape = {
+  apiKey?: string;
+  authDomain?: string;
+  projectId?: string;
+  storageBucket?: string;
+  messagingSenderId?: string;
+  appId?: string;
+  firestoreDatabaseId?: string;
+};
+
+const optionalConfigModules = import.meta.glob<{ default?: FirebaseAppletConfigShape }>(
+  '../firebase-applet-config.json',
+  { eager: true }
+);
+const firebaseAppletConfig: FirebaseAppletConfigShape =
+  optionalConfigModules['../firebase-applet-config.json']?.default ?? {};
 
 const viteEnv =
   typeof import.meta !== 'undefined'
@@ -10,18 +26,29 @@ const viteEnv =
 
 const firebaseConfig = {
   ...firebaseAppletConfig,
-  apiKey: viteEnv.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey,
-  authDomain: viteEnv.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain,
-  projectId: viteEnv.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId,
-  storageBucket: viteEnv.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket,
+  apiKey: viteEnv.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey || '',
+  authDomain: viteEnv.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain || '',
+  projectId: viteEnv.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId || '',
+  storageBucket: viteEnv.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket || '',
   messagingSenderId:
-    viteEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId,
-  appId: viteEnv.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId,
+    viteEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId || '',
+  appId: viteEnv.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId || '',
   firestoreDatabaseId:
-    viteEnv.VITE_FIREBASE_DATABASE_ID || firebaseAppletConfig.firestoreDatabaseId,
+    viteEnv.VITE_FIREBASE_DATABASE_ID || firebaseAppletConfig.firestoreDatabaseId || '(default)',
 };
 
-const app = initializeApp(firebaseConfig);
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
+
+const app = initializeApp(
+  isFirebaseConfigured
+    ? firebaseConfig
+    : {
+        apiKey: 'unconfigured',
+        authDomain: 'localhost',
+        projectId: 'unconfigured',
+        appId: 'unconfigured',
+      }
+);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();

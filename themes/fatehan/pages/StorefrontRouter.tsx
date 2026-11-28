@@ -4,6 +4,11 @@ import { useFatehanTheme } from '../context/FatehanThemeContext';
 import { formatToman, formatPersianNumber } from '../utils/formatters';
 import { BiDiText } from '../ui/BiDiText';
 import { FatehanLogo } from '../ui/FatehanLogo';
+import {
+  RoboticsBlueprintGrid,
+  AutonomousRoverVector,
+  CuteBotMascotVector,
+} from '../ui/RoboticsVisualAccents';
 import { RichFormattedContent } from '../utils/RichFormattedContent';
 import { PrintPaperSize } from '../types';
 import { PageRenderer } from './PageRenderer';
@@ -416,7 +421,7 @@ export const StorefrontRouter: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2, delay: Math.min(idx * 0.04, 0.24) }}
           whileHover={{ y: -3 }}
-          className="bg-white border border-slate-200 hover:border-blue-300 rounded-2xl overflow-hidden flex flex-col justify-between shadow-2xs hover:shadow-md transition-all"
+          className="bg-gradient-to-b from-white to-[#F4F9FF] border border-blue-200/90 hover:border-blue-500 rounded-2xl overflow-hidden flex flex-col justify-between shadow-[0_10px_26px_-18px_rgba(29,78,216,0.28)] hover:shadow-[0_18px_36px_-16px_rgba(37,99,235,0.34)] transition-all"
         >
           <div>
             <div
@@ -537,25 +542,33 @@ export const StorefrontRouter: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-6 rounded-3xl bg-slate-900 text-white border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          className="relative overflow-hidden p-6 sm:p-7 rounded-3xl bg-gradient-to-l from-[#092154] via-[#123D94] to-[#1D4ED8] text-white border border-sky-400/40 shadow-[0_24px_54px_-20px_rgba(29,78,216,0.48)] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
-          <div className="space-y-1.5">
-            <div className="text-[11px] font-mono text-amber-400">
-              {settings.academyNameEn.toUpperCase()} · STOREFRONT BY DEPARTMENT
+          <RoboticsBlueprintGrid variant="dark" className="opacity-85" />
+          <AutonomousRoverVector
+            variant="dark"
+            className="hidden lg:block absolute -bottom-2 left-64 w-44 h-28 opacity-40"
+          />
+          <div className="relative z-10 flex items-center gap-3.5">
+            <CuteBotMascotVector className="hidden sm:block w-16 h-16 shrink-0 drop-shadow-md" />
+            <div className="space-y-1.5">
+              <div className="text-[11px] font-mono text-amber-300">
+                {settings.academyNameEn.toUpperCase()} · STOREFRONT BY DEPARTMENT
+              </div>
+              <h1 className="text-lg sm:text-2xl font-extrabold">
+                فروشگاه تفکیک‌شده بر اساس دپارتمان‌های {settings.academyNameFa}
+              </h1>
+              <p className="text-xs text-blue-100 leading-relaxed max-w-2xl">
+                تمامی کیت‌های آموزشی، قطعات الکترونیکی، فیلامنت‌ها و پرینترهای سه‌بعدی به‌صورت جداگانه بر اساس هر دپارتمان تخصصی دسته‌بندی شده‌اند.
+              </p>
             </div>
-            <h1 className="text-lg sm:text-2xl font-extrabold">
-              فروشگاه تفکیک‌شده بر اساس دپارتمان‌های {settings.academyNameFa}
-            </h1>
-            <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-              تمامی کیت‌های آموزشی، قطعات الکترونیکی، فیلامنت‌ها و پرینترهای سه‌بعدی به‌صورت جداگانه بر اساس هر دپارتمان تخصصی دسته‌بندی شده‌اند.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="relative z-10 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => openVideoModal()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 backdrop-blur-xs text-amber-300 border border-sky-300/35 text-xs font-bold cursor-pointer whitespace-nowrap"
             >
               <Play className="w-3.5 h-3.5 fill-amber-400" />
               <span>معرفی تجهیزات</span>
@@ -563,7 +576,7 @@ export const StorefrontRouter: React.FC = () => {
             <button
               type="button"
               onClick={() => navigateStore('/cart')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black cursor-pointer whitespace-nowrap shadow-md"
             >
               <ShoppingBag className="w-3.5 h-3.5" />
               <span>سبد خرید ({formatPersianNumber(cartItems.reduce((s, i) => s + i.qty, 0))})</span>
@@ -572,7 +585,7 @@ export const StorefrontRouter: React.FC = () => {
         </motion.div>
 
         {/* Department Navigation Tabs Strip */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div className="bg-white/95 border border-blue-200/90 rounded-2xl p-3 flex items-center gap-2 overflow-x-auto no-scrollbar shadow-2xs">
           <button
             type="button"
             onClick={() => triggerFilterShimmer(() => setSelectedCategory('ALL'))}

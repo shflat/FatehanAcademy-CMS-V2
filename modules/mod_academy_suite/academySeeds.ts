@@ -42,6 +42,27 @@ export interface AcademyCourseItem {
   seoTitle?: string;
   seoDescription?: string;
   focusKeyword?: string;
+  // Full educational product attributes (all optional)
+  departmentId?: string;
+  instructorName?: string;
+  maxCapacity?: number;
+  enrolledCount?: number;
+  scheduleTime?: string;
+  termSeason?: string;
+  branchName?: string;
+  gradeLevel?: string;
+  classDays?: string;
+  deliveryMode?: string;
+  hasCertificate?: boolean;
+  certificateTitle?: string;
+  installmentAvailable?: boolean;
+  installmentNote?: string;
+  introVideoUrl?: string;
+  galleryImages?: string[];
+  fullDescription?: string;
+  tags?: string[];
+  isPublished?: boolean;
+  isFeatured?: boolean;
   // Optional free-course fields
   subtitle?: string;
   badge?: string;

@@ -54,12 +54,19 @@ export function getResponsiveImageVariant(
 }
 
 /**
- * Builds an HTML `srcSet` string across the 4-size WebP ladder for local optimizable images.
+ * Builds an HTML `srcSet` string across the responsive WebP ladder for local optimizable images.
+ * Caps exact emblem/logo files at 300w so Retina mobile displays never download 800w/1200w files.
  */
 export function getResponsiveSrcSet(url: string | undefined): string | undefined {
   if (!url) return undefined;
   const clean = url.split('?')[0].split('#')[0].trim();
   if (!isOptimizableLocalRasterUrl(clean)) return undefined;
   const stem = getBaseStem(clean);
+  if (LOCAL_OPTIMIZABLE_EXACT.has(clean)) {
+    if (clean.includes('logo_8c26749f')) {
+      return `${stem}-header-144.webp 144w, ${stem}-thumb-300.webp 300w`;
+    }
+    return `${stem}-thumb-300.webp 300w`;
+  }
   return `${stem}-thumb-300.webp 360w, ${stem}-medium-800.webp 800w, ${stem}-original-webp.webp 1200w`;
 }

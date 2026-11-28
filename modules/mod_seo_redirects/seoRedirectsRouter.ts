@@ -190,16 +190,24 @@ export function createModSeoRedirectsRouter(): express.Router {
         'seo_crawl_visibility',
         DEFAULT_SEO_VISIBILITY
       );
+      const theme = await getSetting<ThemeConfig>('theme_config', DEFAULT_THEME_CONFIG);
       if (!vis.allowAiCrawlers) {
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.setHeader('X-Robots-Tag', 'noindex, nofollow');
         res.send(
-          '# AI / LLM Indexing Disabled\n\nThis site currently restricts automated AI & LLM indexing. Enable "قابل‌دیدن برای هوش مصنوعی (llms.txt)" in the CMS SEO panel to publish structured AI context.'
+          [
+            `# ${theme.brandNameFa || 'Fatehan Robotics Academy'} (${theme.brandNameEn || 'Fatehan Academy'})`,
+            '',
+            '> Automated AI / LLM indexing is currently restricted by the site administrator.',
+            '',
+            '## Site Policy',
+            `- [Official Website](${origin}/): Public storefront and robotics academy portal.`,
+            `- [Contact & Consultation](${origin}/contact): Direct contact details and academy address.`,
+          ].join('\n')
         );
         return;
       }
 
-      const theme = await getSetting<ThemeConfig>('theme_config', DEFAULT_THEME_CONFIG);
       const products = await dbQuery<{ slug: string; title: string; category: string }>(
         "SELECT slug, title, category FROM products WHERE status = 'published' ORDER BY updated_at DESC LIMIT 80"
       );
@@ -215,19 +223,21 @@ export function createModSeoRedirectsRouter(): express.Router {
         '',
         `> ${vis.customLlmsIntro?.trim() || theme.footerDescription || theme.heroSubtitle}`,
         '',
-        `- Homepage: ${origin}/`,
-        `- Catalog: ${origin}/store`,
-        `- Editorial Magazine: ${origin}/articles`,
-        `- Sitemap: ${origin}/sitemap.xml`,
+        '## Core Sections',
+        `- [Homepage](${origin}/): Main landing page and overview`,
+        `- [Robotics Courses](${origin}/courses): Official project-based robotics, coding, AI, and 3D printing courses`,
+        `- [Kits & Store](${origin}/shop): Robotics kits, electronics components, and educational packages`,
+        `- [Editorial Magazine](${origin}/blog): Engineering articles and student guides`,
+        `- [Sitemap](${origin}/sitemap.xml): XML sitemap`,
         '',
-        '## Published Skills & Packages',
+        '## Published Kits & Packages',
         ...products.map(
-          (p) => `- [${p.title}](${origin}/product/${encodeURIComponent(p.slug)}) — Category: ${p.category}`
+          (p) => `- [${p.title}](${origin}/product/${encodeURIComponent(p.slug)}): Category ${p.category}`
         ),
         '',
         '## Engineering Articles & Guides',
         ...articles.map(
-          (a) => `- [${a.title}](${origin}/article/${encodeURIComponent(a.slug)}) — Topic: ${a.category}`
+          (a) => `- [${a.title}](${origin}/article/${encodeURIComponent(a.slug)}): Topic ${a.category}`
         ),
         '',
         '## Site Pages',

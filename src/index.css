@@ -1,13 +1,13 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Internal Self-Hosted Fonts (Zero External CDN Requests) */
+/* Internal Self-Hosted Fonts (Zero External CDN Requests, Zero Font-Swap CLS) */
 @font-face {
   font-family: 'Sahel';
   src: url('/fonts/Sahel-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @font-face {
@@ -15,7 +15,7 @@
   src: url('/fonts/Sahel-SemiBold.woff2') format('woff2');
   font-weight: 600;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @font-face {
@@ -23,7 +23,7 @@
   src: url('/fonts/Sahel-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @font-face {
@@ -31,7 +31,7 @@
   src: url('/fonts/Sahel-Black.woff2') format('woff2');
   font-weight: 800 900;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @font-face {
@@ -39,7 +39,7 @@
   src: url('/fonts/Vazirmatn-Variable.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @font-face {
@@ -47,7 +47,7 @@
   src: url('/fonts/Rubik-Variable.woff2') format('woff2');
   font-weight: 300 900;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @font-face {
@@ -55,14 +55,14 @@
   src: url('/fonts/Outfit-Variable.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
-  font-display: swap;
+  font-display: optional;
 }
 
 @layer base {
   :root {
-    --font-sans: 'Vazirmatn', 'Rubik', 'Outfit', system-ui, -apple-system, sans-serif;
-    --font-display: 'Sahel', 'Vazirmatn', 'Rubik', system-ui, sans-serif;
-    --font-num-smooth: 'Rubik', 'Vazirmatn', system-ui, sans-serif;
+    --font-sans: 'IRANSansX', 'Vazirmatn', 'Rubik', system-ui, -apple-system, sans-serif;
+    --font-display: 'YekanBakh', 'IRANSansX', 'Vazirmatn', system-ui, sans-serif;
+    --font-num-smooth: 'IRANSansX', 'Rubik', 'Vazirmatn', system-ui, sans-serif;
 
     /* Dynamic Theme Palette Variables (Updated live via data-accent-preset) */
     --accent-primary: #1d4ed8;

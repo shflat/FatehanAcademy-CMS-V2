@@ -1,12 +1,9 @@
 import React from 'react';
 import defaultThemeManifest from './default/theme.json';
 import fatehanThemeManifest from './fatehan/theme.manifest.json';
-import type { FatehanThemeRootProps } from './fatehan/index';
+import type { FatehanThemeRootProps } from './fatehan/FatehanStandaloneRoot';
+import { FatehanThemeRoot } from './fatehan/FatehanStandaloneRoot';
 import { createCmsV2ApiAdapter } from './fatehan/context/cmsApiAdapter';
-
-const LazyFatehanThemeRoot = React.lazy(() =>
-  import('./fatehan/index').then((mod) => ({ default: mod.FatehanThemeRoot }))
-);
 
 export type RegisteredThemeId = 'default' | 'fatehan';
 
@@ -56,24 +53,10 @@ export const THEME_REGISTRY: Record<RegisteredThemeId, RegisteredThemeDefinition
     recommendedModules: ['mod_academy_suite', 'mod_payment_hub', 'mod_live_chat', 'mod_forms'],
     badgeText: 'پوسته پیش‌فرض هسته',
     renderStandaloneRoot: (props: FatehanThemeRootProps) =>
-      React.createElement(
-        React.Suspense,
-        {
-          fallback: React.createElement(
-            'div',
-            {
-              dir: 'rtl',
-              className:
-                'min-h-screen flex items-center justify-center bg-[#F4F7FE] text-slate-700 text-sm font-extrabold',
-            },
-            'در حال بارگذاری پوسته آکادمی فاتحان...'
-          ),
-        },
-        React.createElement(LazyFatehanThemeRoot, {
-          adapter: props.adapter || createCmsV2ApiAdapter(),
-          ...props,
-        })
-      ),
+      React.createElement(FatehanThemeRoot, {
+        adapter: props.adapter || createCmsV2ApiAdapter(),
+        ...props,
+      }),
   },
 };
 

@@ -219,7 +219,9 @@ export function createModAcademySuiteRouter(): express.Router {
         getSetting<AcademySuiteSettings>('mod_academy_settings', INITIAL_ACADEMY_SETTINGS),
       ]);
 
-      const allCourses = parseJsonRows<AcademyCourseItem>(courseRows);
+      const allCourses = parseJsonRows<AcademyCourseItem>(courseRows).filter(
+        (c) => c.isPublished !== false
+      );
       const courses = allCourses.filter((c) => (c.courseKind || 'official') !== 'free');
       const freeCourses = allCourses
         .filter((c) => c.courseKind === 'free')
@@ -407,14 +409,17 @@ export function createModAcademySuiteRouter(): express.Router {
           return;
         }
         const id = item.id || `CRS-${Date.now().toString(36).toUpperCase()}`;
+        const rawSlug = (item.slug || '').trim();
+        const safeSlug = rawSlug || id.toLowerCase();
         const normalized: AcademyCourseItem = {
           ...item,
           id,
           courseKind: item.courseKind === 'free' ? 'free' : 'official',
-          slug: item.slug || id.toLowerCase(),
-          code: item.code || id,
+          slug: safeSlug,
+          code: (item.code || id).trim(),
           ageGroup: item.ageGroup || 'A',
           status: item.status || 'ثبت‌نام فعال',
+          isPublished: item.isPublished !== false,
         };
         await dbExec(
           `INSERT INTO mod_academy_courses (id, slug, course_kind, age_group, category, status, payload_json, updated_at)

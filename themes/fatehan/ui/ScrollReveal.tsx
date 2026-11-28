@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { motion, useScroll, useSpring } from 'motion/react';
+import React, { useEffect, useRef } from 'react';
+import { motion } from 'motion/react';
 
 export interface ScrollRevealProps {
   children: React.ReactNode;
@@ -44,17 +44,37 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
 };
 
 export const SmoothScrollProgressBar: React.FC = () => {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, {
-    stiffness: 110,
-    damping: 28,
-    restDelta: 0.001,
-  });
+  const barRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let rafId = 0;
+    const updateProgress = () => {
+      rafId = 0;
+      const el = barRef.current;
+      if (!el) return;
+      const doc = document.documentElement;
+      const maxScroll = Math.max(1, doc.scrollHeight - window.innerHeight);
+      const ratio = Math.min(1, Math.max(0, window.scrollY / maxScroll));
+      el.style.transform = `scaleX(${ratio})`;
+    };
+    const onScroll = () => {
+      if (!rafId) {
+        rafId = window.requestAnimationFrame(updateProgress);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   return (
-    <motion.div
-      style={{ scaleX, transformOrigin: 'right' }}
-      className="no-print fixed top-0 left-0 right-0 h-1 bg-gradient-to-l from-blue-600 via-cyan-400 to-amber-400 z-50 pointer-events-none"
+    <div
+      ref={barRef}
+      style={{ transform: 'scaleX(0)', transformOrigin: 'right' }}
+      className="no-print fixed top-0 left-0 right-0 h-1 bg-gradient-to-l from-blue-600 via-cyan-400 to-amber-400 z-50 pointer-events-none will-change-transform"
     />
   );
 };
@@ -102,10 +122,12 @@ export function useAutoScrollReveal(dependencyKey: string) {
 
       targets.forEach((el) => {
         if (observedElements.has(el)) return;
-        // Never hide above-the-fold Hero / header / nav so LCP paints instantaneously
+        // Never hide above-the-fold Hero / header / nav or self-animated fade containers
         if (
           el === firstSection ||
           (firstSection && firstSection.contains(el)) ||
+          el.getAttribute('data-no-scroll-reveal') === 'true' ||
+          el.closest('[data-no-scroll-reveal="true"]') ||
           el.classList.contains('fatehan-hero-section') ||
           el.closest('.fatehan-hero-section') ||
           el.closest('header') ||

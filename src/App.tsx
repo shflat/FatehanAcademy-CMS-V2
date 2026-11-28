@@ -65,10 +65,18 @@ import {
 } from './data/skill98Data';
 import { resolveStaticImageUrl } from './data/mediaAssets';
 import { getAccentStyles } from './theme/accentStyles';
-import { SiteHeader } from './theme/components/SiteHeader';
-import { SiteFooter } from './theme/components/SiteFooter';
-import { MobileBottomNav } from './theme/components/MobileBottomNav';
-import { StorefrontView } from './theme/components/StorefrontView';
+const SiteHeader = lazy(() =>
+  import('./theme/components/SiteHeader').then((m) => ({ default: m.SiteHeader }))
+);
+const SiteFooter = lazy(() =>
+  import('./theme/components/SiteFooter').then((m) => ({ default: m.SiteFooter }))
+);
+const MobileBottomNav = lazy(() =>
+  import('./theme/components/MobileBottomNav').then((m) => ({ default: m.MobileBottomNav }))
+);
+const StorefrontView = lazy(() =>
+  import('./theme/components/StorefrontView').then((m) => ({ default: m.StorefrontView }))
+);
 import type { AuthStep } from './modules/auth/AuthModal';
 import { initWebVitalsReporter } from './core/webVitalsReporter';
 
@@ -419,11 +427,8 @@ export default function App() {
     window.addEventListener('touchstart', activateLiteScroll, { passive: true, once: true });
     window.addEventListener('keydown', activateLiteScroll, { passive: true, once: true });
 
-    const idleTimer = window.setTimeout(activateLiteScroll, 2200);
-
     return () => {
       disposed = true;
-      window.clearTimeout(idleTimer);
       window.removeEventListener('wheel', activateLiteScroll);
       window.removeEventListener('touchstart', activateLiteScroll);
       window.removeEventListener('keydown', activateLiteScroll);
@@ -2173,7 +2178,8 @@ export default function App() {
       </div>
 
       {/* Theme Header & Admin Motion Status Strip */}
-      <SiteHeader
+      <Suspense fallback={null}>
+        <SiteHeader
         activeTab={activeTab}
         themeConfig={themeConfig}
         accentStyles={accentStyles}
@@ -2208,6 +2214,7 @@ export default function App() {
         onResetDraggedElements={handleResetDraggedElements}
         onUpdateHeaderLogoSize={handleUpdateHeaderLogoSize}
       />
+      </Suspense>
 
       {/* Global Activity Spinner & Transient Floating Toast Overlay */}
       <GlobalActivityOverlay />
@@ -2239,7 +2246,8 @@ export default function App() {
         className="flex-1 pb-24"
       >
         {activeTab === 'store' && (
-          <StorefrontView
+          <Suspense fallback={<ViewSuspenseSkeleton />}>
+            <StorefrontView
             themeConfig={themeConfig}
             accentStyles={accentStyles}
             activeCatalog={activeCatalog}
@@ -2266,6 +2274,7 @@ export default function App() {
             onToggleBookmark={handleToggleBookmark}
             onOpenFullArticle={openFullArticlePage}
           />
+          </Suspense>
         )}
 
         <Suspense fallback={<ViewSuspenseSkeleton />}>
@@ -2523,13 +2532,15 @@ export default function App() {
       )}
 
       {/* Theme Editorial Footer */}
-      <SiteFooter
-        themeConfig={themeConfig}
-        dynamicPages={dynamicPages}
-        onSelectToolAndScroll={selectToolAndScroll}
-        onNavigate={(tab) => navigateWithTransition(tab)}
-        onOpenDynamicPage={handleOpenDynamicPage}
-      />
+      <Suspense fallback={null}>
+        <SiteFooter
+          themeConfig={themeConfig}
+          dynamicPages={dynamicPages}
+          onSelectToolAndScroll={selectToolAndScroll}
+          onNavigate={(tab) => navigateWithTransition(tab)}
+          onOpenDynamicPage={handleOpenDynamicPage}
+        />
+      </Suspense>
 
       {/* Deferred Non-Critical Floating Widgets (mounted after initial paint for 95+ PageSpeed) */}
       {widgetsReady && activeTab !== 'admin' && (
@@ -2556,22 +2567,24 @@ export default function App() {
       )}
 
       {/* Mobile Translucent Bottom Navigation */}
-      <MobileBottomNav
-        activeTab={activeTab}
-        isLoggedIn={isLoggedIn}
-        canAccessAdmin={canAccessAdmin}
-        cartTotalItems={cartTotalItems}
-        accentStyles={accentStyles}
-        onNavigate={(tab) => navigateWithTransition(tab)}
-        onOpenAuthModal={() => {
-          if (isLoggedIn) {
-            navigateWithTransition(canAccessAdmin ? 'admin' : 'dashboard');
-            return;
-          }
-          openFreshAuthModal();
-        }}
-        onOpenCart={() => setIsCartOpen(true)}
-      />
+      <Suspense fallback={null}>
+        <MobileBottomNav
+          activeTab={activeTab}
+          isLoggedIn={isLoggedIn}
+          canAccessAdmin={canAccessAdmin}
+          cartTotalItems={cartTotalItems}
+          accentStyles={accentStyles}
+          onNavigate={(tab) => navigateWithTransition(tab)}
+          onOpenAuthModal={() => {
+            if (isLoggedIn) {
+              navigateWithTransition(canAccessAdmin ? 'admin' : 'dashboard');
+              return;
+            }
+            openFreshAuthModal();
+          }}
+          onOpenCart={() => setIsCartOpen(true)}
+        />
+      </Suspense>
     </div>
   );
 }

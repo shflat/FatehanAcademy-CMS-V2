@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { useFatehanTheme } from '../context/FatehanThemeContext';
 import { formatToman, formatPersianNumber } from '../utils/formatters';
 import { BiDiText } from '../ui/BiDiText';
+import { RoboticsBlueprintGrid, AutonomousRoverVector } from '../ui/RoboticsVisualAccents';
 import { CustomerSavedAddress } from '../types';
 import { RichFormattedContent } from '../utils/RichFormattedContent';
 import {
@@ -573,7 +574,7 @@ export const BlogRoutesPage: React.FC = () => {
   return (
     <div className="py-5 space-y-6">
       {/* 1. YAHOO-STYLE BREAKING NEWS & TICKER BAR */}
-      <div className="bg-slate-900 text-white rounded-2xl px-4 py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 border border-slate-800 shadow-sm">
+      <div className="bg-gradient-to-l from-[#0B2255] via-[#133A8A] to-[#0B2255] text-white rounded-2xl px-4 py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 border border-sky-400/30 shadow-sm">
         <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-600 text-white text-[11px] font-black shrink-0 animate-pulse">
             <span>🔴 سرخط خبرها</span>
@@ -611,8 +612,13 @@ export const BlogRoutesPage: React.FC = () => {
       </div>
 
       {/* 2. YAHOO PORTAL MASTHEAD, SEARCH & CATEGORY NAVIGATION PILLS */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-xs space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="relative overflow-hidden bg-gradient-to-bl from-white via-[#F4F9FF] to-[#E6F1FF] border-2 border-blue-200/90 rounded-3xl p-5 sm:p-6 shadow-[0_16px_40px_-24px_rgba(29,78,216,0.24)] space-y-5">
+        <RoboticsBlueprintGrid variant="light" className="opacity-65" />
+        <AutonomousRoverVector
+          variant="light"
+          className="hidden xl:block absolute -top-2 left-80 w-36 h-24 opacity-25"
+        />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-black">
               <BookOpen className="w-3.5 h-3.5" />

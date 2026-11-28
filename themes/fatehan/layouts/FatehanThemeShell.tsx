@@ -47,7 +47,7 @@ export const FatehanThemeShell: React.FC = () => {
       {/* Lazy-Loaded Global Storefront Drawers & Modals (only downloaded when opened) */}
       <Suspense fallback={null}>
         {isCartDrawerOpen && <CartDrawer />}
-        {Boolean(activeVideoModal) && <VideoLabModal />}
+        {Boolean(activeVideoModal?.open) && <VideoLabModal />}
         {isOtpModalOpen && <StoreOtpLoginModal />}
       </Suspense>
 

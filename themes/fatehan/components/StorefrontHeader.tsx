@@ -29,30 +29,30 @@ import {
   Check,
 } from 'lucide-react';
 
-function renderMenuIcon(icon?: CmsMenuItem['icon'], isActiveEmerald = false) {
+function renderMenuIcon(icon?: CmsMenuItem['icon'], isActive = false) {
   switch (icon) {
     case 'home':
-      return <Home className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+      return <Home className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-blue-600'}`} />;
     case 'sparkles':
-      return <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />;
+      return <Sparkles className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-amber-300' : 'text-amber-500'}`} />;
     case 'gift':
-      return <Gift className={`w-3.5 h-3.5 shrink-0 ${isActiveEmerald ? '' : 'text-emerald-600'}`} />;
+      return <Gift className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-emerald-600'}`} />;
     case 'store':
-      return <Store className="w-3.5 h-3.5 text-sky-600 shrink-0" />;
+      return <Store className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-sky-600'}`} />;
     case 'file-text':
-      return <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+      return <FileText className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-emerald-600'}`} />;
     case 'info':
-      return <Info className="w-3.5 h-3.5 text-indigo-600 shrink-0" />;
+      return <Info className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-indigo-600'}`} />;
     case 'map-pin':
-      return <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />;
+      return <MapPin className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-rose-500'}`} />;
     case 'compass':
-      return <Compass className="w-3.5 h-3.5 text-indigo-600 shrink-0" />;
+      return <Compass className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-indigo-600'}`} />;
     case 'phone':
-      return <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+      return <Phone className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-blue-600'}`} />;
     case 'credit-card':
-      return <CreditCard className="w-3.5 h-3.5 text-emerald-600 shrink-0" />;
+      return <CreditCard className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-emerald-600'}`} />;
     case 'user':
-      return <UserCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+      return <UserCheck className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-blue-600'}`} />;
     default:
       return null;
   }
@@ -132,9 +132,9 @@ export const StorefrontHeader: React.FC = () => {
 
   return (
     <>
-      <header className="no-print sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-sm text-slate-800 transition-all">
+      <header className="no-print sticky top-0 z-40 bg-white/92 backdrop-blur-md border-b border-blue-200/90 shadow-[0_8px_28px_-14px_rgba(37,99,235,0.22)] text-slate-800 transition-all">
         {/* Top Announcement Bar */}
-        <div className="bg-slate-900 text-white text-[11px] py-1.5 px-4 hidden sm:block">
+        <div className="bg-gradient-to-l from-[#0B2255] via-[#133A8A] to-[#0B2255] text-white text-[11px] py-1.5 px-4 hidden sm:block border-b border-sky-400/20">
           <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className="font-medium text-slate-200">
@@ -177,11 +177,119 @@ export const StorefrontHeader: React.FC = () => {
           </div>
         </div>
 
-        <div
-          className={`max-w-7xl mx-auto ${
-            isMobile ? 'px-3.5 py-2' : 'px-4 sm:px-6 py-2'
-          } flex items-center justify-between gap-2`}
-        >
+        {isMobile ? (
+          /* Mobile Zero-Crop 2-Row Header: Row 1 = Compact Brand + Bell + Prominent Menu; Row 2 = Balanced Account & Cart */
+          <div className="px-3 py-2 space-y-2">
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              {/* Right Side: Compact Frameless Logo + Academy Title */}
+              <div className="relative flex items-center gap-1.5 min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => navigateStore('/')}
+                  className="text-right cursor-pointer focus:outline-none bg-transparent border-0 p-0 min-w-0"
+                >
+                  <FatehanLogo
+                    customSizePx={Math.min(headerLogoSizePx, 46)}
+                    size="xs"
+                    variant="compact"
+                  />
+                </button>
+              </div>
+
+              {/* Left Side: Notification Bell (Badge Cleanly In-Bounds) + Prominent Unmistakable Menu Button */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setBellModalOpen(true)}
+                  aria-label={`اطلاعیه‌ها و پیام‌های ${settings.academyNameFa}`}
+                  title={`اطلاعیه‌ها و پیام‌های ${settings.academyNameFa}`}
+                  className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                    personalMentionsCount > 0
+                      ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 shadow-xs'
+                      : 'bg-slate-50 hover:bg-cyan-50 text-slate-700 hover:text-cyan-800 border-slate-200'
+                  }`}
+                >
+                  <Bell className="w-4 h-4 text-amber-500 dpa-bell-shake shrink-0" />
+                  {visibleAnnouncements.length > 0 && (
+                    <span
+                      className={`absolute -top-1 -right-1 min-w-[16px] h-4 px-1 text-[9px] font-mono font-black rounded-full flex items-center justify-center leading-none border border-white ${
+                        personalMentionsCount > 0
+                          ? 'bg-rose-600 text-white animate-pulse'
+                          : 'bg-blue-600 text-white'
+                      }`}
+                    >
+                      {formatPersianNumber(visibleAnnouncements.length)}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  aria-label={mobileMenuOpen ? 'بستن منوی ناوبری' : 'باز کردن منوی ناوبری'}
+                  aria-expanded={mobileMenuOpen}
+                  onClick={() => setMobileMenuOpen((prev) => !prev)}
+                  className={`h-9 px-3 rounded-xl font-black text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 transition-all shadow-sm ${
+                    mobileMenuOpen
+                      ? 'bg-slate-900 text-white shadow-slate-900/20'
+                      : 'bg-gradient-to-l from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-600/25'
+                  }`}
+                >
+                  {mobileMenuOpen ? <X className="w-4 h-4 shrink-0" /> : <Menu className="w-4 h-4 shrink-0" />}
+                  <span className="leading-none">{mobileMenuOpen ? 'بستن' : 'منو'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Row 2: Balanced Full-Width Quick Action Bar (Zero Horizontal Overflow) */}
+            <div className="flex items-center gap-1.5 pt-1.5 border-t border-cyan-100/80">
+              {canAccessAdmin && openAdminPanel && (
+                <button
+                  type="button"
+                  onClick={() => openAdminPanel()}
+                  className="inline-flex items-center justify-center gap-1 px-2.5 h-8 rounded-xl text-[11px] font-extrabold cursor-pointer whitespace-nowrap border bg-slate-900 hover:bg-blue-700 text-amber-300 border-slate-800 shadow-xs shrink-0"
+                  title="ورود به پنل مدیریت CMS"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                  <span>مدیریت</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => navigateStore('/my-account')}
+                className={`flex-1 h-8 inline-flex items-center justify-center gap-1.5 px-2.5 rounded-xl text-[11px] font-extrabold cursor-pointer whitespace-nowrap border transition-all min-w-0 ${
+                  loggedInCustomer
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600 shadow-xs'
+                    : storePath.startsWith('/my-account')
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-slate-100/90 hover:bg-slate-200/80 text-slate-700 border-slate-200'
+                }`}
+              >
+                {loggedInCustomer ? (
+                  <UserCheck className="w-3.5 h-3.5 shrink-0 text-white" />
+                ) : (
+                  <User className="w-3.5 h-3.5 shrink-0 text-slate-600" />
+                )}
+                <span className="truncate">
+                  {loggedInCustomer ? 'پنل کاربری' : 'ورود / ثبت‌نام'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigateStore('/cart')}
+                className="flex-1 h-8 inline-flex items-center justify-center gap-1.5 px-2.5 rounded-xl bg-gradient-to-l from-blue-700 via-blue-600 to-indigo-700 hover:from-blue-600 hover:to-blue-500 text-white text-[11px] font-bold shadow-sm shadow-blue-700/20 transition-all cursor-pointer whitespace-nowrap min-w-0"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                <span>سبد خرید</span>
+                <span className="px-1.5 py-0.5 text-[10px] font-mono font-extrabold bg-amber-400 text-slate-950 rounded-md leading-none">
+                  {formatPersianNumber(totalCartCount)}
+                </span>
+              </button>
+            </div>
+          </div>
+        ) : (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-2">
           {/* Zone 1: Frameless Official Logo + Live Draggable Size Slider Toolbar */}
           <div className="relative flex items-center gap-2 shrink-0">
             <button
@@ -190,9 +298,9 @@ export const StorefrontHeader: React.FC = () => {
               className="text-right cursor-pointer focus:outline-none bg-transparent border-0 p-0"
             >
               <FatehanLogo
-                customSizePx={isMobile ? Math.min(headerLogoSizePx, 84) : headerLogoSizePx}
-                size={isMobile ? 'sm' : 'lg'}
-                variant={isMobile ? 'compact' : 'full'}
+                customSizePx={headerLogoSizePx}
+                size="lg"
+                variant="full"
               />
             </button>
 
@@ -307,35 +415,33 @@ export const StorefrontHeader: React.FC = () => {
           </div>
 
           {/* Zone 2: Dynamic Navigation Menu from CMS v2.0.0 Menus API */}
-          {!isMobile && (
-            <nav className="hidden lg:flex items-center justify-center gap-1 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 text-xs font-bold text-slate-700 shrink-0">
-              {state.headerMenu.map((item) => {
-                const active = isMenuItemActive(item);
-                const isEmerald = item.variant === 'highlight-emerald';
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => navigateStore(item.path)}
-                    className={`inline-flex items-center gap-1.5 py-2 px-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                      isEmerald
-                        ? active
-                          ? 'bg-emerald-600 text-white font-extrabold shadow-xs'
-                          : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/80'
-                        : active
-                        ? 'bg-white text-blue-700 font-extrabold shadow-xs border border-blue-100'
-                        : 'hover:bg-white/80 hover:text-blue-600'
-                    }`}
-                  >
-                    {renderMenuIcon(item.icon, isEmerald && active)}
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          )}
+          <nav className="hidden lg:flex items-center justify-center gap-1 bg-cyan-50/70 p-1.5 rounded-2xl border border-cyan-200/70 text-xs font-bold text-slate-700 shrink-0 shadow-2xs">
+            {state.headerMenu.map((item) => {
+              const active = isMenuItemActive(item);
+              const isEmerald = item.variant === 'highlight-emerald';
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => navigateStore(item.path)}
+                  className={`inline-flex items-center gap-1.5 py-2 px-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    isEmerald
+                      ? active
+                        ? 'bg-emerald-600 text-white font-extrabold shadow-xs'
+                        : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/80'
+                      : active
+                      ? 'bg-gradient-to-l from-blue-600 to-indigo-600 text-white font-extrabold shadow-sm shadow-blue-600/25 border border-blue-600'
+                      : 'hover:bg-white/95 hover:text-blue-700'
+                  }`}
+                >
+                  {renderMenuIcon(item.icon, (isEmerald && active) || active)}
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-          {/* Zone 3: Unified Left Action Cluster — Account + Compact Bell + Cart */}
+          {/* Zone 3: Unified Left Action Cluster — Account + Compact Bell + Cart + Tablet Menu */}
           <div className="flex items-center gap-1.5 shrink-0">
             <div className="flex flex-col items-stretch gap-1.5 shrink-0">
               <div className="flex items-center gap-1.5">
@@ -413,7 +519,7 @@ export const StorefrontHeader: React.FC = () => {
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={() => navigateStore('/cart')}
-                className="relative inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-blue-600 text-white text-[11px] font-bold transition-colors cursor-pointer whitespace-nowrap"
+                className="relative inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-l from-blue-700 via-blue-600 to-indigo-700 hover:from-blue-600 hover:to-blue-500 text-white text-[11px] font-bold shadow-sm shadow-blue-700/25 transition-all cursor-pointer whitespace-nowrap"
               >
                 <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
                 <span className="whitespace-nowrap">سبد خرید</span>
@@ -428,23 +534,27 @@ export const StorefrontHeader: React.FC = () => {
               </motion.button>
             </div>
 
-            {isMobile && (
-              <button
-                type="button"
-                aria-label={mobileMenuOpen ? 'بستن منوی ناوبری' : 'باز کردن منوی ناوبری'}
-                aria-expanded={mobileMenuOpen}
-                onClick={() => setMobileMenuOpen((prev) => !prev)}
-                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-slate-100 text-slate-800 cursor-pointer"
-              >
-                {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-              </button>
-            )}
+            <button
+              type="button"
+              aria-label={mobileMenuOpen ? 'بستن منوی ناوبری' : 'باز کردن منوی ناوبری'}
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className={`lg:hidden h-10 px-3 rounded-xl font-black text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 transition-all shadow-sm ${
+                mobileMenuOpen
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-gradient-to-l from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white'
+              }`}
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4 shrink-0" /> : <Menu className="w-4 h-4 shrink-0" />}
+              <span>{mobileMenuOpen ? 'بستن' : 'منو'}</span>
+            </button>
           </div>
         </div>
+        )}
 
-        {/* Mobile Dropdown Navigation (Driven by CMS Menus API) */}
-        {isMobile && mobileMenuOpen && (
-          <div className="px-3.5 pb-3 pt-1 bg-white border-t border-slate-100 grid grid-cols-2 gap-2 text-xs font-bold">
+        {/* Mobile / Tablet Dropdown Navigation (Driven by CMS Menus API) */}
+        {(isMobile || viewportMode === 'tablet') && mobileMenuOpen && (
+          <div className="px-3.5 pb-3 pt-2 bg-white border-t border-cyan-100 grid grid-cols-2 gap-2 text-xs font-bold shadow-lg">
             {state.headerMenu.map((item) => (
               <button
                 key={item.id}

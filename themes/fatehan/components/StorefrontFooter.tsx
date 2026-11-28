@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useFatehanTheme } from '../context/FatehanThemeContext';
 import { FatehanLogo } from '../ui/FatehanLogo';
 import { DEFAULT_TYPOGRAPHY_CONFIG } from '../utils/defaultFallbacks';
+import { RoboticsBlueprintGrid, RoboticArmVector } from '../ui/RoboticsVisualAccents';
 import { ShieldCheck, Award, X, ExternalLink, Instagram, Send } from 'lucide-react';
 
 function extractEnamadHref(rawHtml: string): string {
@@ -49,15 +50,20 @@ export const StorefrontFooter: React.FC = () => {
   return (
     <>
       <footer className="no-print mt-10 w-full text-right select-none">
-        {/* Main Clean & Modern Footer Card */}
-        <div className="bg-white rounded-[2rem] border border-slate-200/90 px-6 py-7 sm:px-9 sm:py-8 shadow-2xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        {/* Main Clean & Modern Robotics Blue Footer Card */}
+        <div className="relative overflow-hidden bg-gradient-to-bl from-white via-[#F1F7FF] to-[#DFEEFF] rounded-[2rem] border border-blue-200/95 px-6 py-7 sm:px-9 sm:py-8 shadow-[0_18px_45px_-24px_rgba(29,78,216,0.28)] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <RoboticsBlueprintGrid variant="light" className="opacity-65" />
+          <RoboticArmVector
+            variant="light"
+            className="hidden xl:block absolute -bottom-6 left-64 w-36 h-36 opacity-20"
+          />
           {/* Right Side: Brand, Minimal Description & Dynamic Footer Menu */}
-          <div className="space-y-3.5 max-w-2xl">
+          <div className="relative z-10 space-y-3.5 max-w-2xl">
             <div className="flex flex-wrap items-center gap-3">
               <div onClick={() => handleNav('/')} className="cursor-pointer">
                 <FatehanLogo size="md" theme="light" variant="full" showSubtitle={false} />
               </div>
-              <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200/70 text-[11px] font-black whitespace-nowrap">
+              <span className="px-3 py-1 rounded-full bg-blue-600/10 text-blue-800 border border-blue-300/80 text-[11px] font-black whitespace-nowrap">
                 {settings.taglinePrimary}
               </span>
             </div>
@@ -71,7 +77,7 @@ export const StorefrontFooter: React.FC = () => {
                   key={item.id || item.path}
                   type="button"
                   onClick={() => handleNav(item.path)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100/80 hover:bg-blue-50 text-slate-700 hover:text-blue-700 transition-colors cursor-pointer whitespace-nowrap"
+                  className="px-3 py-1.5 rounded-xl bg-white/85 hover:bg-blue-600 text-blue-900 hover:text-white border border-blue-200/80 hover:border-blue-600 transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
                 >
                   {item.label}
                 </button>
@@ -123,7 +129,7 @@ export const StorefrontFooter: React.FC = () => {
           </div>
 
           {/* Left Side: Smart eNamad & Official License Slots */}
-          <div className="w-full lg:w-auto flex flex-wrap items-center justify-center lg:justify-end gap-3 shrink-0">
+          <div className="relative z-10 w-full lg:w-auto flex flex-wrap items-center justify-center lg:justify-end gap-3 shrink-0">
             {enamadUseCustomImage && enamadCustomImageUrl ? (
               <a
                 href={extractedEnamadUrl || '#'}

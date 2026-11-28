@@ -1378,7 +1378,11 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({
           )}
 
           {section === 'mod_academy_suite' && (
-            <AcademySuiteAdminPanel onNotice={showNotice} />
+            <AcademySuiteAdminPanel
+              onNotice={showNotice}
+              mediaItems={mediaItems}
+              onSaveMediaItem={onSaveMediaItem}
+            />
           )}
 
           {section === 'mod_delivery_logs' && (

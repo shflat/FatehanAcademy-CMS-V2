@@ -17,7 +17,7 @@ export const DesktopLayout: React.FC = () => {
   useAutoScrollReveal(storePath);
 
   return (
-    <div className="viewport-desktop min-h-screen bg-[#F4F7FE] text-slate-900 selection:bg-blue-600 selection:text-white flex flex-col justify-between">
+    <div className="viewport-desktop fatehan-blue-canvas min-h-screen text-slate-900 selection:bg-blue-600 selection:text-white flex flex-col justify-between">
       <SmoothScrollProgressBar />
       <StorefrontHeader />
       <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-12 flex-1">

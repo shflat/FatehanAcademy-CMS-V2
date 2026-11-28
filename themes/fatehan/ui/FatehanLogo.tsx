@@ -82,12 +82,16 @@ export const FatehanLogo: React.FC<FatehanLogoProps> = ({
   const cfg = SIZE_STYLES[size];
 
   const rawLogoSrc = logoUrlOverride || settings.logoUrl || DEFAULT_LOGO_FALLBACK;
-  const optimizedLogoSrc = getResponsiveImageVariant(rawLogoSrc, 'thumb-300');
   const titleFa = titleOverride || settings.academyNameFa;
   const subtitleEn = subtitleOverride || settings.academyNameEn;
   const cityLabel = settings.location.city || 'اندیشه';
   const hasCustomPx = typeof customSizePx === 'number' && Number.isFinite(customSizePx);
   const intrinsicPx = hasCustomPx ? Math.round(customSizePx) : cfg.px;
+  const isDefaultLogo = rawLogoSrc.includes('logo_8c26749f');
+  const optimizedLogoSrc =
+    isDefaultLogo && intrinsicPx <= 120
+      ? '/assets/aistudio/logo_8c26749f-header-144.webp'
+      : getResponsiveImageVariant(rawLogoSrc, 'thumb-300');
 
   return (
     <div className={`inline-flex items-center ${cfg.gap} select-none whitespace-nowrap ${className}`}>

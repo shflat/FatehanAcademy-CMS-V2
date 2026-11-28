@@ -11,6 +11,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFatehanTheme } from '../context/FatehanThemeContext';
 import { FatehanLogo } from '../ui/FatehanLogo';
+import {
+  RoboticsBlueprintGrid,
+  RoboticArmVector,
+  AutonomousRoverVector,
+  HeroEmblemOrbitalHalo,
+  RoboticsCircuitDivider,
+  CuteBotMascotVector,
+} from '../ui/RoboticsVisualAccents';
 import { formatPersianNumber, formatToman } from '../utils/formatters';
 import {
   DEFAULT_FALLBACK_COURSES,
@@ -160,6 +168,7 @@ export const FatehanStorefrontHome: React.FC = () => {
   const deptDetailRef = useRef<HTMLDivElement | null>(null);
   const mobileTopThumbRailRef = useRef<HTMLDivElement | null>(null);
   const mobileDetailThumbRailRef = useRef<HTMLDivElement | null>(null);
+  const didMountDeptRef = useRef<boolean>(false);
 
   const centerMobileThumbRail = (rail: HTMLDivElement | null, deptId: string) => {
     if (!rail) return;
@@ -174,6 +183,10 @@ export const FatehanStorefrontHome: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!didMountDeptRef.current) {
+      didMountDeptRef.current = true;
+      return;
+    }
     const timer = window.setTimeout(() => {
       centerMobileThumbRail(mobileTopThumbRailRef.current, activeDepartment);
       centerMobileThumbRail(mobileDetailThumbRailRef.current, activeDepartment);
@@ -672,11 +685,16 @@ export const FatehanStorefrontHome: React.FC = () => {
           1. HERO SECTION: CLEAN, SPACIOUS, FOCUSED ACADEMY INTRODUCTION
           ===================================================================== */}
       {!heroBlk?.desktopHidden && (
-      <section className="relative rounded-3xl overflow-hidden bg-gradient-to-b from-blue-50/70 via-indigo-50/25 to-white border border-blue-200/80 p-6 sm:p-10 lg:p-12 shadow-sm">
+      <section className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#F4FBFD] via-[#F9FDFE] to-[#FFFFFF] border border-cyan-200/70 p-6 sm:p-10 lg:p-12 shadow-[0_18px_44px_-24px_rgba(8,145,178,0.13)]">
         
-        {/* Soft Ambient Colorful Lighting */}
-        <div className="absolute top-0 right-10 w-80 h-80 bg-blue-300/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-10 w-80 h-80 bg-amber-300/15 rounded-full blur-3xl pointer-events-none" />
+        {/* Blueprint Engineering Circuit Grid + Ambient Whisper-Turquoise Glows */}
+        <RoboticsBlueprintGrid variant="light" className="opacity-40" />
+        <div className="absolute -top-12 right-6 w-96 h-96 bg-cyan-400/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-6 w-80 h-80 bg-blue-400/5 rounded-full blur-3xl pointer-events-none" />
+        <RoboticArmVector
+          variant="light"
+          className="absolute -bottom-5 right-2 sm:right-5 w-32 h-32 sm:w-44 sm:h-44 opacity-25 sm:opacity-35"
+        />
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
@@ -766,10 +784,10 @@ export const FatehanStorefrontHome: React.FC = () => {
 
               <a
                 href="#contact"
-                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 font-bold text-xs sm:text-sm transition-all hover:border-blue-400 cursor-pointer min-h-[46px] shadow-2xs whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-white/95 hover:bg-blue-600 text-blue-900 hover:text-white border-2 border-blue-300/90 hover:border-blue-600 font-extrabold text-xs sm:text-sm transition-all cursor-pointer min-h-[46px] shadow-xs group whitespace-nowrap"
               >
                 <span>{heroBlk?.ctaPrimary || 'مشاوره رایگان و ثبت‌نام'}</span>
-                <ArrowLeft className="w-4 h-4 shrink-0 text-blue-600" />
+                <ArrowLeft className="w-4 h-4 shrink-0 text-blue-600 group-hover:text-white transition-colors" />
               </a>
             </div>
 
@@ -802,15 +820,20 @@ export const FatehanStorefrontHome: React.FC = () => {
             </motion.button>
 
             {/* Central Official 3D Metallic Logo Card */}
-            <div className="relative w-full max-w-[385px] bg-white rounded-3xl p-6 sm:p-7 border-2 border-blue-200 shadow-lg text-center overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-blue-50/50 via-transparent to-amber-50/30 pointer-events-none" />
+            <div className="relative w-full max-w-[385px] bg-gradient-to-b from-white via-[#FBFDFE] to-[#F5FBFE] rounded-3xl p-5 sm:p-7 border border-cyan-200/80 shadow-[0_18px_44px_-18px_rgba(8,145,178,0.14)] text-center overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-cyan-200/8 via-transparent to-sky-200/6 pointer-events-none" />
+              <div className="absolute top-0 inset-x-8 h-1.5 rounded-b-full bg-gradient-to-l from-cyan-500 via-teal-400 to-blue-600 pointer-events-none" />
               
-              {/* Subtle Static Gear Backdrop */}
-              <Cog className="w-44 h-44 absolute -top-12 -right-12 text-blue-100/65 pointer-events-none" />
+              {/* Friendly Floating Robotics Mascot Badge on Top-Right */}
+              <CuteBotMascotVector className="absolute top-2.5 right-2.5 w-14 h-14 sm:w-16 sm:h-16 drop-shadow-md z-10" />
 
-              {/* Official Fatehan 3D Metallic Emblem */}
+              {/* Subtle Static Gear Backdrop */}
+              <Cog className="w-44 h-44 absolute -top-12 -right-12 text-cyan-200/65 pointer-events-none" />
+
+              {/* Official Fatehan 3D Metallic Emblem + Orbital CAD Servo Halo */}
               <div className="relative z-10 flex flex-col items-center">
-                <div className="relative w-44 sm:w-52 h-44 sm:h-52 mb-3 flex items-center justify-center">
+                <div className="relative w-44 sm:w-56 h-44 sm:h-56 mb-3 flex items-center justify-center p-3">
+                  <HeroEmblemOrbitalHalo />
                   <img
                     src={getResponsiveImageVariant(settings.logoUrl, 'thumb-300')}
                     srcSet={getResponsiveSrcSet(settings.logoUrl)}
@@ -827,7 +850,7 @@ export const FatehanStorefrontHome: React.FC = () => {
                       target.srcset = '';
                       target.src = settings.logoUrl || '/assets/aistudio/logo_8c26749f.webp';
                     }}
-                    className="w-full h-full object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300"
+                    className="relative z-10 w-full h-full object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300"
                   />
                 </div>
 
@@ -835,32 +858,35 @@ export const FatehanStorefrontHome: React.FC = () => {
                   <h2 className="text-base sm:text-lg font-black text-slate-900">
                     آموزشگاه تخصصی رباتیک فاتحان
                   </h2>
-                  <p className="text-xs text-blue-700 font-bold">
+                  <p className="text-xs text-cyan-800 font-bold">
                     مجوز رسمی و مجهزترین کارگاه‌های تخصصی در اندیشه
                   </p>
                 </div>
 
-                {/* Bottom Card Footer: Status on Right + Social Channels on Left */}
-                <div className="mt-4 pt-3 border-t border-slate-100 w-full flex items-center justify-between gap-3 text-xs text-slate-500">
+                {/* Bottom Card Footer: Mobile-Safe Stacked / Desktop Split (Zero Left-Edge Clipping) */}
+                <div className="mt-4 pt-3 border-t border-cyan-200/70 w-full flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500">
                   <span className="inline-flex items-center gap-1.5 shrink-0">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                     <span className="font-bold text-slate-700 text-[11px] whitespace-nowrap">پذیرش ترم جدید فعال</span>
                   </span>
 
-                  {/* Left-Aligned Social Channels (uniform pixel-aligned rows & accessible touch spacing) */}
-                  <div className="flex flex-col items-stretch gap-1 text-left shrink-0" dir="ltr">
+                  {/* Social Channels: Wrap cleanly inside card on mobile, left-aligned column on sm+ */}
+                  <div
+                    className="w-full sm:w-auto flex flex-wrap sm:flex-col items-center sm:items-stretch justify-center gap-1.5 sm:gap-1 text-left"
+                    dir="ltr"
+                  >
                     {igHandle && (
                       <a
                         href={igUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 min-h-[28px] px-2 py-1 rounded-lg hover:bg-blue-50/80 font-mono text-[11px] font-bold text-blue-600 hover:text-pink-600 transition-colors"
+                        className="inline-flex items-center gap-1.5 min-h-[28px] px-2.5 py-1 rounded-lg bg-white/75 sm:bg-transparent hover:bg-cyan-50/90 border border-cyan-100/80 sm:border-transparent font-mono text-[11px] font-bold text-blue-700 hover:text-pink-600 transition-colors max-w-full"
                         title="صفحه رسمی اینستاگرام"
                       >
                         <span className="w-4 h-4 rounded-md bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 text-white inline-flex items-center justify-center shrink-0 shadow-2xs">
                           <Instagram className="w-2.5 h-2.5" />
                         </span>
-                        <span className="leading-none">@{igHandle}</span>
+                        <span className="leading-none truncate">@{igHandle}</span>
                       </a>
                     )}
 
@@ -869,7 +895,7 @@ export const FatehanStorefrontHome: React.FC = () => {
                         href={eitaaUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 min-h-[28px] px-2 py-1 rounded-lg hover:bg-orange-50/80 font-mono text-[11px] font-bold text-orange-600 hover:text-orange-700 transition-colors"
+                        className="inline-flex items-center gap-1.5 min-h-[28px] px-2.5 py-1 rounded-lg bg-white/75 sm:bg-transparent hover:bg-orange-50/90 border border-orange-100/80 sm:border-transparent font-mono text-[11px] font-bold text-orange-600 hover:text-orange-700 transition-colors max-w-full"
                         title="کانال رسمی ایتا آموزشگاه فاتحان"
                       >
                         {eitaaLogoUrl ? (
@@ -887,7 +913,7 @@ export const FatehanStorefrontHome: React.FC = () => {
                             <Send className="w-2.5 h-2.5" />
                           </span>
                         )}
-                        <span className="leading-none">{eitaaHandle}</span>
+                        <span className="leading-none truncate">{eitaaHandle}</span>
                       </a>
                     )}
 
@@ -896,13 +922,13 @@ export const FatehanStorefrontHome: React.FC = () => {
                         href={baleUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 min-h-[28px] px-2 py-1 rounded-lg hover:bg-emerald-50/80 font-mono text-[11px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+                        className="inline-flex items-center gap-1.5 min-h-[28px] px-2.5 py-1 rounded-lg bg-white/75 sm:bg-transparent hover:bg-emerald-50/90 border border-emerald-100/80 sm:border-transparent font-mono text-[11px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors max-w-full"
                         title="کانال رسمی بله"
                       >
                         <span className="w-4 h-4 rounded-md bg-emerald-500 text-white inline-flex items-center justify-center shrink-0 shadow-2xs">
                           <Send className="w-2.5 h-2.5" />
                         </span>
-                        <span className="leading-none">{baleHandle}</span>
+                        <span className="leading-none truncate">{baleHandle}</span>
                       </a>
                     )}
                   </div>
@@ -967,10 +993,11 @@ export const FatehanStorefrontHome: React.FC = () => {
             return (
               <div
                 key={idx}
-                className={`bg-white rounded-3xl p-4 sm:p-6 border ${stat.borderColor} shadow-2xs transition-all flex flex-col justify-between gap-3 text-right`}
+                className={`relative overflow-hidden bg-gradient-to-b from-white via-[#F9FBFF] to-[#EEF5FF] rounded-3xl p-4 sm:p-6 border ${stat.borderColor} shadow-[0_12px_28px_-18px_rgba(29,78,216,0.28)] hover:shadow-[0_18px_36px_-16px_rgba(37,99,235,0.32)] hover:-translate-y-0.5 transition-all flex flex-col justify-between gap-3 text-right`}
               >
+                <div className="absolute top-0 inset-x-5 h-0.5 bg-gradient-to-l from-blue-600/75 via-sky-400/75 to-transparent rounded-full pointer-events-none" />
                 <div className="flex items-center justify-between gap-2">
-                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${stat.iconBg} flex items-center justify-center shrink-0`}>
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${stat.iconBg} ring-1 ring-blue-200/60 flex items-center justify-center shrink-0`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className={`text-2xl sm:text-3xl font-black ${stat.valueColor}`} dir="ltr">
@@ -990,6 +1017,8 @@ export const FatehanStorefrontHome: React.FC = () => {
           })}
         </div>
       </section>
+
+      <RoboticsCircuitDivider />
 
       {/* =====================================================================
           2. FIVE CORE DEPARTMENTS — INTERACTIVE FANNED CARD DECK ("ورق‌مانند") + UNIFIED SHOWCASE
@@ -1013,11 +1042,12 @@ export const FatehanStorefrontHome: React.FC = () => {
           onMouseEnter={() => setIsDeptHovered(true)}
           onMouseLeave={() => setIsDeptHovered(false)}
           style={{
-            borderColor: `${activeDeptData.accentColor}45`,
-            boxShadow: `0 24px 60px -20px ${activeDeptData.accentColor}22`,
+            borderColor: `${activeDeptData.accentColor}55`,
+            boxShadow: `0 24px 60px -20px ${activeDeptData.accentColor}26`,
           }}
-          className="bg-gradient-to-b from-slate-50/90 via-white to-slate-50/80 rounded-[32px] border-2 p-4 sm:p-7 lg:p-9 transition-colors duration-500 relative overflow-hidden"
+          className="bg-gradient-to-b from-[#EBF4FF]/95 via-white to-[#EEF6FF]/95 rounded-[32px] border-2 p-4 sm:p-7 lg:p-9 transition-colors duration-500 relative overflow-hidden"
         >
+          <RoboticsBlueprintGrid variant="light" className="opacity-55" />
           {/* Ambient Background Glow matching Active Card */}
           <div
             className="w-96 h-96 rounded-full blur-3xl absolute -top-28 -right-28 pointer-events-none opacity-25 transition-colors duration-500"
@@ -1508,7 +1538,12 @@ export const FatehanStorefrontHome: React.FC = () => {
           ===================================================================== */}
       {!freeBlk?.desktopHidden && (
       <section id="free-courses-strip" className="space-y-5">
-        <div className="bg-gradient-to-l from-cyan-950 via-blue-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-cyan-500/30 shadow-xl space-y-6 overflow-hidden relative">
+        <div className="bg-gradient-to-l from-[#082259] via-[#123D94] to-[#0A255E] rounded-3xl p-6 sm:p-8 text-white border border-sky-400/40 shadow-[0_24px_56px_-20px_rgba(14,50,130,0.48)] space-y-6 overflow-hidden relative">
+          <RoboticsBlueprintGrid variant="dark" className="opacity-85" />
+          <AutonomousRoverVector
+            variant="dark"
+            className="hidden lg:block absolute -top-2 left-56 w-44 h-28 opacity-40"
+          />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
             <div className="space-y-1.5">
               <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black">
@@ -1533,18 +1568,20 @@ export const FatehanStorefrontHome: React.FC = () => {
             </button>
           </div>
 
-          {/* Horizontal Scrollable / Auto-Animated Cards Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+          {/* Pure Silky Fade-In Cards Row (Zero Horizontal Slide Jitter / No Double Observer Conflict) */}
+          <div
+            data-no-scroll-reveal="true"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10"
+          >
             {freeCoursesList.map((fc: any, idx: number) => (
               <motion.div
                 key={fc.id || idx}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: false, amount: 0.2 }}
-                transition={{ duration: 0.35, delay: idx * 0.07 }}
-                whileHover={{ y: -4 }}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{ duration: 0.65, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
                 onClick={() => navigateStore('/free-courses')}
-                className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-cyan-400/30 rounded-2xl p-4 flex flex-col justify-between cursor-pointer transition-all group"
+                className="bg-white/10 hover:bg-white/15 backdrop-blur-md border border-cyan-400/30 rounded-2xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:-translate-y-1 group"
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2 text-[10px]">
@@ -1626,7 +1663,7 @@ export const FatehanStorefrontHome: React.FC = () => {
           key={activeAgeGroup}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-200 shadow-sm space-y-6"
+          className="bg-gradient-to-b from-white via-[#F9FBFF] to-[#EEF5FF] rounded-3xl p-6 sm:p-8 border-2 border-blue-200/90 shadow-[0_18px_42px_-24px_rgba(29,78,216,0.24)] space-y-6"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
@@ -1676,8 +1713,13 @@ export const FatehanStorefrontHome: React.FC = () => {
         </motion.div>
 
         {/* SMART COURSE FINDER & TALENT QUIZ WIDGET */}
-        <div className="rounded-3xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 p-6 sm:p-10 text-white shadow-xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-l from-[#0C2C70] via-[#1545A6] to-[#1D4ED8] p-6 sm:p-10 text-white border border-sky-400/35 shadow-[0_24px_54px_-18px_rgba(29,78,216,0.45)]">
+          <RoboticsBlueprintGrid variant="dark" className="opacity-75" />
+          <RoboticArmVector
+            variant="dark"
+            className="hidden lg:block absolute -bottom-8 -right-4 w-44 h-44 opacity-25"
+          />
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
             <div className="lg:col-span-5 space-y-3">
               <span className="inline-block px-3 py-1 rounded-full bg-cyan-400/20 text-cyan-300 text-xs font-bold">
@@ -1772,7 +1814,7 @@ export const FatehanStorefrontHome: React.FC = () => {
           3.5 QUICK ACCESS UTILITIES STRIP (MOVED DOWN FROM HERO FOR CLEANER UX)
           ===================================================================== */}
       <section aria-label="دسترسی سریع به امکانات آموزشگاه" className="w-full">
-        <div className="bg-slate-50/90 border border-slate-200 rounded-3xl p-5 sm:p-6 space-y-4">
+        <div className="bg-gradient-to-l from-[#E8F2FF]/90 via-white to-[#EDF6FF]/95 border border-blue-200/90 rounded-3xl p-5 sm:p-6 space-y-4 shadow-[0_12px_32px_-20px_rgba(37,99,235,0.2)]">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h3 className="text-sm sm:text-base font-black text-slate-900">
@@ -1868,8 +1910,9 @@ export const FatehanStorefrontHome: React.FC = () => {
           ===================================================================== */}
       {!aboutBlk?.desktopHidden && (
       <section id="about-preview" className="w-full">
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-blue-100 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          <div className="lg:col-span-8 space-y-3 text-right">
+        <div className="relative overflow-hidden bg-gradient-to-bl from-white via-[#F4F9FF] to-[#E5F0FF] rounded-3xl p-6 sm:p-8 border-2 border-blue-200/95 shadow-[0_18px_44px_-24px_rgba(29,78,216,0.25)] grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <RoboticsBlueprintGrid variant="light" className="opacity-65" />
+          <div className="relative z-10 lg:col-span-8 space-y-3 text-right">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-black">
               <Building2 className="w-3.5 h-3.5" />
               <span>{aboutBlk?.highlightWord || state?.aboutPage?.heroBadge || 'درباره آموزشگاه تخصصی رباتیک فاتحان'}</span>
@@ -1925,10 +1968,15 @@ export const FatehanStorefrontHome: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-200 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="relative overflow-hidden bg-gradient-to-b from-white via-[#F7FBFF] to-[#ECF4FF] rounded-3xl p-6 sm:p-8 border-2 border-blue-200/95 shadow-[0_20px_48px_-24px_rgba(29,78,216,0.24)] grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <RoboticsBlueprintGrid variant="light" className="opacity-55" />
+          <AutonomousRoverVector
+            variant="light"
+            className="hidden xl:block absolute -top-2 left-4 w-36 h-24 opacity-35"
+          />
           
           {/* Simulator Grid (7 Cols) */}
-          <div className="lg:col-span-7 bg-slate-50 p-4 sm:p-6 rounded-3xl border border-slate-200">
+          <div className="relative z-10 lg:col-span-7 bg-blue-50/70 p-4 sm:p-6 rounded-3xl border border-blue-200/80">
             <div className="grid grid-cols-5 gap-2 sm:gap-3 max-w-[420px] mx-auto">
               {Array.from({ length: 4 }).map((_, y) =>
                 Array.from({ length: 5 }).map((_, x) => {
@@ -2161,7 +2209,7 @@ export const FatehanStorefrontHome: React.FC = () => {
             return (
               <div
                 key={prd.id}
-                className="bg-white rounded-3xl p-4 border border-slate-200 hover:border-blue-400 transition-all flex flex-col justify-between shadow-2xs hover:shadow-md"
+                className="bg-gradient-to-b from-white to-[#F4F9FF] rounded-3xl p-4 border border-blue-200/90 hover:border-blue-500 transition-all flex flex-col justify-between shadow-[0_10px_26px_-18px_rgba(29,78,216,0.28)] hover:shadow-[0_18px_36px_-16px_rgba(37,99,235,0.34)] hover:-translate-y-0.5"
               >
                 <div>
                   <div
@@ -2347,8 +2395,9 @@ export const FatehanStorefrontHome: React.FC = () => {
         </div>
 
         {/* Iconic Brush Quote Banner from Flyer */}
-        <div className="rounded-3xl bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 text-white p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
-          <div className="space-y-1">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-l from-[#0B2661] via-[#1545A6] to-[#1E40AF] text-white p-6 sm:p-8 border border-sky-400/35 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[0_20px_48px_-18px_rgba(29,78,216,0.45)]">
+          <RoboticsBlueprintGrid variant="dark" className="opacity-70" />
+          <div className="relative z-10 space-y-1">
             <div className="text-xs text-cyan-300 font-bold">شعار راهبردی آموزشگاه فاتحان:</div>
             <div className="text-lg sm:text-2xl font-black text-amber-400">
               {whyBlk?.subheading || '«رباتیک فقط یک رشته نیست... یک مهارت زندگی است»'}
@@ -2358,7 +2407,7 @@ export const FatehanStorefrontHome: React.FC = () => {
           <button
             type="button"
             onClick={() => navigateStore('/courses')}
-            className="px-6 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm whitespace-nowrap self-start sm:self-auto transition-all shadow-md cursor-pointer"
+            className="relative z-10 px-6 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm whitespace-nowrap self-start sm:self-auto transition-all shadow-md cursor-pointer"
           >
             {whyBlk?.ctaPrimary || 'شروع مسیر موفقیت فرزندتان'} ←
           </button>
@@ -2367,12 +2416,15 @@ export const FatehanStorefrontHome: React.FC = () => {
       </section>
       )}
 
+      <RoboticsCircuitDivider />
+
       {/* =====================================================================
           8. CONSULTATION BOOKING FORM & ANDISHEH CAMPUS CONTACT CARD (MATCHING IMAGE 1)
           ===================================================================== */}
       {!contactBlk?.desktopHidden && (
       <section id="contact" className="w-full">
-        <div className="bg-white rounded-[2.5rem] p-6 sm:p-10 border border-slate-200/90 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+        <div className="relative overflow-hidden bg-gradient-to-bl from-white via-[#F6FAFF] to-[#EBF4FF] rounded-[2.5rem] p-6 sm:p-10 border-2 border-blue-200/95 shadow-[0_20px_50px_-24px_rgba(29,78,216,0.25)] grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+          <RoboticsBlueprintGrid variant="light" className="opacity-55" />
           
           {/* Right Column in RTL: Booking Form (7 Cols) */}
           <div className="lg:col-span-7 flex flex-col justify-between space-y-5 text-right">
